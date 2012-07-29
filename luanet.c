@@ -85,9 +85,9 @@ struct luaconnection* createluaconnection()
 //connect to remote server,return a connection for future recv and send
 int luaConnect(lua_State *L)
 {
-	struct luaNetEngine *engine = (struct luaNetEngine*)lua_touserdata(L,-1);
-	const char *ip = lua_tostring(L,-2);
-	uint16_t port = (uint16_t)lua_tonumber(L,-3);
+	struct luaNetEngine *engine = (struct luaNetEngine*)lua_touserdata(L,1);
+	const char *ip = lua_tostring(L,2);
+	uint16_t port = (uint16_t)lua_tonumber(L,3);
 	struct sockaddr_in remote;
 	HANDLE sock;
 	sock = OpenSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -120,7 +120,7 @@ int luaConnect(lua_State *L)
 
 int luaCloseConnection(lua_State *L)
 {
-	struct luaconnection *c = lua_touserdata(L,-1);
+	struct luaconnection *c = lua_touserdata(L,1);
 	if(c)
 	{
 		ReleaseSocketWrapper(c->connection.socket);
@@ -143,32 +143,35 @@ void accept_callback(HANDLE s,void *ud)
 	c->engine = engine;
 	setNonblock(s);	
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-	msg->msgType = 3;
+	msg->msgType = 1;
 	msg->connection = c;
 	msg->packet = NULL;
 	LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
+	connection_recv((struct connection*)c);
 	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
-	connection_recv((struct connection*)c);	
+		
 }
 
 int luaCreateNet(lua_State *L)
 {
-	const char *ip = lua_tostring(L,-1);
-	uint16_t port = (uint16_t)lua_tonumber(L,-2);
+	const char *ip = lua_tostring(L,1);
+	uint16_t port = (uint16_t)lua_tonumber(L,2);
 	struct luaNetEngine *e = (struct luaNetEngine *)calloc(1,sizeof(*e));
 	e->msgqueue = LINK_LIST_CREATE();
 	e->_acceptor = create_acceptor(ip,port,&accept_callback,e);
+	e->engine = CreateEngine();
 	lua_pushlightuserdata(L,e);
 	return 1;
 }
 
 int luaPeekMsg(lua_State *L)
 {
-	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,-1);
-	uint32_t ms = lua_tonumber(L,-2);
+	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
+	uint32_t ms = lua_tonumber(L,2);
 	acceptor_run(engine->_acceptor,1);
-	if(link_list_is_empty(engine->msgqueue))
-		EngineRun(engine->engine,ms);
+	//if(link_list_is_empty(engine->msgqueue))
+	if(-1 == EngineRun(engine->engine,ms))
+			printf("error\n");
 	struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(engine->msgqueue);
 	if(msg)
 	{
@@ -178,14 +181,18 @@ int luaPeekMsg(lua_State *L)
 			lua_pushlightuserdata(L,msg->packet);
 		else
 			lua_pushnil(L);
+		free(msg);
 		return 3;
 	}
-	return 0;
+	lua_pushnil(L);
+	lua_pushnil(L);
+	lua_pushnil(L);
+	return 3;
 }
 
 int luaCreateWpacket(lua_State *L)
 {
-	rpacket_t r = lua_touserdata(L,-1);
+	rpacket_t r = lua_touserdata(L,1);
 	wpacket_t w;
 	if(r)
 		w = wpacket_create_by_rpacket(NULL,r);
@@ -200,22 +207,22 @@ int luaCreateWpacket(lua_State *L)
 
 int luaReleaseRpacket(lua_State *L)
 {
-	rpacket_t r = lua_touserdata(L,-1);
+	rpacket_t r = lua_touserdata(L,1);
 	rpacket_destroy(&r);
 	return 0;
 }
 
 int luaSendPacket(lua_State *L)
 {
-	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,-1);
-	wpacket_t w = (wpacket_t)lua_touserdata(L,-2);
+	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
+	wpacket_t w = (wpacket_t)lua_touserdata(L,2);
 	lua_pushnumber(L,connection_send(&(c->connection),w,0));
 	return 1;
 }
 
 int luaPacketReadString(lua_State *L)
 {
-	rpacket_t r = (rpacket_t)lua_touserdata(L,-1);
+	rpacket_t r = (rpacket_t)lua_touserdata(L,1);
 	const char *str = rpacket_read_string(r);
 	if(!str)
 		lua_pushnil(L);
@@ -234,5 +241,6 @@ void BindFunction(lua_State *lState)
     lua_register(lState,"ReleaseRpacket",&luaReleaseRpacket);
     lua_register(lState,"luaSendPacket",&luaSendPacket);
     lua_register(lState,"PacketReadString",&luaPacketReadString);
+    InitNetSystem();
     printf("load c function finish\n");    
 } 
