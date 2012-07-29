@@ -63,12 +63,21 @@ void on_process_packet(struct connection *c,rpacket_t r)
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
 
+void _on_disconnect(struct connection *c)
+{
+	struct luaconnection *con = (struct luaconnection *)c;
+	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+	msg->msgType = 2;
+	msg->connection = con;
+	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
+}
+
 struct luaconnection* createluaconnection()
 {
 	struct luaconnection *c = calloc(1,sizeof(*c));;
 	c->connection.send_list = LINK_LIST_CREATE();
 	c->connection._process_packet = on_process_packet;
-	c->connection._on_destroy = NULL;
+	c->connection._on_disconnect = _on_disconnect;
 	c->connection.next_recv_buf = 0;
 	c->connection.next_recv_pos = 0;
 	c->connection.unpack_buf = 0;
@@ -198,7 +207,7 @@ int luaCreateWpacket(lua_State *L)
 		w = wpacket_create_by_rpacket(NULL,r);
 	else
 	{
-		uint32_t size = lua_tonumber(L,-2);
+		uint32_t size = lua_tonumber(L,2);
 		w = wpacket_create(0,NULL,size,0);	
 	}
 	lua_pushlightuserdata(L,w);
@@ -239,7 +248,7 @@ void BindFunction(lua_State *lState)
     lua_register(lState,"PeekMsg",&luaPeekMsg);  
     lua_register(lState,"CreateWpacket",&luaCreateWpacket);  
     lua_register(lState,"ReleaseRpacket",&luaReleaseRpacket);
-    lua_register(lState,"luaSendPacket",&luaSendPacket);
+    lua_register(lState,"SendPacket",&luaSendPacket);
     lua_register(lState,"PacketReadString",&luaPacketReadString);
     InitNetSystem();
     printf("load c function finish\n");    
