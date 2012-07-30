@@ -13,6 +13,7 @@ function mainloop()
 				local msg = PacketReadString(rpacket)
 				print(msg)
 				ReleaseRpacket(rpacket)
+				--active close the connection
 				ActiveCloseConnection(connection)
 			elseif type == 2 then
 				print("disconnect")

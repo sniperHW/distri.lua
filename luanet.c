@@ -54,6 +54,7 @@ struct luaNetEngine
 {
 	HANDLE engine;
 	acceptor_t _acceptor;
+	connector_t _connector;
 	struct link_list *msgqueue;
 };
 
@@ -187,6 +188,22 @@ void accept_callback(HANDLE s,void *ud)
 		
 }
 
+void on_connect_callback(HANDLE s,const char *ip,int32_t port,void*ud)
+{
+	struct luaNetEngine *engine = (struct luaNetEngine *)ud;
+	struct luaconnection *c = createluaconnection();
+	c->connection.socket = s;
+	c->engine = engine;
+	setNonblock(s);	
+	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+	msg->msgType = 4;
+	msg->connection = c;
+	msg->packet = NULL;
+	LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
+	connection_start_recv((struct connection*)c);
+	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
+}
+
 int luaCreateNet(lua_State *L)
 {
 	const char *ip = lua_tostring(L,1);
@@ -194,6 +211,7 @@ int luaCreateNet(lua_State *L)
 	struct luaNetEngine *e = (struct luaNetEngine *)calloc(1,sizeof(*e));
 	e->msgqueue = LINK_LIST_CREATE();
 	e->_acceptor = create_acceptor(ip,port,&accept_callback,e);
+	e->_connector = connector_create();
 	e->engine = CreateEngine();
 	lua_pushlightuserdata(L,e);
 	return 1;
@@ -214,9 +232,10 @@ int luaPeekMsg(lua_State *L)
 	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
 	uint32_t ms = lua_tonumber(L,2);
 	acceptor_run(engine->_acceptor,1);
-	//if(link_list_is_empty(engine->msgqueue))
-	if(-1 == EngineRun(engine->engine,ms))
-			printf("error\n");
+	connector_run(engine->_connector,1);
+	if(link_list_is_empty(engine->msgqueue))
+		if(-1 == EngineRun(engine->engine,ms))
+				printf("error\n");
 	struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(engine->msgqueue);
 	if(msg)
 	{
@@ -276,6 +295,16 @@ int luaPacketReadString(lua_State *L)
 	return 1;
 }
 
+int luaAsynConnect(lua_State *L)
+{
+	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
+	const char *ip = lua_tostring(L,2);
+	uint16_t port = (uint16_t)lua_tonumber(L,3);
+	uint32_t timeout = lua_tonumber(L,4);
+	connector_connect(engine->_connector,ip,port,on_connect_callback,(void*)engine,timeout);	
+	return 0;
+}
+
 static void sig_int(int sig)
 {
 	recv_sigint = 1;
@@ -292,6 +321,7 @@ void BindFunction(lua_State *lState)
     lua_register(lState,"ReleaseRpacket",&luaReleaseRpacket);
     lua_register(lState,"SendPacket",&luaSendPacket);
     lua_register(lState,"PacketReadString",&luaPacketReadString);
+    lua_register(lState,"AsynConnect",&luaAsynConnect);
     InitNetSystem();
     signal(SIGINT,sig_int);
     printf("load c function finish\n");    
