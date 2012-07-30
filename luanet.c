@@ -27,6 +27,7 @@
 #include "Connector.h"
 #include "wpacket.h"
 #include <signal.h>
+#include "SysTime.h"
 
 uint32_t packet_recv = 0;
 uint32_t packet_send = 0;
@@ -85,6 +86,7 @@ void on_process_packet(struct connection *c,rpacket_t r)
 
 void _on_disconnect(struct connection *c,int32_t reason)
 {
+	printf("_on_disconnect\n");
 	struct luaconnection *con = (struct luaconnection *)c;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
 	msg->msgType = 2;
@@ -210,7 +212,8 @@ int luaCreateNet(lua_State *L)
 	uint16_t port = (uint16_t)lua_tonumber(L,2);
 	struct luaNetEngine *e = (struct luaNetEngine *)calloc(1,sizeof(*e));
 	e->msgqueue = LINK_LIST_CREATE();
-	e->_acceptor = create_acceptor(ip,port,&accept_callback,e);
+	if(ip)
+		e->_acceptor = create_acceptor(ip,port,&accept_callback,e);
 	e->_connector = connector_create();
 	e->engine = CreateEngine();
 	lua_pushlightuserdata(L,e);
@@ -231,7 +234,8 @@ int luaPeekMsg(lua_State *L)
 	
 	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
 	uint32_t ms = lua_tonumber(L,2);
-	acceptor_run(engine->_acceptor,1);
+	if(engine->_acceptor)
+		acceptor_run(engine->_acceptor,1);
 	connector_run(engine->_connector,1);
 	if(link_list_is_empty(engine->msgqueue))
 		if(-1 == EngineRun(engine->engine,ms))
@@ -263,7 +267,7 @@ int luaCreateWpacket(lua_State *L)
 	else
 	{
 		uint32_t size = lua_tonumber(L,2);
-		w = wpacket_create(0,NULL,size,0);	
+		w = wpacket_create(0,NULL,size,1);	
 	}
 	lua_pushlightuserdata(L,w);
 	return 1;
@@ -295,6 +299,30 @@ int luaPacketReadString(lua_State *L)
 	return 1;
 }
 
+int luaPacketWriteString(lua_State *L)
+{
+	wpacket_t w = (wpacket_t)lua_touserdata(L,1);
+	const char *str = lua_tostring(L,2);
+	wpacket_write_string(w,str);
+	return 0;
+}
+
+int luaPacketReadNumber(lua_State *L)
+{
+	rpacket_t r = (rpacket_t)lua_touserdata(L,1);
+	uint32_t val = rpacket_read_uint32(r);
+	lua_pushnumber(L,val);
+	return 1;
+}
+
+int luaPacketWriteNumber(lua_State *L)
+{
+	wpacket_t w = (wpacket_t)lua_touserdata(L,1);
+	uint32_t val = lua_tonumber(L,2);
+	wpacket_write_uint32(w,val);
+	return 0;
+}
+
 int luaAsynConnect(lua_State *L)
 {
 	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
@@ -305,9 +333,22 @@ int luaAsynConnect(lua_State *L)
 	return 0;
 }
 
+int luaGetSysTick(lua_State *L)
+{
+	lua_pushnumber(L,GetSystemMs());
+	return 1;
+}
+
 static void sig_int(int sig)
 {
 	recv_sigint = 1;
+}
+
+int luaGetHandle(lua_State *L)
+{
+	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
+	lua_pushnumber(L,c->connection.socket);
+	return 1;
 }
 
 void BindFunction(lua_State *lState)  
@@ -321,8 +362,14 @@ void BindFunction(lua_State *lState)
     lua_register(lState,"ReleaseRpacket",&luaReleaseRpacket);
     lua_register(lState,"SendPacket",&luaSendPacket);
     lua_register(lState,"PacketReadString",&luaPacketReadString);
+    lua_register(lState,"PacketWriteString",&luaPacketWriteString);    
     lua_register(lState,"AsynConnect",&luaAsynConnect);
+    lua_register(lState,"GetSysTick",&luaGetSysTick);
+    lua_register(lState,"PacketReadNumber",&luaPacketReadNumber);
+    lua_register(lState,"PacketWriteNumber",&luaPacketWriteNumber);
+    lua_register(lState,"GetHandle",&luaGetHandle);
     InitNetSystem();
     signal(SIGINT,sig_int);
+    signal(SIGPIPE,SIG_IGN);
     printf("load c function finish\n");    
 } 
