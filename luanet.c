@@ -26,6 +26,7 @@
 #include "Acceptor.h"
 #include "Connector.h"
 #include "wpacket.h"
+#include <signal.h>
 
 uint32_t packet_recv = 0;
 uint32_t packet_send = 0;
@@ -37,6 +38,8 @@ uint32_t bf_count = 0;
 uint32_t clientcount = 0;
 uint32_t last_send_tick = 0;
 uint32_t recv_count = 0;
+
+static uint16_t recv_sigint = 0;
 
 void BindFunction(lua_State *lState);  
 void RegisterNet(lua_State *L)  
@@ -79,7 +82,7 @@ void on_process_packet(struct connection *c,rpacket_t r)
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
 
-void _on_disconnect(struct connection *c)
+void _on_disconnect(struct connection *c,int32_t reason)
 {
 	struct luaconnection *con = (struct luaconnection *)c;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
@@ -143,7 +146,14 @@ int luaConnect(lua_State *L)
 	return 1;
 }
 
-int luaCloseConnection(lua_State *L)
+int luaActiveCloseConnection(lua_State *L)
+{
+	struct luaconnection *c = lua_touserdata(L,1);
+	connection_active_close((struct connection*)c);
+	return 0;
+}
+
+int luaReleaseConnection(lua_State *L)
 {
 	struct luaconnection *c = lua_touserdata(L,1);
 	if(c)
@@ -172,7 +182,7 @@ void accept_callback(HANDLE s,void *ud)
 	msg->connection = c;
 	msg->packet = NULL;
 	LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
-	connection_recv((struct connection*)c);
+	connection_start_recv((struct connection*)c);
 	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
 		
 }
@@ -191,6 +201,16 @@ int luaCreateNet(lua_State *L)
 
 int luaPeekMsg(lua_State *L)
 {
+	
+	if(recv_sigint)
+	{
+		recv_sigint = 0;
+		lua_pushnumber(L,-1);
+		lua_pushnil(L);
+		lua_pushnil(L);
+		return 3;
+	}
+	
 	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
 	uint32_t ms = lua_tonumber(L,2);
 	acceptor_run(engine->_acceptor,1);
@@ -256,10 +276,16 @@ int luaPacketReadString(lua_State *L)
 	return 1;
 }
 
+static void sig_int(int sig)
+{
+	recv_sigint = 1;
+}
+
 void BindFunction(lua_State *lState)  
 {  
-    lua_register(lState,"Connect",&luaConnect);  
-    lua_register(lState,"CloseConnection",&luaCloseConnection);  
+    lua_register(lState,"Connect",&luaConnect);
+    lua_register(lState,"ReleaseConnection",&luaReleaseConnection);   
+    lua_register(lState,"ActiveCloseConnection",&luaActiveCloseConnection);  
     lua_register(lState,"CreateNet",&luaCreateNet);  
     lua_register(lState,"PeekMsg",&luaPeekMsg);  
     lua_register(lState,"CreateWpacket",&luaCreateWpacket);  
@@ -267,5 +293,6 @@ void BindFunction(lua_State *lState)
     lua_register(lState,"SendPacket",&luaSendPacket);
     lua_register(lState,"PacketReadString",&luaPacketReadString);
     InitNetSystem();
+    signal(SIGINT,sig_int);
     printf("load c function finish\n");    
 } 

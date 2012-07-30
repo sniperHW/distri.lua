@@ -8,19 +8,22 @@ function mainloop()
 			if type == 1 then
 				print("a connection comming")
 			elseif type == 3 then
-				local wpkt = CreateWpacket(rpacket,0) 
-				SendPacket(connection,wpkt)
+				--local wpkt = CreateWpacket(rpacket,0) 
+				--SendPacket(connection,wpkt)
 				local msg = PacketReadString(rpacket)
 				print(msg)
 				ReleaseRpacket(rpacket)
+				ActiveCloseConnection(connection)
 			elseif type == 2 then
 				print("disconnect")
-				CloseConnection(connection)
+				ReleaseConnection(connection)
 			else
+				break
 			end
 		end
 		
 	end	
+	print("main loop end")
 end	
 
 mainloop()  
