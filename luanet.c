@@ -28,6 +28,8 @@
 #include "wpacket.h"
 #include <signal.h>
 #include "SysTime.h"
+#include "sync.h"
+#include "thread.h"
 
 uint32_t packet_recv = 0;
 uint32_t packet_send = 0;
@@ -60,12 +62,25 @@ void RegisterNet(lua_State *L)
 extern void SendFinish(int32_t bytetransfer,st_io *io);
 extern void RecvFinish(int32_t bytetransfer,st_io *io);
 
+struct connection_event
+{
+	list_node next;
+	uint32_t  type;//1:accept,2:connect
+	HANDLE    s;
+	void      *ud;
+};
+
 struct luaNetEngine
 {
 	HANDLE engine;
 	acceptor_t _acceptor;
+	mutex_t connector_lock;
 	connector_t _connector;
 	struct link_list *msgqueue;
+	mutex_t  lock;//protect con_events
+	struct link_list *con_events;
+	thread_t _thread;//run acceptor and connector
+	volatile int8_t terminated;
 };
 
 struct luaconnection
@@ -192,18 +207,13 @@ int luaReleaseConnection(lua_State *L)
 void accept_callback(HANDLE s,void *ud)
 {
 	struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-	struct luaconnection *c = createluaconnection();
-	c->connection.socket = s;
-	c->engine = engine;
-	setNonblock(s);	
-	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-	msg->msgType = NEW_CONNECTION;
-	msg->connection = c;
-	msg->packet = NULL;
-	LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
-	connection_start_recv((struct connection*)c);
-	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
-		
+	struct connection_event *ev = (struct connection_event *)calloc(1,sizeof(*ev));
+	ev->type = 1;
+	ev->s = s;
+	ev->ud = ud;
+	mutex_lock(engine->lock);
+	LINK_LIST_PUSH_BACK(engine->con_events,ev);
+	mutex_unlock(engine->lock);	
 }
 
 void on_connect_callback(HANDLE s,const char *ip,int32_t port,void*ud)
@@ -211,21 +221,30 @@ void on_connect_callback(HANDLE s,const char *ip,int32_t port,void*ud)
 	if(s >= 0)
 	{
 		struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-		struct luaconnection *c = createluaconnection();
-		c->connection.socket = s;
-		c->engine = engine;
-		setNonblock(s);	
-		struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-		msg->msgType = CONNECT_SUCESSFUL;
-		msg->connection = c;
-		msg->packet = NULL;
-		LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
-		connection_start_recv((struct connection*)c);
-		Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
+		struct connection_event *ev = (struct connection_event *)calloc(1,sizeof(*ev));
+		ev->type = 2;
+		ev->s = s;
+		ev->ud = ud;
+		mutex_lock(engine->lock);
+		LINK_LIST_PUSH_BACK(engine->con_events,ev);
+		mutex_unlock(engine->lock);
 	}
 	else
 	{
 		printf("connect to %s:%d failed\n",ip,port);
+	}
+}
+
+void *_thread_routine(void *arg)
+{
+	struct luaNetEngine *e = (struct luaNetEngine*)arg;
+	while(!e->terminated)
+	{
+		if(e->_acceptor)
+			acceptor_run(e->_acceptor,100);
+		mutex_lock(e->connector_lock);
+		connector_run(e->_connector,100);
+		mutex_unlock(e->connector_lock);
 	}
 }
 
@@ -239,8 +258,64 @@ int luaCreateNet(lua_State *L)
 		e->_acceptor = create_acceptor(ip,port,&accept_callback,e);
 	e->_connector = connector_create();
 	e->engine = CreateEngine();
+	
+	e->lock = mutex_create();
+	e->con_events = LINK_LIST_CREATE();
+	e->terminated = 0;
+	e->_thread = create_thread(1);
+	e->connector_lock = mutex_create();
+	thread_start_run(e->_thread,_thread_routine,e);
 	lua_pushlightuserdata(L,e);
 	return 1;
+}
+
+int luaDestroyNet(lua_State *L)
+{
+	struct luaNetEngine *e = (struct luaNetEngine *)lua_touserdata(L,1);
+	if(e)
+	{
+		e->terminated = 1;
+		thread_join(e->_thread);
+		if(e->_acceptor)
+			destroy_acceptor(&(e->_acceptor));
+		connector_destroy(&(e->_connector));
+		destroy_thread(&(e->_thread));
+		mutex_destroy(&(e->lock));
+		struct connection_event *ev = (struct connection_event *)link_list_pop(e->con_events);
+		while(ev)
+		{
+			free(ev);
+			ev = (struct connection_event *)link_list_pop(e->con_events);
+		}
+		struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(e->msgqueue);
+		while(msg)
+		{
+			free(msg);
+			msg = (struct luaNetMsg *)link_list_pop(e->msgqueue);
+		}
+		LINK_LIST_DESTROY(&(e->msgqueue));
+		LINK_LIST_DESTROY(&(e->con_events));
+		mutex_destroy(&(e->connector_lock));
+		free(e);
+	}
+	return 0;
+}
+
+static inline void push_msg(lua_State *L,uint16_t type,struct luaconnection *c,rpacket_t rpk)
+{
+	lua_newtable(L);
+	lua_pushnumber(L,type);
+	lua_rawseti(L,-2,1);
+	if(c)
+		lua_pushlightuserdata(L,c);
+	else
+		lua_pushnil(L);
+	lua_rawseti(L,-2,2);
+	if(rpk)
+		lua_pushlightuserdata(L,rpk);
+	else
+		lua_pushnil(L);
+	lua_rawseti(L,-2,3);
 }
 
 int luaPeekMsg(lua_State *L)
@@ -249,25 +324,42 @@ int luaPeekMsg(lua_State *L)
 	if(recv_sigint)
 	{
 		recv_sigint = 0;
-		
 		lua_newtable(L);
-		lua_newtable(L);
-		lua_pushnumber(L,ENGINE_STOP);
-		lua_rawseti(L,-2,1);
-		lua_pushnil(L);
-		lua_rawseti(L,-2,2);
-		lua_pushnil(L);
-		lua_rawseti(L,-2,3);	
+		push_msg(L,ENGINE_STOP,NULL,NULL);
 		lua_rawseti(L,-2,1);		
-		
 		return 1;
 	}
 	
 	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
 	uint32_t ms = lua_tonumber(L,2);
-	if(engine->_acceptor)
-		acceptor_run(engine->_acceptor,1);
-	connector_run(engine->_connector,1);
+	
+	if(!link_list_is_empty(engine->con_events))
+	{
+		struct link_list *l = LINK_LIST_CREATE();
+		mutex_lock(engine->lock);
+		link_list_swap(l,engine->con_events);
+		mutex_unlock(engine->lock);
+		
+		struct connection_event *ev = (struct connection_event *)link_list_pop(l);
+		while(ev)
+		{
+			struct luaconnection *c = createluaconnection();
+			c->connection.socket = ev->s;
+			c->engine = engine;
+			setNonblock(ev->s);		
+			struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+			msg->msgType = ev->type == 1 ? NEW_CONNECTION:CONNECT_SUCESSFUL;
+			msg->connection = c;
+			msg->packet = NULL;
+			LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
+			connection_start_recv((struct connection*)c);
+			Bind2Engine(engine->engine,ev->s,RecvFinish,SendFinish);
+			free(ev);
+			ev = (struct connection_event *)link_list_pop(l);
+		}
+		LINK_LIST_DESTROY(&l);
+	}
+
 	if(link_list_is_empty(engine->msgqueue))
 		if(-1 == EngineRun(engine->engine,ms))
 				printf("error\n");
@@ -281,17 +373,7 @@ int luaPeekMsg(lua_State *L)
 		for( ; i < size; ++i)
 		{
 			struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(engine->msgqueue);
-			lua_newtable(L);
-			lua_pushnumber(L,msg->msgType);
-			lua_rawseti(L,-2,1);
-			lua_pushlightuserdata(L,msg->connection);
-			lua_rawseti(L,-2,2);
-			if(msg->packet)
-				lua_pushlightuserdata(L,msg->packet);
-			else
-				lua_pushnil(L);
-			lua_rawseti(L,-2,3);	
-		
+		    push_msg(L,msg->msgType,msg->connection,msg->packet);
 			lua_rawseti(L,-2,i+1);
 			free(msg);
 			
@@ -379,7 +461,9 @@ int luaAsynConnect(lua_State *L)
 	const char *ip = lua_tostring(L,2);
 	uint16_t port = (uint16_t)lua_tonumber(L,3);
 	uint32_t timeout = lua_tonumber(L,4);
-	connector_connect(engine->_connector,ip,port,on_connect_callback,(void*)engine,timeout);	
+	mutex_lock(engine->connector_lock);
+	connector_connect(engine->_connector,ip,port,on_connect_callback,(void*)engine,timeout);
+	mutex_unlock(engine->connector_lock);	
 	return 0;
 }
 
@@ -418,6 +502,9 @@ void BindFunction(lua_State *L)
     lua_register(L,"PacketReadNumber",&luaPacketReadNumber);
     lua_register(L,"PacketWriteNumber",&luaPacketWriteNumber);
     lua_register(L,"GetHandle",&luaGetHandle);
+    lua_register(L,"DestroyNet",&luaDestroyNet);
+    
+    
     lua_pushnumber(L,ENGINE_STOP);
     lua_setglobal(L,"ENGINE_STOP");
     lua_pushnumber(L,NEW_CONNECTION);

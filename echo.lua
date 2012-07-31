@@ -58,7 +58,8 @@ function mainloop()
 			lasttick = tick
 		end
 		
-	end	
+	end
+	DestroyNet(netengine)	
 	print("main loop end")
 end	
 

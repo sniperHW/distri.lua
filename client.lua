@@ -33,8 +33,11 @@ function mainloop()
 	local connection_set = {}
 	print("engine create successful")
 	for i=1,arg[3] do
-		AsynConnect(netengine,arg[1],arg[2],0)
+		AsynConnect(netengine,arg[1],arg[2],500)
 	end
+	--[[for i=1,200 do
+		AsynConnect(netengine,"127.0.0.1",8010,100)
+	end--]]
 	local stop = 0
 	while stop == 0 do
 		local msgs = PeekMsg(netengine,50)
@@ -78,7 +81,8 @@ function mainloop()
 			last_print = nowtick
 		end
 		clientsSend(connection_set)
-	end	
+	end
+	DestroyNet(netengine)	
 	print("main loop end")
 end	
 mainloop() 
