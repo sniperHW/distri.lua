@@ -62,14 +62,6 @@ void RegisterNet(lua_State *L)
 extern void SendFinish(int32_t bytetransfer,st_io *io);
 extern void RecvFinish(int32_t bytetransfer,st_io *io);
 
-struct connection_event
-{
-	list_node next;
-	uint32_t  type;//1:accept,2:connect
-	HANDLE    s;
-	void      *ud;
-};
-
 struct luaNetEngine
 {
 	HANDLE engine;
@@ -204,35 +196,35 @@ int luaReleaseConnection(lua_State *L)
 	return 1;
 }
 
-void accept_callback(HANDLE s,void *ud)
+static inline void connection_callback(HANDLE s,void *ud,uint16_t type)
 {
 	struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-	struct connection_event *ev = (struct connection_event *)calloc(1,sizeof(*ev));
-	ev->type = 1;
-	ev->s = s;
-	ev->ud = ud;
+	struct luaconnection *c = createluaconnection();
+	c->connection.socket = s;
+	c->engine = engine;
+	setNonblock(s);
+	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+	msg->msgType = type;
+	msg->connection = c;
+	msg->packet = NULL;
 	mutex_lock(engine->lock);
-	LINK_LIST_PUSH_BACK(engine->con_events,ev);
-	mutex_unlock(engine->lock);	
+	LINK_LIST_PUSH_BACK(engine->con_events,msg);
+	mutex_unlock(engine->lock);
+	connection_start_recv((struct connection*)c);
+	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
+}
+
+void accept_callback(HANDLE s,void *ud)
+{
+	connection_callback(s,ud,NEW_CONNECTION);
 }
 
 void on_connect_callback(HANDLE s,const char *ip,int32_t port,void*ud)
 {
 	if(s >= 0)
-	{
-		struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-		struct connection_event *ev = (struct connection_event *)calloc(1,sizeof(*ev));
-		ev->type = 2;
-		ev->s = s;
-		ev->ud = ud;
-		mutex_lock(engine->lock);
-		LINK_LIST_PUSH_BACK(engine->con_events,ev);
-		mutex_unlock(engine->lock);
-	}
+		connection_callback(s,ud,CONNECT_SUCESSFUL);
 	else
-	{
 		printf("connect to %s:%d failed\n",ip,port);
-	}
 }
 
 void *_thread_routine(void *arg)
@@ -335,29 +327,9 @@ int luaPeekMsg(lua_State *L)
 	
 	if(!link_list_is_empty(engine->con_events))
 	{
-		struct link_list *l = LINK_LIST_CREATE();
 		mutex_lock(engine->lock);
-		link_list_swap(l,engine->con_events);
+		link_list_swap(engine->msgqueue,engine->con_events);
 		mutex_unlock(engine->lock);
-		
-		struct connection_event *ev = (struct connection_event *)link_list_pop(l);
-		while(ev)
-		{
-			struct luaconnection *c = createluaconnection();
-			c->connection.socket = ev->s;
-			c->engine = engine;
-			setNonblock(ev->s);		
-			struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-			msg->msgType = ev->type == 1 ? NEW_CONNECTION:CONNECT_SUCESSFUL;
-			msg->connection = c;
-			msg->packet = NULL;
-			LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
-			connection_start_recv((struct connection*)c);
-			Bind2Engine(engine->engine,ev->s,RecvFinish,SendFinish);
-			free(ev);
-			ev = (struct connection_event *)link_list_pop(l);
-		}
-		LINK_LIST_DESTROY(&l);
 	}
 
 	if(link_list_is_empty(engine->msgqueue))
