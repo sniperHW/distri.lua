@@ -32,34 +32,35 @@ function mainloop()
 	local netengine = CreateNet(nil,0)
 	local connection_set = {}
 	print("engine create successful")
-	for i=1,100 do
-		AsynConnect(netengine,"127.0.0.1",8011,0)
+	for i=1,arg[3] do
+		AsynConnect(netengine,arg[1],arg[2],0)
 	end
 	local stop = 0
 	while stop == 0 do
 		local msgs = PeekMsg(netengine,50)
 		if msgs ~= nil then
 			for k,v in pairs(msgs) do
-				if v[1] == 1 then
+				local type,con,rpk = v[1],v[2],v[3]
+				if type == NEW_CONNECTION then
 					print("a connection comming")
-				elseif v[1] == 3 then
-					local handle = PacketReadNumber(v[3])
-					local selfhandle = GetHandle(v[2])
+				elseif type == PROCESS_PACKET then
+					local handle = PacketReadNumber(rpk)
+					local selfhandle = GetHandle(con)
 					if handle == selfhandle then
-						local tick = PacketReadNumber(v[3])
+						local tick = PacketReadNumber(rpk)
 						tick = GetSysTick() - tick
 						ava_delay = (ava_delay + tick)/2
 					end
 					total_recv = total_recv + 1
-					ReleaseRpacket(v[3])
-				elseif v[1] == 2 then
-					remove_connection(connection_set,v[2])
-					if 1 == ReleaseConnection(v[2]) then
+					ReleaseRpacket(rpk)
+				elseif type == DISCONNECT then
+					remove_connection(connection_set,con)
+					if 1 == ReleaseConnection(con) then
 						print("disconnect")
 					end	
-				elseif v[1] == 4 then
+				elseif type == CONNECT_SUCESSFUL then
 					print("connect success")
-					table.insert(connection_set,v[2])	
+					table.insert(connection_set,con)	
 				else
 					print("break mainloop")
 					stop = 1

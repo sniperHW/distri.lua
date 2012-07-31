@@ -23,7 +23,7 @@ end
 
 function mainloop()
 	local lasttick = GetSysTick()
-	local netengine = CreateNet("127.0.0.1",8011)
+	local netengine = CreateNet(arg[1],arg[2])
 	local connection_set = {}
 	local stop = 0
 	while stop == 0 do
@@ -31,16 +31,16 @@ function mainloop()
 		local msgs = PeekMsg(netengine,50)
 		if msgs ~= nil then
 			for k,v in pairs(msgs) do
-				if v[1] == 1 then
-					table.insert(connection_set,v[2])
+				local type,con,rpk = v[1],v[2],v[3]
+				if type == NEW_CONNECTION then
+					table.insert(connection_set,con)
 					print("a connection comming")
-				elseif v[1] == 3 then
-					
-					send2all(connection_set,v[3])
-					ReleaseRpacket(v[3])
-				elseif v[1] == 2 then
-					if 1 == ReleaseConnection(v[2]) then
-						remove_connection(connection_set,v[2])
+				elseif type == PROCESS_PACKET then
+					send2all(connection_set,rpk)
+					ReleaseRpacket(rpk)
+				elseif type == DISCONNECT then
+					if 1 == ReleaseConnection(con) then
+						remove_connection(connection_set,con)
 						print("disconnect")
 					end
 				else
@@ -53,7 +53,7 @@ function mainloop()
 		end
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then
-			print(totalsend)
+			print("client:" .. #connection_set .. " packet send:" ..totalsend)
 			totalsend = 0;
 			lasttick = tick
 		end

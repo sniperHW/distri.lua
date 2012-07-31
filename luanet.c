@@ -42,6 +42,15 @@ uint32_t recv_count = 0;
 
 static uint16_t recv_sigint = 0;
 
+enum
+{
+	ENGINE_STOP = -1,
+	NEW_CONNECTION = 1,
+	DISCONNECT = 2,
+	PROCESS_PACKET = 3,
+	CONNECT_SUCESSFUL = 4,
+};
+
 void BindFunction(lua_State *lState);  
 void RegisterNet(lua_State *L)  
 {  
@@ -78,7 +87,7 @@ void on_process_packet(struct connection *c,rpacket_t r)
 {
 	struct luaconnection *con = (struct luaconnection *)c;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-	msg->msgType = 3;
+	msg->msgType = PROCESS_PACKET;
 	msg->connection = con;
 	msg->packet = r;
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
@@ -88,7 +97,7 @@ void _on_disconnect(struct connection *c,int32_t reason)
 {
 	struct luaconnection *con = (struct luaconnection *)c;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-	msg->msgType = 2;
+	msg->msgType = DISCONNECT;
 	msg->connection = con;
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
@@ -188,7 +197,7 @@ void accept_callback(HANDLE s,void *ud)
 	c->engine = engine;
 	setNonblock(s);	
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-	msg->msgType = 1;
+	msg->msgType = NEW_CONNECTION;
 	msg->connection = c;
 	msg->packet = NULL;
 	LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
@@ -199,18 +208,25 @@ void accept_callback(HANDLE s,void *ud)
 
 void on_connect_callback(HANDLE s,const char *ip,int32_t port,void*ud)
 {
-	struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-	struct luaconnection *c = createluaconnection();
-	c->connection.socket = s;
-	c->engine = engine;
-	setNonblock(s);	
-	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
-	msg->msgType = 4;
-	msg->connection = c;
-	msg->packet = NULL;
-	LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
-	connection_start_recv((struct connection*)c);
-	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
+	if(s >= 0)
+	{
+		struct luaNetEngine *engine = (struct luaNetEngine *)ud;
+		struct luaconnection *c = createluaconnection();
+		c->connection.socket = s;
+		c->engine = engine;
+		setNonblock(s);	
+		struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+		msg->msgType = CONNECT_SUCESSFUL;
+		msg->connection = c;
+		msg->packet = NULL;
+		LINK_LIST_PUSH_BACK(engine->msgqueue,msg);
+		connection_start_recv((struct connection*)c);
+		Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
+	}
+	else
+	{
+		printf("connect to %s:%d failed\n",ip,port);
+	}
 }
 
 int luaCreateNet(lua_State *L)
@@ -236,7 +252,7 @@ int luaPeekMsg(lua_State *L)
 		
 		lua_newtable(L);
 		lua_newtable(L);
-		lua_pushnumber(L,-1);
+		lua_pushnumber(L,ENGINE_STOP);
 		lua_rawseti(L,-2,1);
 		lua_pushnil(L);
 		lua_rawseti(L,-2,2);
@@ -385,23 +401,33 @@ int luaGetHandle(lua_State *L)
 	return 1;
 }
 
-void BindFunction(lua_State *lState)  
+void BindFunction(lua_State *L)  
 {  
-    lua_register(lState,"Connect",&luaConnect);
-    lua_register(lState,"ReleaseConnection",&luaReleaseConnection);   
-    lua_register(lState,"ActiveCloseConnection",&luaActiveCloseConnection);  
-    lua_register(lState,"CreateNet",&luaCreateNet);  
-    lua_register(lState,"PeekMsg",&luaPeekMsg);  
-    lua_register(lState,"CreateWpacket",&luaCreateWpacket);  
-    lua_register(lState,"ReleaseRpacket",&luaReleaseRpacket);
-    lua_register(lState,"SendPacket",&luaSendPacket);
-    lua_register(lState,"PacketReadString",&luaPacketReadString);
-    lua_register(lState,"PacketWriteString",&luaPacketWriteString);    
-    lua_register(lState,"AsynConnect",&luaAsynConnect);
-    lua_register(lState,"GetSysTick",&luaGetSysTick);
-    lua_register(lState,"PacketReadNumber",&luaPacketReadNumber);
-    lua_register(lState,"PacketWriteNumber",&luaPacketWriteNumber);
-    lua_register(lState,"GetHandle",&luaGetHandle);
+    lua_register(L,"Connect",&luaConnect);
+    lua_register(L,"ReleaseConnection",&luaReleaseConnection);   
+    lua_register(L,"ActiveCloseConnection",&luaActiveCloseConnection);  
+    lua_register(L,"CreateNet",&luaCreateNet);  
+    lua_register(L,"PeekMsg",&luaPeekMsg);  
+    lua_register(L,"CreateWpacket",&luaCreateWpacket);  
+    lua_register(L,"ReleaseRpacket",&luaReleaseRpacket);
+    lua_register(L,"SendPacket",&luaSendPacket);
+    lua_register(L,"PacketReadString",&luaPacketReadString);
+    lua_register(L,"PacketWriteString",&luaPacketWriteString);    
+    lua_register(L,"AsynConnect",&luaAsynConnect);
+    lua_register(L,"GetSysTick",&luaGetSysTick);
+    lua_register(L,"PacketReadNumber",&luaPacketReadNumber);
+    lua_register(L,"PacketWriteNumber",&luaPacketWriteNumber);
+    lua_register(L,"GetHandle",&luaGetHandle);
+    lua_pushnumber(L,ENGINE_STOP);
+    lua_setglobal(L,"ENGINE_STOP");
+    lua_pushnumber(L,NEW_CONNECTION);
+    lua_setglobal(L,"NEW_CONNECTION");
+    lua_pushnumber(L,DISCONNECT);
+    lua_setglobal(L,"DISCONNECT");
+    lua_pushnumber(L,PROCESS_PACKET);
+    lua_setglobal(L,"PROCESS_PACKET");
+    lua_pushnumber(L,CONNECT_SUCESSFUL);
+    lua_setglobal(L,"CONNECT_SUCESSFUL");    
     InitNetSystem();
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);
