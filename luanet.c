@@ -106,7 +106,7 @@ struct luaconnection* createluaconnection()
 	c->connection.unpack_size = 0;
 	c->connection.recv_overlap.c = (struct connection*)c;
 	c->connection.send_overlap.c = (struct connection*)c;
-	c->connection.raw = 1;
+	c->connection.raw = 0;
 	c->connection.mt = 0;
 	c->connection.is_close = 0;
 	return c;
@@ -171,7 +171,7 @@ int luaReleaseConnection(lua_State *L)
 			LINK_LIST_DESTROY(&(c->connection.send_list));
 			buffer_release(&(c->connection.unpack_buf));
 			buffer_release(&(c->connection.next_recv_buf));
-			//free(c);
+			free(c);
 			lua_pushnumber(L,1);
 			return 1;
 		}
@@ -233,10 +233,18 @@ int luaPeekMsg(lua_State *L)
 	if(recv_sigint)
 	{
 		recv_sigint = 0;
+		
+		lua_newtable(L);
+		lua_newtable(L);
 		lua_pushnumber(L,-1);
+		lua_rawseti(L,-2,1);
 		lua_pushnil(L);
+		lua_rawseti(L,-2,2);
 		lua_pushnil(L);
-		return 3;
+		lua_rawseti(L,-2,3);	
+		lua_rawseti(L,-2,1);		
+		
+		return 1;
 	}
 	
 	struct luaNetEngine *engine = (struct luaNetEngine *)lua_touserdata(L,1);
@@ -247,22 +255,36 @@ int luaPeekMsg(lua_State *L)
 	if(link_list_is_empty(engine->msgqueue))
 		if(-1 == EngineRun(engine->engine,ms))
 				printf("error\n");
-	struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(engine->msgqueue);
-	if(msg)
+	
+	int32_t size = link_list_size(engine->msgqueue);
+	if(size > 0)
 	{
-		lua_pushnumber(L,msg->msgType);
-		lua_pushlightuserdata(L,msg->connection);
-		if(msg->packet)
-			lua_pushlightuserdata(L,msg->packet);
-		else
-			lua_pushnil(L);
-		free(msg);
-		return 3;
+		lua_newtable(L);
+		int32_t i = 0;
+		int32_t size = link_list_size(engine->msgqueue);
+		for( ; i < size; ++i)
+		{
+			struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(engine->msgqueue);
+			lua_newtable(L);
+			lua_pushnumber(L,msg->msgType);
+			lua_rawseti(L,-2,1);
+			lua_pushlightuserdata(L,msg->connection);
+			lua_rawseti(L,-2,2);
+			if(msg->packet)
+				lua_pushlightuserdata(L,msg->packet);
+			else
+				lua_pushnil(L);
+			lua_rawseti(L,-2,3);	
+		
+			lua_rawseti(L,-2,i+1);
+			free(msg);
+			
+		}
 	}
-	lua_pushnil(L);
-	lua_pushnil(L);
-	lua_pushnil(L);
-	return 3;
+	else
+		lua_pushnil(L);
+	return 1;
+	
 }
 
 int luaCreateWpacket(lua_State *L)
@@ -274,7 +296,7 @@ int luaCreateWpacket(lua_State *L)
 	else
 	{
 		uint32_t size = lua_tonumber(L,2);
-		w = wpacket_create(0,NULL,size,1);	
+		w = wpacket_create(0,NULL,size,0);	
 	}
 	lua_pushlightuserdata(L,w);
 	return 1;

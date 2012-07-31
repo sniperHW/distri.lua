@@ -10,8 +10,6 @@ function remove_connection(connection_set,connection)
 	end
 	if idx >= 1 then
 		table.remove(connection_set,idx)
-	else
-		print("remove fail")
 	end
 end
 local totalsend = 0
@@ -27,25 +25,31 @@ function mainloop()
 	local lasttick = GetSysTick()
 	local netengine = CreateNet("127.0.0.1",8011)
 	local connection_set = {}
-	while true do
-		local type,connection,rpacket = PeekMsg(netengine,50)
-		if type then
-			if type == 1 then
-				table.insert(connection_set,connection)
-				print("a connection comming")
-			elseif type == 3 then
-				
-				send2all(connection_set,rpacket)
-				ReleaseRpacket(rpacket)
-			elseif type == 2 then
-				if 1 == ReleaseConnection(connection) then
-					remove_connection(connection_set,connection)
-					print("disconnect")
+	local stop = 0
+	while stop == 0 do
+		
+		local msgs = PeekMsg(netengine,50)
+		if msgs ~= nil then
+			for k,v in pairs(msgs) do
+				if v[1] == 1 then
+					table.insert(connection_set,v[2])
+					print("a connection comming")
+				elseif v[1] == 3 then
+					
+					send2all(connection_set,v[3])
+					ReleaseRpacket(v[3])
+				elseif v[1] == 2 then
+					if 1 == ReleaseConnection(v[2]) then
+						remove_connection(connection_set,v[2])
+						print("disconnect")
+					end
+				else
+					print("break main loop")
+					stop = 1
+					break
 				end
-			else
-				print("break main loop")
-				break
-			end
+				
+			end 
 		end
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then
