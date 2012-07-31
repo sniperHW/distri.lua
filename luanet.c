@@ -62,7 +62,7 @@ struct luaNetEngine
 struct luaconnection
 {
 	struct connection connection;
-	struct luaNetEngine *engine;
+	struct luaNetEngine *engine;	
 };
 
 struct luaNetMsg
@@ -86,7 +86,6 @@ void on_process_packet(struct connection *c,rpacket_t r)
 
 void _on_disconnect(struct connection *c,int32_t reason)
 {
-	printf("_on_disconnect\n");
 	struct luaconnection *con = (struct luaconnection *)c;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
 	msg->msgType = 2;
@@ -109,6 +108,7 @@ struct luaconnection* createluaconnection()
 	c->connection.send_overlap.c = (struct connection*)c;
 	c->connection.raw = 1;
 	c->connection.mt = 0;
+	c->connection.is_close = 0;
 	return c;
 }
 
@@ -161,16 +161,23 @@ int luaReleaseConnection(lua_State *L)
 	struct luaconnection *c = lua_touserdata(L,1);
 	if(c)
 	{
-		ReleaseSocketWrapper(c->connection.socket);
-		wpacket_t w;
-		while(w = LINK_LIST_POP(wpacket_t,c->connection.send_list))
-			wpacket_destroy(&w);
-		LINK_LIST_DESTROY(&(c->connection.send_list));
-		buffer_release(&(c->connection.unpack_buf));
-		buffer_release(&(c->connection.next_recv_buf));
-		free(c);
+		if(!c->connection.send_overlap.isUsed && !c->connection.recv_overlap.isUsed)
+		{
+			c->connection.is_close = 1;			
+			ReleaseSocketWrapper(c->connection.socket);		
+			wpacket_t w;
+			while(w = LINK_LIST_POP(wpacket_t,c->connection.send_list))
+				wpacket_destroy(&w);
+			LINK_LIST_DESTROY(&(c->connection.send_list));
+			buffer_release(&(c->connection.unpack_buf));
+			buffer_release(&(c->connection.next_recv_buf));
+			//free(c);
+			lua_pushnumber(L,1);
+			return 1;
+		}
 	}
-	return 0;
+	lua_pushnumber(L,0);
+	return 1;
 }
 
 void accept_callback(HANDLE s,void *ud)
@@ -283,8 +290,13 @@ int luaReleaseRpacket(lua_State *L)
 int luaSendPacket(lua_State *L)
 {
 	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
+	if(c->connection.is_close)
+	{
+		printf("luaSendPacket is_close:%x\n",(int32_t)c);
+		exit(0);
+	}
 	wpacket_t w = (wpacket_t)lua_touserdata(L,2);
-	lua_pushnumber(L,connection_send(&(c->connection),w,0));
+	lua_pushnumber(L,connection_send(&(c->connection),w));
 	return 1;
 }
 

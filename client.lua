@@ -4,7 +4,7 @@ function mainloop()
 	local netengine = CreateNet(nil,0)
 	print("engine create successful")
 	for i=1,200 do
-		AsynConnect(netengine,"127.0.0.1",8010,0)
+		AsynConnect(netengine,"127.0.0.1",8011,0)
 	end
 	while true do
 		local type,connection,rpacket = PeekMsg(netengine,50)
@@ -12,14 +12,14 @@ function mainloop()
 			if type == 1 then
 				print("a connection comming")
 			elseif type == 3 then
-				local selfhandle = GetHandle(connection)
+				--local selfhandle = GetHandle(connection)
 				local handle = PacketReadNumber(rpacket)
-				if handle == selfhandle then
+				--if handle == selfhandle then
 					local wpkt = CreateWpacket(nil,64)
 					PacketWriteNumber(wpkt,handle)
 					PacketWriteString(wpkt,"hello kenny")
 					SendPacket(connection,wpkt)
-				end
+				--end
 				ReleaseRpacket(rpacket)
 				--active close the connection
 				--ActiveCloseConnection(connection)

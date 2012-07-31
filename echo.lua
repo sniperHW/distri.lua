@@ -1,5 +1,5 @@
---local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))  
---registernet()
+local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))  
+registernet()
 
 function remove_connection(connection_set,connection)
 	local idx = 0
@@ -10,13 +10,22 @@ function remove_connection(connection_set,connection)
 	end
 	if idx >= 1 then
 		table.remove(connection_set,idx)
+	else
+		print("remove fail")
+	end
+end
+local totalsend = 0
+function send2all(connection_set,rpacket)
+	for k,v in pairs(connection_set) do
+		local wpkt = CreateWpacket(rpacket,0)
+		SendPacket(v,wpkt)
+		totalsend = totalsend + 1
 	end
 end
 
 function mainloop()
 	local lasttick = GetSysTick()
-	local totalsend = 0;
-	local netengine = CreateNet("127.0.0.1",8010)
+	local netengine = CreateNet("127.0.0.1",8011)
 	local connection_set = {}
 	while true do
 		local type,connection,rpacket = PeekMsg(netengine,50)
@@ -26,19 +35,13 @@ function mainloop()
 				print("a connection comming")
 			elseif type == 3 then
 				
-				for k,v in pairs(connection_set) do
-					local wpkt = CreateWpacket(rpacket,0)
-					SendPacket(connection,wpkt)
-					totalsend = totalsend + 1
-				end
+				send2all(connection_set,rpacket)
 				ReleaseRpacket(rpacket)
-
-				--active close the connection
-				--ActiveCloseConnection(connection)
 			elseif type == 2 then
-				print("disconnect")
-				remove_connection(connection_set,connection)
-				ReleaseConnection(connection)
+				if 1 == ReleaseConnection(connection) then
+					remove_connection(connection_set,connection)
+					print("disconnect")
+				end
 			else
 				print("break main loop")
 				break
@@ -55,4 +58,4 @@ function mainloop()
 	print("main loop end")
 end	
 
---mainloop()  
+mainloop()  
