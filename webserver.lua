@@ -35,7 +35,7 @@ function mainloop()
 					print(PacketReadString(rpk))
 					local wpkt = CreateWpacket(con,0,128)
 					PacketWriteString(wpkt,"<html><body>hello kenny</body></html>\n")
-					SendPacket(con,wpkt)
+					SendPacket(con,wpkt,1)
 					ReleaseRpacket(rpk)
 				elseif type == DISCONNECT then
 					if 1 == ReleaseConnection(con) then

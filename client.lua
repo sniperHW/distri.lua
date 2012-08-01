@@ -24,7 +24,7 @@ function clientsSend(connection_set)
 		PacketWriteNumber(wpkt,handle)
 		PacketWriteNumber(wpkt,GetSysTick())
 		PacketWriteString(wpkt,"hello kenny")
-		SendPacket(v,wpkt)		
+		SendPacket(v,wpkt,0)		
 	end
 end
 

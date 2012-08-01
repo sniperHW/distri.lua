@@ -16,7 +16,7 @@ local totalsend = 0
 function send2all(connection_set,rpacket)
 	for k,v in pairs(connection_set) do
 		local wpkt = CreateWpacket(v,rpacket,0)
-		SendPacket(v,wpkt)
+		SendPacket(v,wpkt,0)
 		totalsend = totalsend + 1
 	end
 end

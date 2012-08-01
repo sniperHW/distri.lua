@@ -110,7 +110,7 @@ void _on_disconnect(struct connection *c,int32_t reason)
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
 
-void _packet_send_finish(struct connection *con)
+void _packet_send_finish(void *con)
 {
 	struct luaconnection *c  = (struct luaconnection *)con;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
@@ -136,7 +136,6 @@ struct luaconnection* createluaconnection(uint16_t raw)
 	c->connection.raw = raw;
 	c->connection.mt = 0;
 	c->connection.is_close = 0;
-	c->connection._packet_send_finish = _packet_send_finish;
 	return c;
 }
 
@@ -406,7 +405,11 @@ int luaSendPacket(lua_State *L)
 		exit(0);
 	}
 	wpacket_t w = (wpacket_t)lua_touserdata(L,2);
-	lua_pushnumber(L,connection_send(&(c->connection),w));
+	uint8_t send_finish = (uint8_t)lua_tonumber(L,3);
+	if(send_finish)
+		lua_pushnumber(L,connection_send(&(c->connection),w,_packet_send_finish));
+	else
+		lua_pushnumber(L,connection_send(&(c->connection),w,NULL));
 	return 1;
 }
 
