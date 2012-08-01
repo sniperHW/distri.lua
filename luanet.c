@@ -66,13 +66,13 @@ struct luaNetEngine
 {
 	HANDLE engine;
 	acceptor_t _acceptor;
-	//mutex_t connector_lock;
 	connector_t _connector;
 	struct link_list *msgqueue;
 	mutex_t  lock;//protect con_events
 	struct link_list *con_events;
 	thread_t _thread;//run acceptor and connector
 	volatile int8_t terminated;
+	uint8_t raw;
 };
 
 struct luaconnection
@@ -109,9 +109,9 @@ void _on_disconnect(struct connection *c,int32_t reason)
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
 
-struct luaconnection* createluaconnection()
+struct luaconnection* createluaconnection(uint16_t raw)
 {
-	struct luaconnection *c = calloc(1,sizeof(*c));;
+	struct luaconnection *c = calloc(1,sizeof(*c));
 	c->connection.send_list = LINK_LIST_CREATE();
 	c->connection._process_packet = on_process_packet;
 	c->connection._on_disconnect = _on_disconnect;
@@ -122,7 +122,7 @@ struct luaconnection* createluaconnection()
 	c->connection.unpack_size = 0;
 	c->connection.recv_overlap.c = (struct connection*)c;
 	c->connection.send_overlap.c = (struct connection*)c;
-	c->connection.raw = 0;
+	c->connection.raw = raw;
 	c->connection.mt = 0;
 	c->connection.is_close = 0;
 	return c;
@@ -156,7 +156,7 @@ int luaConnect(lua_State *L)
 		lua_pushnil(L);
 		return 1;
 	}
-	struct luaconnection *c = createluaconnection();
+	struct luaconnection *c = createluaconnection(1);
 	c->connection.socket = sock;
 	c->engine = engine;
 	setNonblock(sock);
@@ -199,7 +199,7 @@ int luaReleaseConnection(lua_State *L)
 static inline void connection_callback(HANDLE s,void *ud,uint16_t type)
 {
 	struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-	struct luaconnection *c = createluaconnection();
+	struct luaconnection *c = createluaconnection(engine->raw);
 	c->connection.socket = s;
 	c->engine = engine;
 	setNonblock(s);
@@ -210,8 +210,6 @@ static inline void connection_callback(HANDLE s,void *ud,uint16_t type)
 	mutex_lock(engine->lock);
 	LINK_LIST_PUSH_BACK(engine->con_events,msg);
 	mutex_unlock(engine->lock);
-	connection_start_recv((struct connection*)c);
-	Bind2Engine(engine->engine,s,RecvFinish,SendFinish);
 }
 
 void accept_callback(HANDLE s,void *ud)
@@ -242,10 +240,21 @@ int luaCreateNet(lua_State *L)
 {
 	const char *ip = lua_tostring(L,1);
 	uint16_t port = (uint16_t)lua_tonumber(L,2);
+	uint8_t  raw = (uint8_t)lua_tonumber(L,3);
 	struct luaNetEngine *e = (struct luaNetEngine *)calloc(1,sizeof(*e));
 	e->msgqueue = LINK_LIST_CREATE();
 	if(ip)
-		e->_acceptor = create_acceptor(ip,port,&accept_callback,e);
+	{	
+		struct listen_arg* args[2];
+		args[0] = (struct listen_arg*)calloc(1,sizeof(*args[0]));
+		args[0]->ip = ip;
+		args[0]->port = port;
+		args[0]->accept_callback = &accept_callback;
+		args[0]->ud = e;
+		args[1] = NULL;
+		e->_acceptor = create_acceptor((struct listen_arg**)&args);
+		free(args[0]);
+	}
 	e->_connector = connector_create();
 	e->engine = CreateEngine();
 	
@@ -253,6 +262,7 @@ int luaCreateNet(lua_State *L)
 	e->con_events = LINK_LIST_CREATE();
 	e->terminated = 0;
 	e->_thread = create_thread(1);
+	e->raw = raw;
 	thread_start_run(e->_thread,_thread_routine,e);
 	lua_pushlightuserdata(L,e);
 	return 1;
@@ -335,6 +345,11 @@ int luaPeekMsg(lua_State *L)
 		for( ; i < size; ++i)
 		{
 			struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(engine->msgqueue);
+			if(msg->msgType == NEW_CONNECTION || msg->msgType == CONNECT_SUCESSFUL)
+			{
+				connection_start_recv((struct connection*)msg->connection);
+				Bind2Engine(engine->engine,msg->connection->connection.socket,RecvFinish,SendFinish);
+			}
 		    push_msg(L,msg->msgType,msg->connection,msg->packet);
 			lua_rawseti(L,-2,i+1);
 			free(msg);
@@ -349,14 +364,15 @@ int luaPeekMsg(lua_State *L)
 
 int luaCreateWpacket(lua_State *L)
 {
-	rpacket_t r = lua_touserdata(L,1);
+	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
+	rpacket_t r = lua_touserdata(L,2);
 	wpacket_t w;
 	if(r)
 		w = wpacket_create_by_rpacket(NULL,r);
 	else
 	{
-		uint32_t size = lua_tonumber(L,2);
-		w = wpacket_create(0,NULL,size,0);	
+		uint32_t size = lua_tonumber(L,3);
+		w = wpacket_create(0,NULL,size,c->connection.raw);	
 	}
 	lua_pushlightuserdata(L,w);
 	return 1;

@@ -19,7 +19,7 @@ end
 
 function clientsSend(connection_set)
 	for k,v in pairs(connection_set) do
-		local wpkt = CreateWpacket(nil,64)
+		local wpkt = CreateWpacket(v,nil,64)
 		local handle = GetHandle(v)
 		PacketWriteNumber(wpkt,handle)
 		PacketWriteNumber(wpkt,GetSysTick())
@@ -29,7 +29,7 @@ function clientsSend(connection_set)
 end
 
 function mainloop()
-	local netengine = CreateNet(nil,0)
+	local netengine = CreateNet(nil,0,0)
 	local connection_set = {}
 	print("engine create successful")
 	for i=1,arg[3] do

@@ -15,7 +15,7 @@ end
 local totalsend = 0
 function send2all(connection_set,rpacket)
 	for k,v in pairs(connection_set) do
-		local wpkt = CreateWpacket(rpacket,0)
+		local wpkt = CreateWpacket(v,rpacket,0)
 		SendPacket(v,wpkt)
 		totalsend = totalsend + 1
 	end
@@ -23,7 +23,7 @@ end
 
 function mainloop()
 	local lasttick = GetSysTick()
-	local netengine = CreateNet(arg[1],arg[2])
+	local netengine = CreateNet(arg[1],arg[2],0)
 	local connection_set = {}
 	local stop = 0
 	while stop == 0 do
