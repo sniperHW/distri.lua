@@ -110,14 +110,14 @@ void _on_disconnect(struct connection *c,int32_t reason)
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
 
-void _packet_send_finish(void *con)
+void _packet_send_finish(void *con,wpacket_t wpk)
 {
 	struct luaconnection *c  = (struct luaconnection *)con;
 	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
 	msg->msgType = PACKET_SEND_FINISH;
 	msg->connection = c;
-	LINK_LIST_PUSH_BACK(c->engine->msgqueue,msg);	
-	 
+	LINK_LIST_PUSH_BACK(c->engine->msgqueue,msg);
+	wpacket_destroy(&wpk);
 }
 
 struct luaconnection* createluaconnection(uint16_t raw)
