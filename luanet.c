@@ -51,6 +51,7 @@ enum
 	DISCONNECT = 2,
 	PROCESS_PACKET = 3,
 	CONNECT_SUCESSFUL = 4,
+	PACKET_SEND_FINISH = 5,
 };
 
 void BindFunction(lua_State *lState);  
@@ -109,6 +110,16 @@ void _on_disconnect(struct connection *c,int32_t reason)
 	LINK_LIST_PUSH_BACK(con->engine->msgqueue,msg);
 }
 
+void _packet_send_finish(struct connection *con)
+{
+	struct luaconnection *c  = (struct luaconnection *)con;
+	struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+	msg->msgType = PACKET_SEND_FINISH;
+	msg->connection = c;
+	LINK_LIST_PUSH_BACK(c->engine->msgqueue,msg);	
+	 
+}
+
 struct luaconnection* createluaconnection(uint16_t raw)
 {
 	struct luaconnection *c = calloc(1,sizeof(*c));
@@ -125,6 +136,7 @@ struct luaconnection* createluaconnection(uint16_t raw)
 	c->connection.raw = raw;
 	c->connection.mt = 0;
 	c->connection.is_close = 0;
+	c->connection._packet_send_finish = _packet_send_finish;
 	return c;
 }
 
@@ -490,7 +502,10 @@ void BindFunction(lua_State *L)
     lua_pushnumber(L,PROCESS_PACKET);
     lua_setglobal(L,"PROCESS_PACKET");
     lua_pushnumber(L,CONNECT_SUCESSFUL);
-    lua_setglobal(L,"CONNECT_SUCESSFUL");    
+    lua_setglobal(L,"CONNECT_SUCESSFUL");
+    lua_pushnumber(L,PACKET_SEND_FINISH);
+    lua_setglobal(L,"PACKET_SEND_FINISH");  
+  
     InitNetSystem();
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);
