@@ -66,7 +66,7 @@ struct luaNetEngine
 {
 	HANDLE engine;
 	acceptor_t _acceptor;
-	mutex_t connector_lock;
+	//mutex_t connector_lock;
 	connector_t _connector;
 	struct link_list *msgqueue;
 	mutex_t  lock;//protect con_events
@@ -234,9 +234,7 @@ void *_thread_routine(void *arg)
 	{
 		if(e->_acceptor)
 			acceptor_run(e->_acceptor,100);
-		mutex_lock(e->connector_lock);
 		connector_run(e->_connector,100);
-		mutex_unlock(e->connector_lock);
 	}
 }
 
@@ -255,7 +253,6 @@ int luaCreateNet(lua_State *L)
 	e->con_events = LINK_LIST_CREATE();
 	e->terminated = 0;
 	e->_thread = create_thread(1);
-	e->connector_lock = mutex_create();
 	thread_start_run(e->_thread,_thread_routine,e);
 	lua_pushlightuserdata(L,e);
 	return 1;
@@ -268,26 +265,19 @@ int luaDestroyNet(lua_State *L)
 	{
 		e->terminated = 1;
 		thread_join(e->_thread);
+		printf("join finish\n");
 		if(e->_acceptor)
 			destroy_acceptor(&(e->_acceptor));
 		connector_destroy(&(e->_connector));
 		destroy_thread(&(e->_thread));
 		mutex_destroy(&(e->lock));
-		struct connection_event *ev = (struct connection_event *)link_list_pop(e->con_events);
-		while(ev)
-		{
-			free(ev);
-			ev = (struct connection_event *)link_list_pop(e->con_events);
-		}
-		struct luaNetMsg *msg = (struct luaNetMsg *)link_list_pop(e->msgqueue);
-		while(msg)
-		{
+		struct luaNetMsg *msg;
+		while(msg = (struct luaNetMsg *)link_list_pop(e->con_events))
 			free(msg);
-			msg = (struct luaNetMsg *)link_list_pop(e->msgqueue);
-		}
+		while(msg = (struct luaNetMsg *)link_list_pop(e->msgqueue))
+			free(msg);			
 		LINK_LIST_DESTROY(&(e->msgqueue));
 		LINK_LIST_DESTROY(&(e->con_events));
-		mutex_destroy(&(e->connector_lock));
 		free(e);
 	}
 	return 0;
@@ -433,9 +423,7 @@ int luaAsynConnect(lua_State *L)
 	const char *ip = lua_tostring(L,2);
 	uint16_t port = (uint16_t)lua_tonumber(L,3);
 	uint32_t timeout = lua_tonumber(L,4);
-	mutex_lock(engine->connector_lock);
 	connector_connect(engine->_connector,ip,port,on_connect_callback,(void*)engine,timeout);
-	mutex_unlock(engine->connector_lock);	
 	return 0;
 }
 
