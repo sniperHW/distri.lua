@@ -30,6 +30,7 @@
 #include "SysTime.h"
 #include "sync.h"
 #include "thread.h"
+#include "timing_wheel.h"
 
 uint32_t packet_recv = 0;
 uint32_t packet_send = 0;
@@ -52,6 +53,7 @@ enum
 	PROCESS_PACKET = 3,
 	CONNECT_SUCESSFUL = 4,
 	PACKET_SEND_FINISH = 5,
+	CONNECTION_TIMEOUT = 6,
 };
 
 void BindFunction(lua_State *lState);  
@@ -74,12 +76,15 @@ struct luaNetEngine
 	thread_t _thread;//run acceptor and connector
 	volatile int8_t terminated;
 	uint8_t raw;
+	TimingWheel_t timing_wheel;
 };
 
 struct luaconnection
 {
 	struct connection connection;
-	struct luaNetEngine *engine;	
+	struct luaNetEngine *engine;
+	WheelItem_t  timer_item;
+	uint32_t     last_recv;	
 };
 
 struct luaNetMsg
@@ -90,6 +95,21 @@ struct luaNetMsg
 	int8_t    msgType;//1,新连接;2,连接断开，3，网络消息
 };
 
+void timeout_callback(void *ud)
+{
+	struct luaconnection *c = (struct luaconnection *)ud;
+	uint32_t tick = GetSystemMs();
+	if(tick >= c->last_recv + 1000)
+	{
+		struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
+		msg->msgType = CONNECTION_TIMEOUT;
+		msg->connection = c;
+		msg->packet = NULL;
+		LINK_LIST_PUSH_BACK(c->engine->msgqueue,msg);
+	}
+	else
+		RegisterTimer(c->engine->timing_wheel,c->timer_item,1000);
+}
 
 void on_process_packet(struct connection *c,rpacket_t r)
 {
@@ -120,60 +140,19 @@ void _packet_send_finish(void *con,wpacket_t wpk)
 	wpacket_destroy(&wpk);
 }
 
-struct luaconnection* createluaconnection(uint16_t raw)
+struct luaconnection* createluaconnection(struct luaNetEngine *engine)
 {
 	struct luaconnection *c = calloc(1,sizeof(*c));
 	c->connection.send_list = LINK_LIST_CREATE();
 	c->connection._process_packet = on_process_packet;
 	c->connection._on_disconnect = _on_disconnect;
-	c->connection.next_recv_buf = 0;
-	c->connection.next_recv_pos = 0;
-	c->connection.unpack_buf = 0;
-	c->connection.unpack_pos = 0;
-	c->connection.unpack_size = 0;
 	c->connection.recv_overlap.c = (struct connection*)c;
 	c->connection.send_overlap.c = (struct connection*)c;
-	c->connection.raw = raw;
-	c->connection.mt = 0;
-	c->connection.is_close = 0;
+	c->connection.raw = engine->raw;
+	c->last_recv = GetSystemMs();
+	c->timer_item = CreateWheelItem(c,timeout_callback);
+	RegisterTimer(engine->timing_wheel,c->timer_item,1000);
 	return c;
-}
-
-
-//connect to remote server,return a connection for future recv and send
-int luaConnect(lua_State *L)
-{
-	struct luaNetEngine *engine = (struct luaNetEngine*)lua_touserdata(L,1);
-	const char *ip = lua_tostring(L,2);
-	uint16_t port = (uint16_t)lua_tonumber(L,3);
-	struct sockaddr_in remote;
-	HANDLE sock;
-	sock = OpenSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if(sock < 0)
-	{
-		lua_pushnil(L);
-		return 1;
-	}
-	remote.sin_family = AF_INET;
-	remote.sin_port = htons(port);
-	if(inet_pton(INET,ip,&remote.sin_addr) < 0)
-	{
-		printf("%s\n",strerror(errno));
-		lua_pushnil(L);
-		return 1;
-	}
-	if(Connect(sock, (struct sockaddr *)&remote, sizeof(remote)) != 0)
-	{
-		lua_pushnil(L);
-		return 1;
-	}
-	struct luaconnection *c = createluaconnection(1);
-	c->connection.socket = sock;
-	c->engine = engine;
-	setNonblock(sock);
-	Bind2Engine(engine->engine,sock,RecvFinish,SendFinish);
-	lua_pushlightuserdata(L,(void*)c);
-	return 1;
 }
 
 int luaActiveCloseConnection(lua_State *L)
@@ -198,6 +177,8 @@ int luaReleaseConnection(lua_State *L)
 			LINK_LIST_DESTROY(&(c->connection.send_list));
 			buffer_release(&(c->connection.unpack_buf));
 			buffer_release(&(c->connection.next_recv_buf));
+			UnRegisterTimer(c->engine->timing_wheel,c->timer_item);
+			DestroyWheelItem(&c->timer_item);
 			free(c);
 			lua_pushnumber(L,1);
 			return 1;
@@ -210,7 +191,7 @@ int luaReleaseConnection(lua_State *L)
 static inline void connection_callback(HANDLE s,void *ud,uint16_t type)
 {
 	struct luaNetEngine *engine = (struct luaNetEngine *)ud;
-	struct luaconnection *c = createluaconnection(engine->raw);
+	struct luaconnection *c = createluaconnection(engine);
 	c->connection.socket = s;
 	c->engine = engine;
 	setNonblock(s);
@@ -275,6 +256,7 @@ int luaCreateNet(lua_State *L)
 	e->_thread = create_thread(1);
 	e->raw = raw;
 	thread_start_run(e->_thread,_thread_routine,e);
+	e->timing_wheel = CreateTimingWheel(1000,1000*100);
 	lua_pushlightuserdata(L,e);
 	return 1;
 }
@@ -299,6 +281,7 @@ int luaDestroyNet(lua_State *L)
 			free(msg);			
 		LINK_LIST_DESTROY(&(e->msgqueue));
 		LINK_LIST_DESTROY(&(e->con_events));
+		DestroyTimingWheel(&(e->timing_wheel));
 		free(e);
 	}
 	return 0;
@@ -347,6 +330,7 @@ int luaPeekMsg(lua_State *L)
 		if(-1 == EngineRun(engine->engine,ms))
 				printf("error\n");
 	
+	UpdateWheel(engine->timing_wheel,GetSystemMs());			
 	int32_t size = link_list_size(engine->msgqueue);
 	if(size > 0)
 	{
@@ -361,6 +345,8 @@ int luaPeekMsg(lua_State *L)
 				connection_start_recv((struct connection*)msg->connection);
 				Bind2Engine(engine->engine,msg->connection->connection.socket,RecvFinish,SendFinish);
 			}
+			if(msg->msgType == PROCESS_PACKET)
+				msg->connection->last_recv = GetSystemMs();	
 		    push_msg(L,msg->msgType,msg->connection,msg->packet);
 			lua_rawseti(L,-2,i+1);
 			free(msg);
@@ -478,7 +464,6 @@ int luaGetHandle(lua_State *L)
 
 void BindFunction(lua_State *L)  
 {  
-    lua_register(L,"Connect",&luaConnect);
     lua_register(L,"ReleaseConnection",&luaReleaseConnection);   
     lua_register(L,"ActiveCloseConnection",&luaActiveCloseConnection);  
     lua_register(L,"CreateNet",&luaCreateNet);  
@@ -508,7 +493,8 @@ void BindFunction(lua_State *L)
     lua_setglobal(L,"CONNECT_SUCESSFUL");
     lua_pushnumber(L,PACKET_SEND_FINISH);
     lua_setglobal(L,"PACKET_SEND_FINISH");  
-  
+    lua_pushnumber(L,CONNECTION_TIMEOUT);
+    lua_setglobal(L,"CONNECTION_TIMEOUT");      
     InitNetSystem();
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);

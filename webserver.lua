@@ -46,6 +46,8 @@ function mainloop()
 					end
 				elseif type == PACKET_SEND_FINISH then
 					ActiveCloseConnection(con)
+				elseif type == CONNECTION_TIMEOUT then
+					ActiveCloseConnection(con)	
 				else
 					print("break main loop")
 					stop = 1

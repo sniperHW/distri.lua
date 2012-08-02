@@ -43,6 +43,8 @@ function mainloop()
 						remove_connection(connection_set,con)
 						print("disconnect")
 					end
+				elseif type == CONNECTION_TIMEOUT then
+					ActiveCloseConnection(con)
 				else
 					print("break main loop")
 					stop = 1
