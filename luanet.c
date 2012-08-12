@@ -32,17 +32,6 @@
 #include "thread.h"
 #include "timing_wheel.h"
 
-uint32_t packet_recv = 0;
-uint32_t packet_send = 0;
-uint32_t send_request = 0;
-uint32_t tick = 0;
-uint32_t now = 0;
-uint32_t s_p = 0;
-uint32_t bf_count = 0;
-uint32_t clientcount = 0;
-uint32_t last_send_tick = 0;
-uint32_t recv_count = 0;
-
 static uint16_t recv_sigint = 0;
 
 enum
