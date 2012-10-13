@@ -226,15 +226,16 @@ int luaCreateNet(lua_State *L)
 	e->msgqueue = LINK_LIST_CREATE();
 	if(ip)
 	{	
-		struct listen_arg* args[2];
+		/*struct listen_arg* args[2];
 		args[0] = (struct listen_arg*)calloc(1,sizeof(*args[0]));
 		args[0]->ip = ip;
 		args[0]->port = port;
 		args[0]->accept_callback = &accept_callback;
 		args[0]->ud = e;
-		args[1] = NULL;
-		e->_acceptor = create_acceptor((struct listen_arg**)&args);
-		free(args[0]);
+		args[1] = NULL;*/
+		e->_acceptor = create_acceptor(/*(struct listen_arg**)&args*/);
+		add_listener(a->_acceptor,ip,port,accept_callback,e);
+		//free(args[0]);
 	}
 	e->_connector = connector_create();
 	e->engine = CreateEngine();
