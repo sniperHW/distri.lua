@@ -42,6 +42,9 @@ uint32_t bf_count = 0;
 uint32_t clientcount = 0;
 uint32_t last_send_tick = 0;
 uint32_t recv_count = 0;
+atomic_32_t wpacket_count = 0;
+atomic_32_t rpacket_count = 0;
+atomic_32_t buf_count = 0;
 
 static uint16_t recv_sigint = 0;
 
@@ -95,10 +98,9 @@ struct luaNetMsg
 	int8_t    msgType;//1,新连接;2,连接断开，3，网络消息
 };
 
-void timeout_callback(void *ud)
+void timeout_callback(TimingWheel_t t,void *ud,uint32_t tick)
 {
 	struct luaconnection *c = (struct luaconnection *)ud;
-	uint32_t tick = GetSystemMs();
 	if(tick >= c->last_recv + 1000)
 	{
 		struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
@@ -237,15 +239,8 @@ int luaCreateNet(lua_State *L)
 	e->msgqueue = LINK_LIST_CREATE();
 	if(ip)
 	{	
-		struct listen_arg* args[2];
-		args[0] = (struct listen_arg*)calloc(1,sizeof(*args[0]));
-		args[0]->ip = ip;
-		args[0]->port = port;
-		args[0]->accept_callback = &accept_callback;
-		args[0]->ud = e;
-		args[1] = NULL;
-		e->_acceptor = create_acceptor((struct listen_arg**)&args);
-		free(args[0]);
+		e->_acceptor = create_acceptor();
+		add_listener(e->_acceptor,ip,port,accept_callback,e);		 
 	}
 	e->_connector = connector_create();
 	e->engine = CreateEngine();
