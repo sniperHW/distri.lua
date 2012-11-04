@@ -89,7 +89,6 @@ Last change: two column layout
 </body></html>
 
 ]]
-
 function mainloop()
 	local lasttick = GetSysTick()
 	local netengine = CreateNet(arg[1],arg[2],1)
