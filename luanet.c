@@ -139,7 +139,6 @@ void _packet_send_finish(void *con,wpacket_t wpk)
 	msg->msgType = PACKET_SEND_FINISH;
 	msg->connection = c;
 	LINK_LIST_PUSH_BACK(c->engine->msgqueue,msg);
-	wpacket_destroy(&wpk);
 }
 
 struct luaconnection* createluaconnection(struct luaNetEngine *engine)
