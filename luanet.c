@@ -17,20 +17,20 @@
 #include "lua.h"  
 #include "lauxlib.h"  
 #include "lualib.h"  
-#include "link_list.h"
-#include "KendyNet.h"
-#include "Connection.h"
+#include "util/link_list.h"
+#include "net/KendyNet.h"
+#include "net/Connection.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "SocketWrapper.h"
-#include "Acceptor.h"
-#include "Connector.h"
-#include "wpacket.h"
+#include "net/SocketWrapper.h"
+#include "net/Acceptor.h"
+#include "net/Connector.h"
+#include "net/wpacket.h"
 #include <signal.h>
-#include "SysTime.h"
-#include "sync.h"
-#include "thread.h"
-#include "timing_wheel.h"
+#include "util/SysTime.h"
+#include "util/sync.h"
+#include "util/thread.h"
+#include "util/timing_wheel.h"
 
 uint32_t packet_recv = 0;
 uint32_t packet_send = 0;
@@ -151,7 +151,7 @@ struct luaconnection* createluaconnection(struct luaNetEngine *engine)
 	c->connection.send_overlap.c = (struct connection*)c;
 	c->connection.raw = engine->raw;
 	c->last_recv = GetSystemMs();
-	c->timer_item = CreateWheelItem(c,timeout_callback);
+	c->timer_item = CreateWheelItem(c,timeout_callback,NULL);
 	RegisterTimer(engine->timing_wheel,c->timer_item,1000);
 	return c;
 }
@@ -178,7 +178,7 @@ int luaReleaseConnection(lua_State *L)
 			LINK_LIST_DESTROY(&(c->connection.send_list));
 			buffer_release(&(c->connection.unpack_buf));
 			buffer_release(&(c->connection.next_recv_buf));
-			UnRegisterTimer(c->engine->timing_wheel,c->timer_item);
+			UnRegisterTimer(c->timer_item);
 			DestroyWheelItem(&c->timer_item);
 			free(c);
 			lua_pushnumber(L,1);
@@ -337,7 +337,7 @@ int luaPeekMsg(lua_State *L)
 			if(msg->msgType == NEW_CONNECTION || msg->msgType == CONNECT_SUCESSFUL)
 			{
 				connection_start_recv((struct connection*)msg->connection);
-				Bind2Engine(engine->engine,msg->connection->connection.socket,RecvFinish,SendFinish);
+				Bind2Engine(engine->engine,msg->connection->connection.socket,RecvFinish,SendFinish,NULL);
 			}
 			if(msg->msgType == PROCESS_PACKET)
 				msg->connection->last_recv = GetSystemMs();	
@@ -379,12 +379,13 @@ int luaReleaseRpacket(lua_State *L)
 int luaSendPacket(lua_State *L)
 {
 	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
+	wpacket_t w = (wpacket_t)lua_touserdata(L,2);
 	if(c->connection.is_close)
 	{
+		wpacket_destroy(&w);
 		printf("luaSendPacket is_close:%x\n",(int32_t)c);
-		exit(0);
+		return 0;
 	}
-	wpacket_t w = (wpacket_t)lua_touserdata(L,2);
 	uint8_t send_finish = (uint8_t)lua_tonumber(L,3);
 	if(send_finish)
 		lua_pushnumber(L,connection_send(&(c->connection),w,_packet_send_finish));
@@ -449,12 +450,12 @@ static void sig_int(int sig)
 	recv_sigint = 1;
 }
 
-int luaGetHandle(lua_State *L)
+/*int luaGetHandle(lua_State *L)
 {
 	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
 	lua_pushnumber(L,c->connection.socket);
 	return 1;
-}
+}*/
 
 void BindFunction(lua_State *L)  
 {  
@@ -471,7 +472,7 @@ void BindFunction(lua_State *L)
     lua_register(L,"GetSysTick",&luaGetSysTick);
     lua_register(L,"PacketReadNumber",&luaPacketReadNumber);
     lua_register(L,"PacketWriteNumber",&luaPacketWriteNumber);
-    lua_register(L,"GetHandle",&luaGetHandle);
+    //lua_register(L,"GetHandle",&luaGetHandle);
     lua_register(L,"DestroyNet",&luaDestroyNet);
     
     
