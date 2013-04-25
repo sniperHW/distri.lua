@@ -1,11 +1,13 @@
 local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))  
 registernet()
+dofile("net/net.lua")
 
 local ava_delay = 0
 local last_print = 0
 local total_recv = 0;
+local connection_set = {}
 
-function remove_connection(connection_set,connection)
+function remove_connection(connection)
 	local idx = 0
 	for k,v in pairs(connection_set) do
 		if v == connection then
@@ -17,61 +19,37 @@ function remove_connection(connection_set,connection)
 	end
 end
 
-function clientsSend(connection_set)
+function add_connection(connection)
+	table.insert(connection_set,connection)
+end
+
+function process_packet(connection,packet)
+--[[
+	local handle = PacketReadNumber(rpk)
+	local selfhandle = GetHandle(con)
+	if handle == selfhandle then
+		local tick = PacketReadNumber(rpk)
+		tick = GetSysTick() - tick
+		ava_delay = (ava_delay + tick)/2
+	end]]--
+	total_recv = total_recv + 1
+end
+
+function clientsSend()
 	for k,v in pairs(connection_set) do
-		local wpkt = CreateWpacket(v,nil,64)
-		local handle = GetHandle(v)
-		PacketWriteNumber(wpkt,handle)
+		local wpkt = CreateWpacket(64)
 		PacketWriteNumber(wpkt,GetSysTick())
 		PacketWriteString(wpkt,"hello kenny")
-		SendPacket(v,wpkt,0)		
+		SendPacket(v,wpkt)				
 	end
 end
 
 function mainloop()
-	local netengine = CreateNet(nil,0,0)
-	local connection_set = {}
-	print("engine create successful")
+    local n = net:new(process_packet,nil,remove_connection,add_connection)
 	for i=1,arg[3] do
-		AsynConnect(netengine,arg[1],arg[2],500)
+		n:connect(arg[1],arg[2],500)
 	end
-	--[[for i=1,200 do
-		AsynConnect(netengine,"127.0.0.1",8010,100)
-	end--]]
-	local stop = 0
-	while stop == 0 do
-		local msgs = PeekMsg(netengine,50)
-		if msgs ~= nil then
-			for k,v in pairs(msgs) do
-				local type,con,rpk = v[1],v[2],v[3]
-				if type == NEW_CONNECTION then
-					print("a connection comming")
-				elseif type == PROCESS_PACKET then
-					local handle = PacketReadNumber(rpk)
-					local selfhandle = GetHandle(con)
-					if handle == selfhandle then
-						local tick = PacketReadNumber(rpk)
-						tick = GetSysTick() - tick
-						ava_delay = (ava_delay + tick)/2
-					end
-					total_recv = total_recv + 1
-					ReleaseRpacket(rpk)
-				elseif type == DISCONNECT then
-					remove_connection(connection_set,con)
-					if 1 == ReleaseConnection(con) then
-						print("disconnect")
-					end	
-				elseif type == CONNECT_SUCESSFUL then
-					print("connect success")
-					table.insert(connection_set,con)	
-				else
-					print("break mainloop")
-					stop = 1
-					break
-				end			
-			end
-		end
-		
+	while n:run(50) == 0 do
 		local nowtick = GetSysTick()
 		if nowtick >= last_print+1000 then
 			print("ava_delay:" .. ava_delay)
@@ -80,9 +58,9 @@ function mainloop()
 			total_recv = 0
 			last_print = nowtick
 		end
-		clientsSend(connection_set)
+		clientsSend()
 	end
-	DestroyNet(netengine)	
+	n = nil
 	print("main loop end")
 end	
 mainloop() 

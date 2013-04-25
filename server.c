@@ -8,7 +8,7 @@ int main()
 {
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
-	if(luaL_dofile(L,"webserver.lua"))
+	if(luaL_dofile(L,"echo.lua"))
 	{
 		const char *err = lua_tostring(L,-1);
 		printf("%s\n",err);

@@ -1,7 +1,8 @@
-local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))  
+local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))
 registernet()
-
-function remove_connection(connection_set,connection)
+dofile("net/net.lua") 
+connection_set = {}
+function remove_connection(connection)
 	local idx = 0
 	for k,v in pairs(connection_set) do
 		if v == connection then
@@ -12,57 +13,37 @@ function remove_connection(connection_set,connection)
 		table.remove(connection_set,idx)
 	end
 end
+
+function add_connection(connection)
+	table.insert(connection_set,connection)
+end
+
+function process_packet(connection,packet)
+	send2all(connection_set,packet)
+end
+
 local totalsend = 0
-function send2all(connection_set,rpacket)
+function send2all(rpacket)
 	for k,v in pairs(connection_set) do
-		local wpkt = CreateWpacket(v,rpacket,0)
-		SendPacket(v,wpkt,0)
+		local wpkt = CreateWpacket(rpacket)
+		SendPacket(v,wpkt)
 		totalsend = totalsend + 1
 	end
 end
 
 function mainloop()
 	local lasttick = GetSysTick()
-	local netengine = CreateNet(arg[1],arg[2],0)
-	local connection_set = {}
-	local stop = 0
-	while stop == 0 do
-		
-		local msgs = PeekMsg(netengine,50)
-		if msgs ~= nil then
-			for k,v in pairs(msgs) do
-				local type,con,rpk = v[1],v[2],v[3]
-				if type == NEW_CONNECTION then
-					table.insert(connection_set,con)
-					print("a connection comming")
-				elseif type == PROCESS_PACKET then
-					send2all(connection_set,rpk)
-					ReleaseRpacket(rpk)
-				elseif type == DISCONNECT then
-					if 1 == ReleaseConnection(con) then
-						remove_connection(connection_set,con)
-						print("disconnect")
-					end
-				elseif type == CONNECTION_TIMEOUT then
-					ActiveCloseConnection(con)
-				else
-					print("break main loop")
-					stop = 1
-					break
-				end
-				
-			end 
-		end
+	local n = net:new(process_packet,add_connection,remove_connection):listen(arg[1],arg[2])
+	while n:run(50) == 0 do
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then
 			print("client:" .. #connection_set .. " packet send:" ..totalsend)
 			totalsend = 0;
 			lasttick = tick
 		end
-		
 	end
-	DestroyNet(netengine)	
+	n = nil
 	print("main loop end")
 end	
 
-mainloop()  
+mainloop()

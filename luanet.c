@@ -207,6 +207,7 @@ static inline void connection_callback(HANDLE s,void *ud,uint16_t type)
 
 void accept_callback(HANDLE s,void *ud)
 {
+	printf("new client\n");
 	connection_callback(s,ud,NEW_CONNECTION);
 }
 
@@ -229,18 +230,20 @@ void *_thread_routine(void *arg)
 	}
 }
 
+int luaListen(lua_State *L)
+{
+	struct luaNetEngine *e = lua_touserdata(L,1);
+	const char *ip = lua_tostring(L,2);
+	uint16_t port = (uint16_t)lua_tonumber(L,3);
+	add_listener(e->_acceptor,ip,port,accept_callback,e);
+	return 0;
+}
+
 int luaCreateNet(lua_State *L)
 {
-	const char *ip = lua_tostring(L,1);
-	uint16_t port = (uint16_t)lua_tonumber(L,2);
-	uint8_t  raw = (uint8_t)lua_tonumber(L,3);
 	struct luaNetEngine *e = (struct luaNetEngine *)calloc(1,sizeof(*e));
 	e->msgqueue = LINK_LIST_CREATE();
-	if(ip)
-	{	
-		e->_acceptor = create_acceptor();
-		add_listener(e->_acceptor,ip,port,accept_callback,e);		 
-	}
+	e->_acceptor = create_acceptor();
 	e->_connector = connector_create();
 	e->engine = CreateEngine();
 	
@@ -248,7 +251,7 @@ int luaCreateNet(lua_State *L)
 	e->con_events = LINK_LIST_CREATE();
 	e->terminated = 0;
 	e->_thread = create_thread(1);
-	e->raw = raw;
+	e->raw = 0;
 	thread_start_run(e->_thread,_thread_routine,e);
 	e->timing_wheel = CreateTimingWheel(1000,1000*100);
 	lua_pushlightuserdata(L,e);
@@ -278,6 +281,7 @@ int luaDestroyNet(lua_State *L)
 		DestroyTimingWheel(&(e->timing_wheel));
 		free(e);
 	}
+	printf("luaDestroyNet finish\n");
 	return 0;
 }
 
@@ -355,23 +359,36 @@ int luaPeekMsg(lua_State *L)
 
 int luaCreateWpacket(lua_State *L)
 {
-	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
-	rpacket_t r = lua_touserdata(L,2);
-	wpacket_t w;
-	if(r)
-		w = wpacket_create_by_rpacket(NULL,r);
-	else
+	wpacket_t w = NULL;
+	uint32_t size = 64;
+	if(lua_isuserdata(L,1))
 	{
-		uint32_t size = lua_tonumber(L,3);
-		w = wpacket_create(0,NULL,size,c->connection.raw);	
+		rpacket_t r = lua_touserdata(L,1);
+		if(r)
+			w = wpacket_create_by_rpacket(NULL,r);
 	}
+	else
+		size = lua_tonumber(L,1);
+	if(!w)
+		w = wpacket_create(0,NULL,size,0);
 	lua_pushlightuserdata(L,w);
 	return 1;
+}
+
+int luaReleaseWpacket(lua_State *L)
+{
+	wpacket_t w = lua_touserdata(L,1);
+	if(!w)
+		exit(0);
+	wpacket_destroy(&w);
+	return 0;
 }
 
 int luaReleaseRpacket(lua_State *L)
 {
 	rpacket_t r = lua_touserdata(L,1);
+	if(!r)
+		exit(0);
 	rpacket_destroy(&r);
 	return 0;
 }
@@ -383,14 +400,10 @@ int luaSendPacket(lua_State *L)
 	if(c->connection.is_close)
 	{
 		wpacket_destroy(&w);
-		printf("luaSendPacket is_close:%x\n",(int32_t)c);
+		printf("luaSendPacket is_close:%x\n",c);
 		return 0;
 	}
-	uint8_t send_finish = (uint8_t)lua_tonumber(L,3);
-	if(send_finish)
-		lua_pushnumber(L,connection_send(&(c->connection),w,_packet_send_finish));
-	else
-		lua_pushnumber(L,connection_send(&(c->connection),w,NULL));
+	lua_pushnumber(L,connection_send(&(c->connection),w,NULL));
 	return 1;
 }
 
@@ -450,6 +463,37 @@ static void sig_int(int sig)
 	recv_sigint = 1;
 }
 
+static wpacket_t wpacket_create_by_wpacket(allocator_t _allo,struct wpacket *_w)
+{
+	wpacket_t w = (wpacket_t)ALLOC(_allo,sizeof(*w));	
+	w->allocator = _allo;	
+	w->raw = _w->raw;
+	w->mt  = _w->mt;
+	w->factor = _w->factor;
+	w->writebuf = buffer_acquire(NULL,_w->writebuf);
+	w->begin_pos = _w->begin_pos;
+	w->buf = buffer_acquire(NULL,_w->buf);
+	w->len = _w->len;//触发拷贝之前len没有作用
+	w->wpos = _w->wpos;
+	w->next.next = NULL;
+	w->type = _w->type;
+	w->data_size = _w->data_size;
+	return w;	
+}
+
+int luaCopyWpacket(lua_State *L)
+{
+	wpacket_t _w = lua_touserdata(L,1);
+	if(_w)
+	{
+		wpacket_t w = wpacket_create_by_wpacket(NULL,_w);
+		lua_pushlightuserdata(L,w);
+	}
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
 /*int luaGetHandle(lua_State *L)
 {
 	struct luaconnection *c = (struct luaconnection *)lua_touserdata(L,1);
@@ -463,8 +507,10 @@ void BindFunction(lua_State *L)
     lua_register(L,"ActiveCloseConnection",&luaActiveCloseConnection);  
     lua_register(L,"CreateNet",&luaCreateNet);  
     lua_register(L,"PeekMsg",&luaPeekMsg);  
-    lua_register(L,"CreateWpacket",&luaCreateWpacket);  
+    lua_register(L,"CreateWpacket",&luaCreateWpacket);
+	lua_register(L,"CopyWpacket",&luaCopyWpacket);
     lua_register(L,"ReleaseRpacket",&luaReleaseRpacket);
+	lua_register(L,"ReleaseWpacket",&luaReleaseWpacket);
     lua_register(L,"SendPacket",&luaSendPacket);
     lua_register(L,"PacketReadString",&luaPacketReadString);
     lua_register(L,"PacketWriteString",&luaPacketWriteString);    
@@ -474,6 +520,8 @@ void BindFunction(lua_State *L)
     lua_register(L,"PacketWriteNumber",&luaPacketWriteNumber);
     //lua_register(L,"GetHandle",&luaGetHandle);
     lua_register(L,"DestroyNet",&luaDestroyNet);
+	lua_register(L,"Listen",&luaListen);
+	
     
     
     lua_pushnumber(L,ENGINE_STOP);
