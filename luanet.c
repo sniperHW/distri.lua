@@ -101,7 +101,7 @@ struct luaNetMsg
 void timeout_callback(TimingWheel_t t,void *ud,uint32_t tick)
 {
 	struct luaconnection *c = (struct luaconnection *)ud;
-	if(tick >= c->last_recv + 1000)
+	if(tick >= c->last_recv + 30*1000)
 	{
 		struct luaNetMsg *msg = (struct luaNetMsg *)calloc(1,sizeof(*msg));
 		msg->msgType = CONNECTION_TIMEOUT;
@@ -110,7 +110,7 @@ void timeout_callback(TimingWheel_t t,void *ud,uint32_t tick)
 		LINK_LIST_PUSH_BACK(c->engine->msgqueue,msg);
 	}
 	else
-		RegisterTimer(c->engine->timing_wheel,c->timer_item,1000);
+		RegisterTimer(c->engine->timing_wheel,c->timer_item,30*1000);
 }
 
 void on_process_packet(struct connection *c,rpacket_t r)
