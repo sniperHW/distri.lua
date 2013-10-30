@@ -54,7 +54,7 @@ static void callObjFunction(lua_State *L,
 	else
 		lua_pushnil(L);
 	if(rpk)
-		lua_pushstring(rpk);
+		lua_pushstring(L,rpk);
 	else
 		lua_pushnil(L);
 	if(lua_pcall(L,2,0,0) != 0)
@@ -108,7 +108,7 @@ static void lua_process_packet(struct connection *c,rpacket_t rpk)
 {
 	struct luaNetService *service = (struct luaNetService *)c->usr_ptr;	
 	uint32_t len = 0;
-	void *ptr = rpk_read_binary(rpk.&len);
+	const void *ptr = rpk_read_binary(rpk,&len);
 	if(len < 4096)
 	{
 		char buf[4096];
