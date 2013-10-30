@@ -24,30 +24,24 @@ function add_connection(connection)
 end
 
 function process_packet(connection,packet)
---[[
-	local handle = PacketReadNumber(rpk)
-	local selfhandle = GetHandle(con)
-	if handle == selfhandle then
-		local tick = PacketReadNumber(rpk)
-		tick = GetSysTick() - tick
-		ava_delay = (ava_delay + tick)/2
-	end]]--
 	total_recv = total_recv + 1
 end
 
 function clientsSend()
 	for k,v in pairs(connection_set) do
-		local wpkt = CreateWpacket(64)
-		PacketWriteNumber(wpkt,GetSysTick())
-		PacketWriteString(wpkt,"hello kenny")
+		local wpkt = wpacket:net()
+		wpkt:write_number(GetSysTick())
+		wpkt:write_string("hello kenny")
 		SendPacket(v,wpkt)				
 	end
 end
 
 function mainloop()
-    local n = net:new(process_packet,nil,remove_connection,add_connection)
+	local n = net:new(process_packet,remove_connection)
+	net._send_timeout = _timeout
+	net._recv_timeout = _timeout
 	for i=1,arg[3] do
-		n:connect(arg[1],arg[2],500)
+		n:connect(add_connection,arg[1],arg[2],500)
 	end
 	while n:run(50) == 0 do
 		local nowtick = GetSysTick()

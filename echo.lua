@@ -25,15 +25,20 @@ end
 local totalsend = 0
 function send2all(rpacket)
 	for k,v in pairs(connection_set) do
-		local wpkt = CreateWpacket(rpacket)
-		SendPacket(v,wpkt)
+		SendPacket(v,rpk2wpk(rpacket))
 		totalsend = totalsend + 1
 	end
 end
 
+function _timeout(connection)
+	active_close(connection)
+end
+
 function mainloop()
 	local lasttick = GetSysTick()
-	local n = net:new(process_packet,add_connection,remove_connection):listen(arg[1],arg[2])
+	local n = net:new(process_packet,remove_connection):listen(add_connection,arg[1],arg[2])
+	net._send_timeout = _timeout
+	net._recv_timeout = _timeout
 	while n:run(50) == 0 do
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then

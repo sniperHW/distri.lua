@@ -1,58 +1,35 @@
-WPACKET = 1
-RPACKET = 2
-
-rpacket = {
-	packet = nil,
-	type = RPACKET,
-}
-
-function rpacket:finalize()
-	ReleaseRpacket(self.packet)	
-end
-
-function rpacket:new(packet)
-  local o = {}   
-  self.__gc = rpacket.finalize
-  self.__index = self
-  setmetatable(o, self)
-  o.packet = packet
-  return o
-end
-
-function rpacket:read_number()
-	PacketReadNumber(self.packet)
-end
-
-function rpacket:read_string()
-	PacketReadString(self.packet)
-end
+LNUMBER = 1
+LSTRING = 2 
 
 wpacket = {
-	packet = nil,
-	type = WPACKET,
+	data = nil
 }
-
-function wpacket:finalize()
-	ReleaseWpacket(self.packet)	
-end
 
 function wpacket:new(packet)
   local o = {}   
-  self.__gc = wpacket.finalize
   self.__index = self
   setmetatable(o, self)
-  if packet and packet.type == RPACKET then
-	o.packet = CreateWpacket(rpacket.packet,0)
-  else
-	o.packet = CreateWpacket(nil,64)
-  end
+  self.data = {}
   return o
 end
 
 function wpacket:write_number(num)
-	PacketWriteNumber(self.packet,num)
+	table.insert(self.data,LNUMBER)
+	table.insert(self.data,num)
 end
 
 function wpacket:write_string(str)
-	PacketWriteString(self.packet,str)
+	table.insert(self.data,LSTRING)
+	table.insert(self.data,str)
+end
+
+function rpk2wpk(rpacket)
+	local wpk = wpacket:new()
+	for k,v in pairs(rpacket) do
+		if type(v) == "number" then
+			wpk:write_number(v)
+		else if type(v) == "string" then
+			wpk:write_string(v)
+		end
+	end
 end
