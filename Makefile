@@ -1,6 +1,6 @@
 all:luanet.c
-	gcc -O3 -g -c -fPIC luanet.c -I../kendylib/
-	gcc -O3 -shared -o luanet.so luanet.o ../kendylib/lib/net.a ../kendylib/lib/util.a -lpthread -lrt -ltcmalloc
+	gcc -g -c -fPIC luanet.c -I../purenet/
+	gcc -g -shared -o luanet.so luanet.o ../purenet/lib/kendylib.a -lpthread -lrt -ltcmalloc
 server:
 	gcc -g -c luanet.c -I../kendylib/include
 	gcc -g -o server server.c luanet.o kendy.a -llua -lpthread -lrt -ltcmalloc -ldl

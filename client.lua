@@ -29,10 +29,7 @@ end
 
 function clientsSend()
 	for k,v in pairs(connection_set) do
-		local wpkt = wpacket:net()
-		wpkt:write_number(GetSysTick())
-		wpkt:write_string("hello kenny")
-		SendPacket(v,wpkt)				
+		SendPacket(v,"hello")				
 	end
 end
 

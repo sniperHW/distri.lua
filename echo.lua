@@ -23,9 +23,9 @@ function process_packet(connection,packet)
 end
 
 local totalsend = 0
-function send2all(rpacket)
+function send2all(packet)
 	for k,v in pairs(connection_set) do
-		SendPacket(v,rpk2wpk(rpacket))
+		SendPacket(v,packet)
 		totalsend = totalsend + 1
 	end
 end
