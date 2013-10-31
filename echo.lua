@@ -39,15 +39,15 @@ end
 
 function mainloop()
 	local lasttick = GetSysTick()
-	local n = tcpserver:new():listen(arg[1],arg[2])
-	while n:run(50) == 0 do
+	local server = tcpserver:new():listen(arg[1],arg[2])
+	while server:run(50) == 0 do
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then
 			print("client:" .. client_count)
 			lasttick = tick
 		end
 	end
-	n = nil
+	server = nil
 	print("main loop end")
 end	
 
