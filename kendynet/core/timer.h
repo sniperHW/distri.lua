@@ -38,6 +38,7 @@ struct timer_item
 	void (*callback)(struct timer*,struct timer_item*,void*);
 };
 
+void   init_timer_item(struct timer_item*);
 struct timer *new_timer();
 void   delete_timer(struct timer**);
 //更新定时器
