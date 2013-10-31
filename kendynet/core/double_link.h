@@ -115,4 +115,13 @@ static inline void double_link_check_remove(struct double_link *dl,dblnk_check _
         }
     }
 }
+
+static inline void double_link_move(struct double_link *dl1,struct double_link *dl2)
+{
+	if(double_link_empty(dl2)) return;
+	dl2->head.next->pre = dl1->tail.pre;
+	dl2->tail.pre->next = &dl1->tail;
+	dl1->tail.pre->next = dl2->head.next;
+	dl1->tail.pre = dl2->tail.next;
+}
 #endif

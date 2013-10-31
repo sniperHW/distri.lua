@@ -4,7 +4,7 @@
 #include "wpacket.h"
 #include "rpacket.h"
 #include <stdint.h>
-#include "timing_wheel.h"
+#include "timer.h"
 #include "allocator.h"
 #include "common_define.h"
 #include "common.h"
@@ -58,7 +58,7 @@ struct connection
         void    *usr_ptr;
 	};
 	uint32_t last_recv;
-	struct   WheelItem wheelitem;
+	struct timer_item wheelitem;
 	uint32_t recv_timeout;
     uint32_t send_timeout;
     on_recv_timeout _recv_timeout;
@@ -68,11 +68,11 @@ struct connection
 };
 
 
-static inline WheelItem_t con2wheelitem(struct connection *con){
+static inline struct timer_item* con2wheelitem(struct connection *con){
     return &con->wheelitem;
 }
 
-static inline struct connection *wheelitem2con(WheelItem_t wit)
+static inline struct connection *wheelitem2con(struct timer_item *wit)
 {
     struct connection *con = (struct connection*)wit;
     return (struct connection *)((char*)wit - ((char*)&con->wheelitem - (char*)con));

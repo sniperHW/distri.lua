@@ -14,25 +14,36 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef _NETSERVICE_H
-#define _NETSERVICE_H
-#include "KendyNet.h"
-#include "Connection.h"
-#include "SysTime.h"
-#include "timer.h"
+#ifndef _TIMER_H
+#define _TIMER_H
+#include <time.h>
+#include <stdint.h>
+#include "double_link.h"
 
-typedef struct netservice{
-    ENGINE engine;
-    struct timer* timer;
-    int32_t (*bind)(struct netservice *,struct connection*,process_packet,on_disconnect,
-                    uint32_t,on_recv_timeout,uint32_t,on_send_timeout);
-    SOCK    (*listen)(struct netservice*,const char*,int32_t,void*,OnAccept);
-    int32_t (*connect)(struct netservice*,const char*,int32_t,void*,OnConnect,uint32_t);
-    int32_t (*loop)(struct netservice*,uint32_t ms);
-}netservice;
+//5级时间轮，最大到年，最小到秒
+enum
+{
+	MIN = 0,
+	HOUR,
+	DAY,
+	YEAR,
+	SIZE,
+};
 
-struct netservice *new_service();
-void   destroy_service(struct netservice**);
+struct timer;
+struct timer_item
+{
+	struct double_link_node dlnode;
+	void  *ud_ptr;
+	void (*callback)(struct timer*,struct timer_item*,void*);
+};
+
+struct timer *new_timer();
+void   delete_timer(struct timer**);
+//更新定时器
+void update_timer(struct timer*,time_t now);
+int8_t register_timer(struct timer*,struct timer_item*,time_t timeout);
+void unregister_timer(struct timer_item*);
 
 
 #endif

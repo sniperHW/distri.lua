@@ -1,9 +1,10 @@
 #include "netservice.h"
 
-void check_timeout(TimingWheel_t t,struct WheelItem *wit,uint32_t now)
+void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
 {
+    uint32_t now = GetSystemMs();
     struct connection *c = wheelitem2con(wit);
-    struct netservice *n = (struct netservice*)wit->ud;
+    struct netservice *n = (struct netservice*)ud;
     acquire_conn(c);
     if(c->_recv_timeout && now > c->last_recv + c->recv_timeout)
         c->_recv_timeout(c);
@@ -13,7 +14,7 @@ void check_timeout(TimingWheel_t t,struct WheelItem *wit,uint32_t now)
         if(wpk && now > wpk->base.tstamp + c->send_timeout)
             c->_send_timeout(c);
     }
-    if(!c->is_closed) RegisterTimer(t,wit,1000);
+    if(!c->is_closed) register_timer(t,wit,1);
     release_conn(c);
 }
 
@@ -30,9 +31,9 @@ static int32_t _bind(struct netservice *n,
     c->_send_timeout = _send_timeout;
     c->recv_timeout = rtimeout;
     c->send_timeout = stimeout;
-    c->wheelitem.ud = (void*)n;
+    c->wheelitem.ud_ptr = (void*)n;
     c->wheelitem.callback = check_timeout;
-    RegisterTimer(n->timer,con2wheelitem(c),1000);
+    register_timer(n->timer,con2wheelitem(c),1);
     return bind2engine(n->engine,c,_process_packet,_on_disconnect);
  }
 
@@ -53,18 +54,18 @@ int32_t _connect(struct netservice *n,const char *ip,int32_t port,void *ud,OnCon
 
 int32_t _loop(struct netservice *n,uint32_t ms)
 {
-    UpdateWheel(n->timer,GetSystemMs());
+    update_timer(n->timer,time(NULL));
     return EngineRun(n->engine,ms);
 }
 
-struct netservice *new_service(uint32_t precision,uint32_t max)
+struct netservice *new_service()
 {
     struct netservice *n = calloc(1,sizeof(*n));
-    n->timer = CreateTimingWheel(precision,max);
+    n->timer = new_timer();
     n->engine = CreateEngine();
     if(n->engine == INVALID_ENGINE)
     {
-        DestroyTimingWheel(&n->timer);
+        delete_timer(&n->timer);
         free(n);
         return NULL;
     }
@@ -77,7 +78,7 @@ struct netservice *new_service(uint32_t precision,uint32_t max)
 
 void destroy_service(struct netservice **n)
 {
-    DestroyTimingWheel(&(*n)->timer);
+    delete_timer(&(*n)->timer);
     CloseEngine((*n)->engine);
     free(*n);
     *n = NULL;
