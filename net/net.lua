@@ -1,22 +1,20 @@
 net = {
 	engine,
-	_process_packet = nil,    --´¦ÀíÍøÂç°ü
-	_on_accept = nil,         --´¦ÀíÐÂµ½Á¬½Ó
+	_process_packet = nil,    --ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	_on_accept = nil,         --ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½
 	_on_connect = nil,
-	_on_disconnect = nil,     --´¦ÀíÁ¬½Ó¹Ø±Õ
+	_on_disconnect = nil,     --ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¹Ø±ï¿½
 	_on_send_finish = nil,
 	_send_timeout = nil,      
 	_recv_timeout = nil, 
 }
 
-function net:listen(on_accept,ip,port)
-	self._on_accept = on_accept
+function net:listen(ip,port)
 	Listen(self.engine,ip,port)
 	return self
 end
 
-function net:connect(on_connect,ip,port,timeout)
-	self._on_connect = on_connect
+function net:connect(ip,port,timeout)
 	Connect(self.engine,ip,port,timeout)
 end
 
@@ -66,13 +64,11 @@ function net:finalize()
 	netservice_delete(self.engine)
 end
 
-function net:new(process_packet,on_disconnect)
+function net:new()
   local o = {}   
   self.__gc = net.finalize
   self.__index = self
   setmetatable(o, self)
-  o._process_packet = process_packet
-  o._on_disconnect = on_disconnect
   o.engine = netservice_new(o)
   return o
 end
