@@ -27,9 +27,9 @@ client_count = 0;
 tcpserver = net:new()
 
 function tcpserver:new()
-          local o = {}   
-          self.__index = self
-          setmetatable(o, self)
+        local o = {}   
+        self.__index = self
+        setmetatable(o, self)
         o._process_packet = process_packet,    --处理网络包
         o._on_accept = client_come,         --处理新到连接
         o._on_connect = nil,
