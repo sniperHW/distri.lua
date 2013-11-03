@@ -1,0 +1,7 @@
+server:../lib/kendylib.a test.c
+	gcc -g -o server test.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
+connect:../lib/kendylib.a testconnect.c
+	gcc -g -o connect_test testconnect.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
+tcpserver:../lib/kendylib.a tcpserver.c
+	gcc -g -o tcpserver tcpserver.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
+
