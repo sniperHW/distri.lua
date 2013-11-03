@@ -44,23 +44,26 @@ static void callObjFunction(lua_State *L,
 				     struct connection *c,
 				     char *rpk)
 {
-
 	lua_rawgeti(L,LUA_REGISTRYINDEX,index);
 	lua_pushstring(L,name);
 	lua_gettable(L,-2);
+	if(lua_isnil(L,-1))
+	{
+		printf("%s is nil\n",name);
+		return;
+	}
 	lua_rawgeti(L,LUA_REGISTRYINDEX,index);
-	if(c)
-		lua_pushlightuserdata(L,c);
-	else
-		lua_pushnil(L);
-	if(rpk)
+	if(!c)return;
+	lua_pushlightuserdata(L,c);
+	int argc = 2;
+	if(rpk){
 		lua_pushstring(L,rpk);
-	else
-		lua_pushnil(L);
-	if(lua_pcall(L,2,0,0) != 0)
+		++argc;
+	}
+	if(lua_pcall(L,argc,0,0) != 0)
 	{
 		const char *error = lua_tostring(L,-1);
-		printf("%s\n",error);
+		printf("%s,%s\n",error,name);
 		lua_pop(L,1);
 	}
 }
@@ -77,7 +80,7 @@ static void sig_int(int sig){
 
 static int netservice_new(lua_State *L)
 {
-	struct netservice *service = new_service(100,100*3000);
+	struct netservice *service = new_service();
 	if(!service)
 		lua_pushnil(L);
 	else
@@ -86,6 +89,7 @@ static int netservice_new(lua_State *L)
 		lnet->m_iKeyIndex = luaL_ref(L,LUA_REGISTRYINDEX);
 		lnet->net = service;
 		lnet->call = callObjFunction;
+		lnet->L = L;
 		lua_pushlightuserdata(L,lnet);
 	}
 	return 1;
@@ -214,7 +218,8 @@ static int luaListen(lua_State *L)
 	struct luaNetService *engine = (struct luaNetService *)lua_touserdata(L,1);
 	const char *ip = lua_tostring(L,2);
 	uint16_t port = (uint16_t)lua_tonumber(L,3);
-	engine->net->listen(engine->net,ip,port,(void*)engine,lua_on_accept);
+	if(INVALID_SOCK != engine->net->listen(engine->net,ip,port,(void*)engine,lua_on_accept))
+		printf("listen ok\n");
 	return 0;
 }
 

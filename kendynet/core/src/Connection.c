@@ -40,7 +40,7 @@ static inline int unpack(struct connection *c)
 			if(pk_total_size > c->unpack_size)
 				return 1;
 			r = rpk_create(c->unpack_buf,c->unpack_pos,pk_len,c->raw);
-			r->base.tstamp = time(NULL);
+			r->base.tstamp = GetSystemSec();
 			//µ÷Õûunpack_bufºÍunpack_pos
 			do{
 				uint32_t size = c->unpack_buf->size - c->unpack_pos;
@@ -319,7 +319,7 @@ void IoFinish(int32_t bytestransfer,st_io *io,uint32_t err_code)
 void connection_destroy(void *arg)
 {
 	struct connection *c = (struct connection*)arg;
-	UnRegisterTimer(con2wheelitem(c));
+	unregister_timer(con2wheelitem(c));
     wpacket_t w;
     while((w = LINK_LIST_POP(wpacket_t,&c->send_list))!=NULL)
         wpk_destroy(&w);

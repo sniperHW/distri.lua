@@ -32,12 +32,6 @@ struct double_link
 };
 
 
-static inline int32_t check_dblink_node(struct double_link_node *dln)
-{
-	if(dln->pre && dln->next) return 1;
-	return 0;
-}
-
 static inline int32_t double_link_empty(struct double_link *dl)
 {
 	return dl->head.next == &dl->tail ? 1:0;
@@ -61,7 +55,7 @@ static inline struct double_link_node *double_link_last(struct double_link *dl)
 
 static inline int32_t double_link_remove(struct double_link_node *dln)
 {
-	if(check_dblink_node(dln) == 0) return -1;
+	if(!dln->pre && !dln->next) return -1;
 	dln->pre->next = dln->next;
 	dln->next->pre = dln->pre;
 	dln->pre = dln->next = NULL;
@@ -82,7 +76,7 @@ static inline struct double_link_node *double_link_pop(struct double_link *dl)
 
 static inline int32_t double_link_push(struct double_link *dl,struct double_link_node *dln)
 {
-	if(check_dblink_node(dln) > 0) return -1;
+	if(dln->pre || dln->next) return -1;
 	dl->tail.pre->next = dln;
 	dln->pre = dl->tail.pre;
 	dl->tail.pre = dln;

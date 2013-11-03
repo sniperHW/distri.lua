@@ -54,7 +54,7 @@ int32_t _connect(struct netservice *n,const char *ip,int32_t port,void *ud,OnCon
 
 int32_t _loop(struct netservice *n,uint32_t ms)
 {
-    update_timer(n->timer,time(NULL));
+    update_timer(n->timer,GetSystemSec());
     return EngineRun(n->engine,ms);
 }
 

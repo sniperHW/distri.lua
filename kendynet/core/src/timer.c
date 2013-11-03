@@ -33,7 +33,7 @@ static uint32_t _round_time[SIZE] = {60,60*60,60*60*24,60*60*24*365};
 
 void   init_timer_item(struct timer_item *item)
 {
-    item->dnode.pre = item->dnode.next = NULL;
+    item->dlnode.pre = item->dlnode.next = NULL;
     item->ud_ptr = NULL;
 }
 

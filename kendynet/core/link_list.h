@@ -18,7 +18,7 @@ struct link_list
 	int32_t size;
 	list_node *head;
 	list_node *tail;
-	
+
 };
 
 static inline struct link_list *create_link_list()

@@ -25,8 +25,10 @@ function net:process_packet(connection,rpacket)
 end
 
 function net:on_accept(connection)
-	if self.on_accept then
-		self.on_accept(connection)
+	print("on_accept")
+	if self._on_accept then
+		print("a client come")
+		self._on_accept(connection)
 	end
 end
 

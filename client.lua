@@ -26,14 +26,14 @@ tcpclient = net:new()
 function tcpclient:new()
         local o = {}   
         self.__index = self
+        self._process_packet = process_packet    --处理网络包
+        self._on_accept = nil         --处理新到连接
+        self._on_connect = connect_ok
+        self._on_disconnect = nil     --处理连接关闭
+        self._on_send_finish = nil
+        self._send_timeout = _timeout      
+        self._recv_timeout = _timeout         
         setmetatable(o, self)
-        o._process_packet = process_packet,    --处理网络包
-        o._on_accept = nil,         --处理新到连接
-        o._on_connect = connect_ok,
-        o._on_disconnect = nil,     --处理连接关闭
-        o._on_send_finish = nil,
-        o._send_timeout = _timeout,      
-        o._recv_timeout = _timeout, 
         return o
 end        
 
