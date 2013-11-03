@@ -64,6 +64,7 @@ end
 
 function net:finalize()
 	netservice_delete(self.engine)
+	print("net destroy")
 end
 
 function net:new()

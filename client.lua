@@ -49,6 +49,7 @@ function mainloop()
 		if tick - 1000 >= lasttick then
 			print("recv_count:" .. recv_count)
 			lasttick = tick
+			recv_count = 0
 		end
 	end
 	client = nil

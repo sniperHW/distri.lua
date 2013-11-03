@@ -206,10 +206,7 @@ static inline void wpk_write_binary(wpacket_t w,const void *value,uint32_t size)
 
 static inline void wpk_write_string(wpacket_t w ,const char *value)
 {
-	if(w->base.raw)
-		wpk_write_binary(w,value,strlen(value));
-	else
-		wpk_write_binary(w,value,strlen(value)+1);
+    wpk_write_binary(w,value,strlen(value)+1);
 }
 
 #endif

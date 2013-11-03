@@ -185,7 +185,7 @@ void on_pkt_send_finish(struct connection *c,wpacket_t wpk)
 
 wpacket_t luaGetluaWPacket(lua_State *L,int idx)
 {
-	wpacket_t wpk = wpk_create(128,0);
+	wpacket_t wpk = wpk_create(128,1);
 	wpk_write_string(wpk,lua_tostring(L,idx));
 	return wpk;
 }
