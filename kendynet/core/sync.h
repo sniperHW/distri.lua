@@ -65,16 +65,24 @@ static inline int32_t condition_wait(condition_t c,mutex_t m)
 static int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
-	//clock_gettime(1/*CLOCK_REALTIME*/, &ts);
-	//ts.tv_sec += 1;
+#ifdef _WIN	
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	uint64_t sec = ms/1000;
 	uint64_t msec = ms%1000;
-	ts.tv_sec = now.tv_sec + sec;
-	ts.tv_nsec = now.tv_usec * 1000 + msec*1000*1000;   
-
+	ts.tv_sec = now.tv_sec + ms/1000;
+	ts.tv_nsec = now.tv_usec * 1000 + msec*1000*1000;
+#else
+	clock_gettime(CLOCK_REALTIME, &ts);
+	uint64_t msec = ms%1000;
+	ts.tv_nsec += (msec*1000*1000);
+	ts.tv_sec  += (ms/1000);
+#endif
+	if(ts.tv_nsec >= 1000*1000*1000){
+		ts.tv_sec += 1;
+		ts.tv_nsec %= (1000*1000*1000);
+	}	
 	return pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
+
 }
 
 static inline int32_t condition_signal(condition_t c)
