@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "core/timer.h"
 #include "core/SysTime.h"
+#include "core/sync.h"
 
 struct ttimer
 {
@@ -19,7 +20,6 @@ void t_callback(struct timer *timer,struct timer_item *item,void *ud)
 
 int main()
 {
-
     struct ttimer _t;
     _t.titem.callback = t_callback;
     _t.intend_time = time(NULL);

@@ -1,4 +1,4 @@
-/*	
+/*
     Copyright (C) <2012>  <huangweilook@21cn.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -13,12 +13,13 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/	
+*/
 #ifndef _SYNC_H
 #define _SYNC_H
 #include <pthread.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <sys/time.h>
 /*Mutex*/
 typedef struct mutex
@@ -27,8 +28,6 @@ typedef struct mutex
 	pthread_mutexattr_t m_attr;
 }*mutex_t;
 
-mutex_t mutex_create();
-void mutex_destroy(mutex_t *m);
 
 static inline int32_t mutex_lock(mutex_t m)
 {
@@ -52,9 +51,6 @@ typedef struct condition
 }*condition_t;
 
 
-condition_t condition_create();
-void condition_destroy(condition_t *c);
-
 static inline int32_t condition_wait(condition_t c,mutex_t m)
 {
 	return pthread_cond_wait(&c->cond,&m->m_mutex);
@@ -65,7 +61,7 @@ static inline int32_t condition_wait(condition_t c,mutex_t m)
 static int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
-#ifdef _WIN	
+#ifdef _WIN
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	uint64_t msec = ms%1000;
@@ -80,7 +76,7 @@ static int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 	if(ts.tv_nsec >= 1000*1000*1000){
 		ts.tv_sec += 1;
 		ts.tv_nsec %= (1000*1000*1000);
-	}	
+	}
 	return pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
 
 }
@@ -103,9 +99,6 @@ typedef struct barrior
 	int32_t     wait_count;
 }*barrior_t;
 
-barrior_t barrior_create(int32_t);
-void barrior_destroy(barrior_t*);
-
 static inline void barrior_wait(barrior_t b)
 {
 	mutex_lock(b->mtx);
@@ -113,7 +106,7 @@ static inline void barrior_wait(barrior_t b)
 	if(0 == b->wait_count)
 	{
 		condition_broadcast(b->cond);
-	}else	
+	}else
 	{
 		while(b->wait_count > 0)
 		{
@@ -121,6 +114,56 @@ static inline void barrior_wait(barrior_t b)
 		}
 	}
 	mutex_unlock(b->mtx);
+}
+
+static inline mutex_t mutex_create()
+{
+	mutex_t m = malloc(sizeof(*m));
+	pthread_mutexattr_init(&m->m_attr);
+	pthread_mutexattr_settype(&m->m_attr,PTHREAD_MUTEX_RECURSIVE_NP);
+	pthread_mutex_init(&m->m_mutex,&m->m_attr);
+	return m;
+}
+
+static inline void mutex_destroy(mutex_t *m)
+{
+	pthread_mutexattr_destroy(&(*m)->m_attr);
+	pthread_mutex_destroy(&(*m)->m_mutex);
+	free(*m);
+	*m=0;
+}
+
+static inline condition_t condition_create()
+{
+	condition_t c = malloc(sizeof(*c));
+	pthread_cond_init(&c->cond,NULL);
+	return c;
+}
+
+static inline void condition_destroy(condition_t *c)
+{
+	pthread_cond_destroy(&(*c)->cond);
+	free(*c);
+	*c = 0;
+}
+
+
+
+static inline barrior_t barrior_create(int waitcount)
+{
+	barrior_t b = malloc(sizeof(*b));
+	b->wait_count = waitcount;
+	b->mtx = mutex_create();
+	b->cond = condition_create();
+	return b;
+}
+
+static inline void barrior_destroy(barrior_t *b)
+{
+	mutex_destroy(&(*b)->mtx);
+	condition_destroy(&(*b)->cond);
+	free(*b);
+	*b = 0;
 }
 
 #endif

@@ -11,15 +11,15 @@ extern pthread_key_t g_systime_key;
 extern pthread_once_t g_systime_key_once;
 
 extern volatile uint32_t g_global_ms;
-extern volatile uint32_t g_global_sec;
+extern volatile time_t g_global_sec;
 
 void* systick_routine(void*);
 
 static void systick_once_routine(){
     pthread_key_create(&g_systime_key,NULL);
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    g_global_ms = now.tv_sec*1000+now.tv_usec/1000;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    g_global_ms =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
     g_global_sec = time(NULL);
 	//创建一个线程以固定的频率更新g_global_ms,此线程不会退出，知道进程结束
 	thread_run(systick_routine,NULL);
@@ -35,10 +35,14 @@ static inline uint32_t GetSystemMs()
 #endif
 }
 
-static inline uint32_t GetSystemSec()
+static inline time_t GetSystemSec()
 {
+#ifdef _WIN
+	return time(NULL);
+#else
 	pthread_once(&g_systime_key_once,systick_once_routine);
 	return g_global_sec;
+#endif
 }
 
 static inline void sleepms(uint32_t ms)

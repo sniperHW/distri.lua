@@ -6,8 +6,8 @@ tcpserver:../lib/kendylib.a netboradcast.c
 	gcc -g -o tcpserver netboradcast.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
 tcpclient:../lib/kendylib.a netclient.c
 	gcc -g -o tcpclient netclient.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
-timer:../lib/kendylib.a testtimer.c
-	gcc -g -o timer testtimer.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
+timer:../../kendylib.a testtimer.c
+	gcc -g -o timer testtimer.c ../../kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
 msgque:../lib/kendylib.a testmq.c
 	gcc -g -o msgque testmq.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
 systick:../lib/kendylib.a testgetsystick.c
