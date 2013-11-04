@@ -180,9 +180,7 @@ int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_
 		return -1;
 	}
 	st_io *O;
-	int8_t start_send = 0;
 	if(w){
-	    if(LINK_LIST_IS_EMPTY(&c->send_list)) start_send = 1;
 		w->base.tstamp = GetSystemMs();
 		LINK_LIST_PUSH_BACK(&c->send_list,w);
 	}
@@ -192,7 +190,8 @@ int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_
         sf->_send_finish = pk_send_finish;
         LINK_LIST_PUSH_BACK(&c->on_send_finish,sf);
 	}
-	if(start_send){
+	if(!c->doing_send){
+	    c->doing_send = 1;
 		O = prepare_send(c);
 		if(O) return Post_Send(c->socket,O);
 	}
@@ -296,7 +295,10 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 			do{
 				if(!update_send_list(c,bytestransfer)) return;
 				st_io *io = prepare_send(c);
-				if(!io) return;
+				if(!io) {
+				    c->doing_send = 0;
+				    return;
+				}
 				bytestransfer = Send(c->socket,io,&err_code);
 			}while(bytestransfer > 0);
 		}

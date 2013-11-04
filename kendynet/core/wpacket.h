@@ -25,7 +25,7 @@ typedef struct wpacket
 	uint32_t *len;      //包长字段(去除包长度字段以外实际数据的长度)在buf中的地址
 	buffer_t writebuf;       //wpos所在的buf
 	uint32_t wpos;
-	uint8_t factor;
+	uint32_t factor;
 	uint32_t data_size;//实际数据大小,包含包长度
 }*wpacket_t;
 struct rpacket;

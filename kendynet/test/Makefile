@@ -2,10 +2,10 @@ server:../lib/kendylib.a test.c
 	gcc -g -o server test.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
 connect:../lib/kendylib.a testconnect.c
 	gcc -g -o connect_test testconnect.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
-tcpserver:../lib/kendylib.a netboradcast.c
-	gcc -g -o tcpserver netboradcast.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
-tcpclient:../lib/kendylib.a netclient.c
-	gcc -g -o tcpclient netclient.c ../lib/kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
+tcpserver:../..//kendylib.a benchserver.c
+	gcc -g -o tcpserver benchserver.c ../../kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
+tcpclient:../../kendylib.a benchclient.c
+	gcc -g -o tcpclient benchclient.c ../../kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
 timer:../../kendylib.a testtimer.c
 	gcc -g -o timer testtimer.c ../../kendylib.a  -I.. -lpthread -lrt -D _LINUX -ltcmalloc
 msgque:../lib/kendylib.a testmq.c

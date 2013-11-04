@@ -65,6 +65,7 @@ struct connection
     on_send_timeout _send_timeout;
 	uint8_t  raw;
 	volatile uint8_t is_closed;
+	uint8_t  doing_send;
 };
 
 
