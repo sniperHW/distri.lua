@@ -168,21 +168,26 @@ static inline int8_t msgque_sync_pop(struct per_thread_que *ptq,uint32_t timeout
 {
     assert(ptq->mode == MSGQ_READ);
     struct msg_que *que = ptq->que;
-	mutex_lock(que->mtx);
-	if(link_list_is_empty(&que->share_que) && timeout){
+        mutex_lock(que->mtx);
+        if(link_list_is_empty(&que->share_que) && timeout){
+                uint32_t end = GetSystemMs() + timeout;
 		while(link_list_is_empty(&que->share_que) && !que->wait4destroy){
-			double_link_push(&que->blocks,&ptq->bnode);
-			if(0 != condition_timedwait(ptq->cond,que->mtx,timeout)){
+                        double_link_push(&que->blocks,&ptq->bnode);
+                        if(0 != condition_timedwait(ptq->cond,que->mtx,timeout)){
+                                //timeout
 				double_link_remove(&ptq->bnode);
-				break;
-			}
-		}
-	}
-	if(!que->wait4destroy && !link_list_is_empty(&que->share_que))
+                                break;
+                        }
+			uint32_t l_now = GetSystemMs();
+			if(l_now < end) timeout = end - l_now;
+			else break;//timeout
+                }
+        }
+        if(!que->wait4destroy && !link_list_is_empty(&que->share_que))
         link_list_swap(&ptq->local_que,&que->share_que);
-	mutex_unlock(que->mtx);
-	if(que->wait4destroy) return -1;
-	return 0;
+        mutex_unlock(que->mtx);
+        if(que->wait4destroy) return -1;
+        return 0;
 }
 
 static inline void before_put(struct per_thread_que *ptq)
