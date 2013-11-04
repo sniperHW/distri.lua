@@ -1,10 +1,10 @@
-﻿为lua提供简单的网络访问接口,只支持字符串协议
+﻿一个简单高效的lua网络框架
 
 echo.lua
 
 local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))
 registernet()
-dofile("net/net.lua") 
+dofile("net/net.lua")
 
 function process_packet(connection,packet)
 	SendPacket(connection,packet)
@@ -27,18 +27,18 @@ client_count = 0;
 tcpserver = net:new()
 
 function tcpserver:new()
-  	local o = {}   
+  	local o = {}
   	self.__index = self
   	self._process_packet = process_packet    --处理网络包
     self._on_accept = client_come         --处理新到连接
 	self._on_connect = nil
 	self._on_disconnect = client_go     --处理连接关闭
 	self._on_send_finish = nil
-	self._send_timeout = _timeout      
-	self._recv_timeout = _timeout 	
+	self._send_timeout = _timeout
+	self._recv_timeout = _timeout
   	setmetatable(o, self)
 	return o
-end	
+end
 
 
 function mainloop()
@@ -53,7 +53,7 @@ function mainloop()
 	end
 	server = nil
 	print("main loop end")
-end	
+end
 
 mainloop()
 
