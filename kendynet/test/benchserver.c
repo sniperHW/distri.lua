@@ -10,6 +10,7 @@ void on_process_packet(struct connection *c,rpacket_t r)
 {
     recvsize += rpk_len(r);
     recvcount++;
+    send_packet(c,wpk_create_by_other((struct packet*)r),NULL);
 	//send2_all_client(r);
 }
 

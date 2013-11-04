@@ -5,26 +5,12 @@
 
 uint32_t ava_interval = 0;
 
+char msg[16000];
 void on_process_packet(struct connection *c,rpacket_t r)
 {
-	uint32_t s = rpk_read_uint32(r);
-	uint32_t t;
-	if(s == (uint32_t)c)
-	{
-		t = rpk_read_uint32(r);
-		uint32_t sys_t = GetSystemMs();
-		ava_interval += (sys_t - t);
-		ava_interval /= 2;
-	}
-}
-
-char msg[4096];
-
-void pk_send_finish(struct connection *c,wpacket_t wpk)
-{
-    wpacket_t l_wpk = NEW_WPK(4096);
-    wpk_write_binary(l_wpk,(void*)msg,4096);
-    send_packet(c,l_wpk,pk_send_finish);
+    wpacket_t l_wpk = NEW_WPK(16000);
+    wpk_write_binary(l_wpk,(void*)msg,16000);
+    send_packet(c,l_wpk,NULL);
 }
 
 void on_connect(SOCK s,void*ud,int err)
@@ -35,9 +21,9 @@ void on_connect(SOCK s,void*ud,int err)
 		struct netservice *tcpclient = (struct netservice *)ud;
 		tcpclient->bind(tcpclient,con,on_process_packet,remove_client
 						,0,NULL,0,NULL);
-        wpacket_t wpk = NEW_WPK(4096);
-        wpk_write_binary(wpk,(void*)msg,4096);
-        send_packet(con,wpk,pk_send_finish);
+        wpacket_t wpk = NEW_WPK(16000);
+        wpk_write_binary(wpk,(void*)msg,16000);
+        send_packet(con,wpk,NULL);
     }
 }
 

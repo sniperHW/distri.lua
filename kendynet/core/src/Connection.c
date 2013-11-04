@@ -3,7 +3,7 @@
 #include <assert.h>
 #include "SysTime.h"
 
-#define BUFFER_SIZE 8192
+#define BUFFER_SIZE 65536
 
 //接收相关函数
 static inline void update_next_recv_pos(struct connection *c,int32_t bytestransfer)

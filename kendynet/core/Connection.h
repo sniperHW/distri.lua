@@ -25,7 +25,7 @@ typedef void (*on_recv_timeout)(struct connection*);
 typedef void (*on_send_timeout)(struct connection*);
 
 #define MAX_WBAF 512
-#define MAX_SEND_SIZE 8192
+#define MAX_SEND_SIZE 65536
 
 struct send_finish
 {
