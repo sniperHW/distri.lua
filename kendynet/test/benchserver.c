@@ -48,7 +48,7 @@ int main(int argc,char **argv)
 		if(now - tick > 1000)
 		{
             uint32_t elapse = now-tick;
-            recvsize = (recvsize/elapse)*1000/1024/1024;
+            recvsize = (recvsize/elapse)/1000;
 			printf("client_count:%d,recvsize:%d,recvcount:%d\n",client_count,recvsize,recvcount);
 			tick = now;
 			packet_send_count = 0;

@@ -29,21 +29,17 @@ void on_connect(SOCK s,void*ud,int err)
     }
 }
 
-/*
-char msg[4096];
-
 void _sendpacket()
 {
 	uint32_t i = 0;
 	for(; i < client_count; ++i){
 		if(clients[i]){
-            wpacket_t wpk = NEW_WPK(4096);
-            wpk_write_binary(wpk,(void*)msg,4096);
+            wpacket_t wpk = NEW_WPK(send_size);
+            wpk_write_binary(wpk,(void*)msg,send_size);
             send_packet(clients[i],wpk,NULL);
 		}
 	}
 }
-*/
 
 int main(int argc,char **argv)
 {
@@ -61,7 +57,7 @@ int main(int argc,char **argv)
     uint32_t tick,now;
     tick = now = GetSystemMs();
 	while(!stop){
-		tcpclient->loop(tcpclient,0);
+        tcpclient->loop(tcpclient,0);
 		//_sendpacket();
         /*now = GetSystemMs();
 		if(now - tick > 1000)
