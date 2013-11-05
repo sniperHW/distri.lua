@@ -275,7 +275,23 @@ int main(int argc,char **argv)
     EListen(engine,argv[1],atoi(argv[2]),(void*)engine,accept_client);
 	while(1){
 		EngineRun(engine,50);
-	}	
+	}
     CleanNetSystem();
     return 0;
 }
+
+吞吐量测试，测试环境为intel 酷睿2.53hz 的双核笔记本，运行ubuntu 12.4系统
+客户端与服务器均为单线程，运行在同一台机器.
+
+发送字节数    连接数      吞吐量/s
+4k             1        180M
+4k             10       440M
+4k             100      320M
+4k             1000     260M
+
+发送字节数    连接数      吞吐量/s
+16k            1        460M
+16k            10       990M
+16k            100      580M
+16K            1000     570M
+

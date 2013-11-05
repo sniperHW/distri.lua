@@ -47,7 +47,9 @@ int main(int argc,char **argv)
         now = GetSystemMs();
 		if(now - tick > 1000)
 		{
-			printf("client_count:%d,recvsize:%d,recvcount:%d\n",client_count,(recvsize/1024/1024),recvcount);
+            uint32_t elapse = now-tick;
+            recvsize = (recvsize/elapse)*1000/1024/1024;
+			printf("client_count:%d,recvsize:%d,recvcount:%d\n",client_count,recvsize,recvcount);
 			tick = now;
 			packet_send_count = 0;
 			recvcount = 0;
