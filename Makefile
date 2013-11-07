@@ -1,4 +1,48 @@
-all:luanet.c
-	gcc -g -c -fPIC luanet.c -I./kendynet
-	gcc -g -shared -o luanet.so luanet.o kendylib.a -lpthread -lrt -ltcmalloc
+CFLAGS = -g -Wall 
+LDFLAGS = -lpthread -lrt -ltcmalloc
+SHARED = -fPIC --shared
+CC = gcc
+INCLUDE = -Ikendynet -Ikendynet/core -I..
+DEFINE = -D_DEBUG -D_LINUX
+TESTDIR = kendynet/test
+
+kendynet.a: \
+		   kendynet/core/src/buffer.c \
+		   kendynet/core/src/Connection.c \
+		   kendynet/core/src/Engine.c \
+		   kendynet/core/src/epoll.c \
+		   kendynet/core/src/except.c \
+		   kendynet/core/src/KendyNet.c \
+		   kendynet/core/src/msg_que.c \
+		   kendynet/core/src/netservice.c \
+		   kendynet/core/src/RBtree.c \
+		   kendynet/core/src/rpacket.c \
+		   kendynet/core/src/Socket.c \
+		   kendynet/core/src/sock_util.c \
+		   kendynet/core/src/spinlock.c \
+		   kendynet/core/src/SysTime.c \
+		   kendynet/core/src/thread.c \
+		   kendynet/core/src/timer.c \
+		   kendynet/core/src/uthread.c \
+		   kendynet/core/src/wpacket.c
+		$(CC) $(CFLAG) -c $^ $(INCLUDE) $(DEFINE)
+		ar -rc kendynet.a *.o
+		rm -f *.o
+
+luanet:luanet.c kendynet.a
+	$(CC) $(CFLAG) -c $(SHARED) luanet.c $(INCLUDE) 
+	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS)
 	rm -f *.o
+	
+tcpserver:kendynet.a $(TESTDIR)/benchserver.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAG) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS)
+tcpclient:kendynet.a $(TESTDIR)/benchclient.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAG) -o tcpclient $(TESTDIR)/benchclient.c kendynet.a $(INCLUDE) $(LDFLAGS)
+timer:kendynet.a $(TESTDIR)/testtimer.c
+	$(CC) $(CFLAG) -o timer $(TESTDIR)/testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)				
+msgque:kendynet.a $(TESTDIR)/testmq.c
+	$(CC) $(CFLAG) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS)
+systick:kendynet.a $(TESTDIR)/testgetsystick.c
+	$(CC) $(CFLAG) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	
+	
+	
