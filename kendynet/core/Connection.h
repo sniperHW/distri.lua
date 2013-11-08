@@ -20,19 +20,12 @@ struct OVERLAPCONTEXT
 
 typedef void (*process_packet)(struct connection*,rpacket_t);
 typedef void (*on_disconnect)(struct connection*,uint32_t reason);
-typedef void (*packet_send_finish)(struct connection*,wpacket_t);
+typedef void (*packet_send_finish)(wpacket_t,void*);
 typedef void (*on_recv_timeout)(struct connection*);
 typedef void (*on_send_timeout)(struct connection*);
 
 #define MAX_WBAF 512
 #define MAX_SEND_SIZE 65536
-
-struct send_finish
-{
-    list_node lnode;
-    wpacket_t wpk;
-    packet_send_finish _send_finish;
-};
 
 struct connection
 {
@@ -50,7 +43,6 @@ struct connection
 	buffer_t unpack_buf;
 
 	struct link_list send_list;//´ý·¢ËÍµÄ°ü
-	struct link_list on_send_finish;
 	process_packet _process_packet;
 	on_disconnect  _on_disconnect;
 	union{

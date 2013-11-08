@@ -27,6 +27,7 @@ typedef struct wpacket
 	uint32_t wpos;
 	uint32_t factor;
 	uint32_t data_size;//实际数据大小,包含包长度
+    void (*packet_sendfinish)(struct wpacket*,void*);//callback when the whole wpacket send finish
 }*wpacket_t;
 struct rpacket;
 

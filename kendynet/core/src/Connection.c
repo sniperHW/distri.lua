@@ -129,9 +129,11 @@ static inline st_io *prepare_send(struct connection *c)
 	return O;
 
 }
-static inline int8_t update_send_list(struct connection *c,int32_t bytestransfer)
+static inline int8_t update_send_list(struct connection *c,int32_t _bytestransfer)
 {
+    assert(_bytestransfer >= 0);
 	wpacket_t w;
+    uint32_t bytestransfer = (uint32_t)_bytestransfer;
 	uint32_t size;
 	while(bytestransfer)
 	{
@@ -140,16 +142,7 @@ static inline int8_t update_send_list(struct connection *c,int32_t bytestransfer
 		if((uint32_t)bytestransfer >= w->data_size)
 		{
 			//一个包发完,检查是否有send_finish需要执行
-			if(!LINK_LIST_IS_EMPTY(&c->on_send_finish))
-			{
-                struct send_finish *sf = (struct send_finish*)link_list_head(&c->on_send_finish);
-                if(sf->wpk == w)
-                {
-                    sf->_send_finish(c,w);
-                    link_list_pop(&c->on_send_finish);
-                    free(sf);
-                }
-			}
+            if(w->packet_sendfinish)w->packet_sendfinish(w,w->base.usr_ptr);
 			bytestransfer -= w->data_size;
 			wpk_destroy(&w);
             if(c->is_closed) return 0;
@@ -187,10 +180,8 @@ int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_
 		LINK_LIST_PUSH_BACK(&c->send_list,w);
 	}
 	if(pk_send_finish){
-        struct send_finish *sf = (struct send_finish *)calloc(1,sizeof(*sf));
-        sf->wpk = w;
-        sf->_send_finish = pk_send_finish;
-        LINK_LIST_PUSH_BACK(&c->on_send_finish,sf);
+        w->base.usr_ptr = (void*)c;
+        w->packet_sendfinish = pk_send_finish;
 	}
 	if(!c->doing_send){
 	    c->doing_send = 1;
@@ -327,9 +318,6 @@ void connection_destroy(void *arg)
     wpacket_t w;
     while((w = LINK_LIST_POP(wpacket_t,&c->send_list))!=NULL)
         wpk_destroy(&w);
-    struct send_finish *sf;
-    while((sf = LINK_LIST_POP(struct send_finish*,&c->on_send_finish))!=NULL)
-        free(sf);
     buffer_release(&c->unpack_buf);
     buffer_release(&c->next_recv_buf);
     free(c);
