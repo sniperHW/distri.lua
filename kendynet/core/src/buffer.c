@@ -4,8 +4,6 @@
 #include "buffer.h"
 #include "allocator.h"
 
-int8_t mutil_thread = 1;
-
 static void buffer_destroy(void *b)
 {
 	buffer_t _b = (buffer_t)b;
