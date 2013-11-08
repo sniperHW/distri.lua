@@ -79,14 +79,14 @@ static inline int buffer_read(buffer_t b,uint32_t pos,int8_t *out,uint32_t size)
 	return 0;
 }
 
-static inline int32_t is_pow_of_2(uint32_t size)
+static inline int32_t is_pow2(uint32_t size)
 {
 	return !(size&(size-1));
 }
 
-static inline uint32_t GetSize_of_pow2(uint32_t size)
+static inline uint32_t size_of_pow2(uint32_t size)
 {
-	if(is_pow_of_2(size))
+	if(is_pow2(size))
 		return size;
 	size = size-1;
 	size = size | (size>>1);
@@ -97,17 +97,17 @@ static inline uint32_t GetSize_of_pow2(uint32_t size)
 	return size + 1;
 }
 
-static inline uint8_t GetK(uint32_t size)
+static inline uint8_t get_pow2(uint32_t size)
 {
-	uint8_t k = 0;
-	if(!is_pow_of_2(size)){
+	uint8_t pow2 = 0;
+	if(!is_pow2(size)){
 		size = (size << 1);
 	}
 	while(size > 1){
-		k++;
+		pow2++;
 		size = size >> 1;
 	}
-	return k;
+	return pow2;
 }
 
 #endif

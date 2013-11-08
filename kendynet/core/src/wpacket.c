@@ -11,7 +11,7 @@ allocator_t wpacket_allocator = NULL;
 
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw)
 {
-	size = GetSize_of_pow2(size);
+	size = size_of_pow2(size);
 	wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
 	struct packet *base = (struct packet*)w;
 	w->factor = size;

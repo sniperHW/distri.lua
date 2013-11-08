@@ -130,7 +130,7 @@ static inline void do_write_copy(wpacket_t w)
 	/*wpacket是由rpacket构造的，这里执行写时拷贝，
 	* 执行完后wpacket和构造时传入的rpacket不再共享buffer
 	*/
-	w->factor = GetSize_of_pow2(*w->len);
+	w->factor = size_of_pow2(*w->len);
 	buffer_t tmp = buffer_create_and_acquire(NULL,w->factor);
 	wpk_copy(w,tmp);
 	w->base.begin_pos = 0;
