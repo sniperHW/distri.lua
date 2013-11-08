@@ -24,6 +24,8 @@
 #include <string.h>
 #include "refbase.h"
 #include "link_list.h"
+#include "allocator.h"
+
 typedef struct buffer
 {
 	struct refbase _refbase;
@@ -34,44 +36,37 @@ typedef struct buffer
 }*buffer_t;
 
 
+extern allocator_t buffer_allocator;
 buffer_t buffer_create_and_acquire(buffer_t,uint32_t);
 
 static inline void buffer_release(buffer_t *b)
 {
-	if(*b)
-	{
+	if(*b){
 		ref_decrease(&(*b)->_refbase);
-		*b = 0;
+        *b = NULL;
 	}
 }
 
 static inline buffer_t buffer_acquire(buffer_t b1,buffer_t b2)
 {
-	if(b1 == b2)
-		return b1;
-	if(b2)
-		ref_increase(&b2->_refbase);
-	if(b1)
-		buffer_release(&b1);
-
+    if(b1 == b2) return b1;
+    if(b2) ref_increase(&b2->_refbase);
+    if(b1) buffer_release(&b1);
 	return b2;
 }
 
 static inline int buffer_read(buffer_t b,uint32_t pos,int8_t *out,uint32_t size)
 {
 	uint32_t copy_size;
-	while(size)
-	{
-		if(!b)
-			return -1;
+	while(size){
+        if(!b) return -1;
 		copy_size = b->size - pos;
 		copy_size = copy_size > size ? size : copy_size;
 		memcpy(out,b->buf + pos,copy_size);
 		size -= copy_size;
 		pos += copy_size;
 		out += copy_size;
-		if(pos >= b->size)
-		{
+		if(pos >= b->size){
 			pos = 0;
 			b = b->next;
 		}
@@ -86,8 +81,7 @@ static inline int32_t is_pow2(uint32_t size)
 
 static inline uint32_t size_of_pow2(uint32_t size)
 {
-	if(is_pow2(size))
-		return size;
+    if(is_pow2(size)) return size;
 	size = size-1;
 	size = size | (size>>1);
 	size = size | (size>>2);
@@ -100,9 +94,7 @@ static inline uint32_t size_of_pow2(uint32_t size)
 static inline uint8_t get_pow2(uint32_t size)
 {
 	uint8_t pow2 = 0;
-	if(!is_pow2(size)){
-		size = (size << 1);
-	}
+    if(!is_pow2(size)) size = (size << 1);
 	while(size > 1){
 		pow2++;
 		size = size >> 1;

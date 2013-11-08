@@ -77,8 +77,7 @@ void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,voi
 #else
 void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,void *para)
 {
-	if(!from)
-		return NULL;
+    if(!from) return NULL;
 	to->para = para;
 	void *esp,*ebp,*edi,*esi;
 	//save current registers
@@ -96,10 +95,8 @@ void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,voi
 		:"m"(from->reg[0]),"m"(from->reg[1]),"m"(from->reg[2]),"m"(from->reg[3])
 		,"m"(from->reg[4]),"m"(from->reg[5]),"m"(from->reg[6]),"m"(from->reg[7])
 	);
-	if(to->first_run)
-	{
-	   if(!to->parent)
-            to->parent = from;
+	if(to->first_run){
+       if(!to->parent) to->parent = from;
 	   to->first_run = 0;
 	   //change stack
 	   //the order is important

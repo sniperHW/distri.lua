@@ -6,8 +6,7 @@
 #ifdef _DEBUG
 void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,void *para)
 {
-	if(!from)
-		return NULL;
+    if(!from) return NULL;
 	to->para = para;
 	void *rsp,*rbp,*rax,*rbx,*r12,*r13,*r14,*r15;
 	//save current registers
@@ -34,8 +33,7 @@ void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,voi
 	from->reg[7] = r15;
 	if(to->first_run)
 	{
-	   if(!to->parent)
-            to->parent = from;
+       if(!to->parent) to->parent = from;
 	   to->first_run = 0;
 	   rsp = to->reg[0];
 	   //use rcx to pass arg
@@ -78,8 +76,7 @@ void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,voi
 #else
 void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,void *para)
 {
-	if(!from)
-		return NULL;
+    if(!from) return NULL;
 	to->para = para;
 	void *rsp,*rbp,*r14,*r15;
 	//save current registers
@@ -99,8 +96,7 @@ void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,voi
 	);
 	if(to->first_run)
 	{
-	   if(!to->parent)
-            to->parent = from;
+       if(!to->parent) to->parent = from;
 	   to->first_run = 0;
 	   //change stack
 	   //the order is important

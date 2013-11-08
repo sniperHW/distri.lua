@@ -2,21 +2,22 @@
 #include <stdio.h>
 #include <string.h>
 #include "buffer.h"
-#include "allocator.h"
+
+allocator_t buffer_allocator = NULL;
 
 static void buffer_destroy(void *b)
 {
 	buffer_t _b = (buffer_t)b;
 	if(_b->next)
 		buffer_release(&(_b)->next);
-	FREE(NULL,_b);
+    FREE(buffer_allocator,_b);
 	b = 0;
 }
 
 static inline buffer_t buffer_create(uint32_t capacity)
 {
 	uint32_t size = sizeof(struct buffer) + capacity;
-	buffer_t b = (buffer_t)ALLOC(NULL,size);
+    buffer_t b = (buffer_t)ALLOC(buffer_allocator,size);
 	if(b)
 	{
 		b->size = 0;

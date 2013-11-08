@@ -94,9 +94,11 @@ void thread_resume(thread_t t)
 	if(t->is_suspend)
 	{
 		t->is_suspend = 0;
+        mutex_unlock(t->mtx);
 		condition_signal(t->cond);
-	}	
-	mutex_unlock(t->mtx);
+        return;
+    }
+    mutex_unlock(t->mtx);
 }
 
 struct thread_arg

@@ -37,6 +37,8 @@ struct atomic_type
 struct atomic_type *create_atomic_type(uint32_t size);
 void destroy_atomic_type(struct atomic_type **_at);
 
+#define _FENCE __asm__ volatile("" : : : "memory")
+
 
 #define GET_ATOMIC_ST(NAME,TYPE)\
 static inline void NAME(struct atomic_type *at,TYPE *ret)\
@@ -53,7 +55,7 @@ static inline void NAME(struct atomic_type *at,TYPE *ret)\
 			for(;s>0;++i,s-=2)((int16_t*)ret->base.data)[i]=((int16_t*)ptr_p->data)[i];\
 		else\
 			memcpy(ret->base.data,ptr_p->data,at->data_size);\
-		__asm__ volatile("" : : : "memory");\
+        _FENCE;\
 		if(ptr_p == at->ptr && save_version == ptr_p->version)\
 			break;\
 		ATOMIC_INCREASE(&miss_count);\
@@ -74,9 +76,9 @@ static inline void NAME(struct atomic_type *at,TYPE *p)\
 		for(;s>0;++i,s-=2)((int16_t*)new_p->data)[i]=((int16_t*)p->base.data)[i];\
 	else\
 		for(;i<s;++i)new_p->data[i]=p->base.data[i];\
-	__asm__ volatile("" : : : "memory");\
+    _FENCE;\
 	new_p->version = ++at->g_version;\
-	__asm__ volatile("" : : : "memory");\
+    _FENCE;\
 	at->ptr = new_p;\
 	ATOMIC_INCREASE(&set_count);\
 }

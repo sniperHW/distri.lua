@@ -40,8 +40,7 @@ void uthread_destroy(uthread_t *u)
 
 void* __attribute__((regparm(3)))uthread_switch(uthread_t from,uthread_t to,void *para)
 {
-	if(!from)
-		return NULL;
+    if(!from) return NULL;
 	to->para = para;
 	swapcontext(&(from->ucontext),&(to->ucontext));
 	return from->para;
