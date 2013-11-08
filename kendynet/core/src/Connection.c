@@ -6,12 +6,14 @@
 #define BUFFER_SIZE 65536
 
 //接收相关函数
-static inline void update_next_recv_pos(struct connection *c,int32_t bytestransfer)
+static inline void update_next_recv_pos(struct connection *c,int32_t _bytestransfer)
 {
-	uint32_t size;
+    assert(_bytestransfer >= 0);
+    uint32_t bytestransfer = (uint32_t)_bytestransfer;
+    uint32_t size;
 	do{
 		size = c->next_recv_buf->capacity - c->next_recv_pos;
-		size = size > (uint32_t)bytestransfer ? (uint32_t)bytestransfer:size;
+        size = size > bytestransfer ? bytestransfer:size;
 		c->next_recv_buf->size += size;
 		c->next_recv_pos += size;
 		bytestransfer -= size;
