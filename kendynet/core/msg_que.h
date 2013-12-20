@@ -16,9 +16,6 @@
 *  例如线程A第一次对队列执行了push操作，那么以后A对这个队列就只能执行push,
 *  如果后面A对队列执行了pop将会引发错误
 *
-*  [注意2]
-*  对于无法以一定频率执行队列冲刷操作(将本地push队列中的消息同步到共享队列)的线程
-*  为避免消费者出现饥饿务必使用push_now,该函数在将消息push到本地队列后立即执行同步操作
 */
 
 #ifndef _MSG_QUE_H
@@ -30,6 +27,8 @@
 #include "double_link.h"
 #include "link_list.h"
 #include "sync.h"
+
+extern uint32_t msgque_flush_time;//默认心跳冲刷时间是10ms,用户可自己将该变量设置成合适的值
 
 //用于销毁队列中残留的消息
 typedef void (*item_destroyer)(void*);

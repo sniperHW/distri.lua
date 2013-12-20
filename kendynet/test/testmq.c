@@ -12,16 +12,18 @@ msgque_t mq1;
 
 void *Routine1(void *arg)
 {
-	int j = 0;
-    for(; j < 5;++j)
-	{
-		int i = 0;
-		for(; i < 10000000; ++i)
-		{
-			msgque_put(mq1,&node_list2[j][i]);
-		}
-		sleepms(500);
-	}
+    for(;;){
+        int j = 0;
+        for(; j < 5;++j)
+        {
+            int i = 0;
+            for(; i < 10000000; ++i)
+            {
+                msgque_put(mq1,&node_list2[j][i]);
+            }
+            sleepms(500);
+        }
+    }
 	close_msgque(mq1);
 	printf("Routine3 end\n");
 }
@@ -61,7 +63,7 @@ int main()
 		node_list1[i] = calloc(10000000,sizeof(list_node));
 		node_list2[i] = calloc(10000000,sizeof(list_node));
 	}
-	mq1 = msgque_acquire(new_msgque(32,NULL));
+	mq1 = msgque_acquire(new_msgque(1024,NULL));
 	thread_t t1 = create_thread(0);
 	thread_start_run(t1,Routine1,NULL);
 

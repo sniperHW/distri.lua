@@ -8,6 +8,8 @@ enum{
     MSGQ_WRITE,
 };
 
+uint32_t msgque_flush_time = 5;
+
 //每个线程都有一个per_thread_que与que关联
 struct per_thread_que
 {
@@ -15,19 +17,79 @@ struct per_thread_que
 	struct double_link_node bnode; //用于链入msg_que->blocks
 	struct link_list local_que;
 	msgque_t que;
-	uint32_t last_sync;
 	condition_t cond;
 	uint8_t     mode;//MSGQ_READ or MSGQ_WRITE
+	uint8_t     flag;//0,正常;1,阻止heart_beat操作,2,设置了冲刷标记
 };
 
 //一个线程使用的所有msg_que所关联的per_thread_que
 struct per_thread_struct
 {
+    struct double_link_node hnode;//用于链入heart_beat.thread_structs
 	struct double_link  per_thread_que;
+	pthread_t thread_id;
 };
 
 static pthread_key_t g_msg_que_key;
 static pthread_once_t g_msg_que_key_once = PTHREAD_ONCE_INIT;
+
+//心跳处理，用于定时向线程发送信号冲刷msgque
+struct heart_beat
+{
+    struct double_link  thread_structs;
+    mutex_t mtx;
+};
+
+static struct heart_beat *g_heart_beat;
+static pthread_key_t g_heart_beat_key;
+static pthread_once_t g_heart_beat_key_once;
+
+static void* heart_beat_routine(void *arg){
+	while(1){
+	    mutex_lock(g_heart_beat->mtx);
+	    struct double_link_node *dn = double_link_first(&g_heart_beat->thread_structs);
+	    if(dn){
+            while(dn != &g_heart_beat->thread_structs.tail)
+            {
+                struct per_thread_struct *pts =(struct per_thread_struct*)dn;
+                pthread_kill(pts->thread_id,SIGUSR1);
+                dn = dn->next;
+            }
+	    }
+	    mutex_unlock(g_heart_beat->mtx);
+		sleepms(msgque_flush_time);
+	}
+	return NULL;
+}
+
+void heart_beat_signal_handler(int sig);
+
+static void heart_beat_once_routine(){
+    pthread_key_create(&g_heart_beat_key,NULL);
+    g_heart_beat = calloc(1,sizeof(*g_heart_beat));
+    double_link_clear(&g_heart_beat->thread_structs);
+    g_heart_beat->mtx = mutex_create();
+
+    //注册信号处理函数
+    struct sigaction sigusr1;
+	sigusr1.sa_flags = 0;
+	sigusr1.sa_handler = heart_beat_signal_handler;
+	sigemptyset(&sigusr1.sa_mask);
+	int status = sigaction(SIGUSR1,&sigusr1,NULL);
+	if(status == -1)
+	{
+		printf("error sigaction\n");
+		exit(0);
+	}
+	//创建一个线程以固定的频率触发冲刷心跳
+	thread_run(heart_beat_routine,NULL);
+}
+
+static inline struct heart_beat* get_heart_beat()
+{
+	pthread_once(&g_heart_beat_key_once,heart_beat_once_routine);
+    return g_heart_beat;
+}
 
 static void msg_que_once_routine(){
     pthread_key_create(&g_msg_que_key,NULL);
@@ -54,6 +116,12 @@ static inline struct per_thread_struct* get_per_thread_struct()
 		pts = calloc(1,sizeof(*pts));
 		double_link_clear(&pts->per_thread_que);
 		pthread_setspecific(g_msg_que_key,(void*)pts);
+		pts->thread_id = pthread_self();
+		//关联到heart_beat中
+        struct heart_beat *hb = get_heart_beat();
+        mutex_lock(hb->mtx);
+        double_link_push(&hb->thread_structs,&pts->hnode);
+        mutex_unlock(hb->mtx);
 	}
 	return pts;
 }
@@ -67,7 +135,6 @@ static inline struct per_thread_que* get_per_thread_que(struct msg_que *que,uint
 		ptq->que = que;
 		ptq->mode = mode;
 		ptq->cond = condition_create();
-		ptq->last_sync = GetSystemMs();
 		pthread_setspecific(que->t_key,(void*)ptq);
 	}
 	return ptq;
@@ -76,10 +143,16 @@ static inline struct per_thread_que* get_per_thread_que(struct msg_que *que,uint
 void msgque_release(msgque_t que){
 	struct per_thread_que *ptq = (struct per_thread_que*)pthread_getspecific(que->t_key);
 	if(ptq){
+	    ptq->flag = 1;
 		double_link_remove(&ptq->pnode);
 		struct per_thread_struct *pts =  get_per_thread_struct();
 		if(double_link_empty(&pts->per_thread_que)){
 			pthread_setspecific(g_msg_que_key,NULL);
+			//从heart_beat中移除
+            struct heart_beat *hb = get_heart_beat();
+            mutex_lock(hb->mtx);
+            double_link_remove(&pts->hnode);
+            mutex_unlock(hb->mtx);
 			free(pts);
 		}
         //销毁local_que中所有消息
@@ -157,10 +230,12 @@ static inline int8_t msgque_sync_push(struct per_thread_que *ptq)
 			struct per_thread_que *block_ptq = dbnode2ptr(l);
 			mutex_unlock(que->mtx);
 			condition_signal(block_ptq->cond);
+			ptq->flag = 0;
 			return 0;
 		}
 	}
 	mutex_unlock(que->mtx);
+	ptq->flag = 0;
 	return 0;
 }
 
@@ -201,16 +276,14 @@ int8_t msgque_put(msgque_t que,list_node *msg)
 	if(que->wait4destroy)return -1;
 	struct per_thread_que *ptq = get_per_thread_que(que,MSGQ_WRITE);
 	assert(ptq->mode == MSGQ_WRITE);
+	ptq->flag = 1;
 	before_put(ptq);
 	LINK_LIST_PUSH_BACK(&ptq->local_que,msg);
-	uint32_t l_nowtick = GetSystemMs();
-	//超过阀值或距离上次同步时间超过1ms都会执行同步
-	if(link_list_size(&ptq->local_que) >= que->syn_size ||
-       l_nowtick - ptq->last_sync > 1){
-	    ptq->last_sync = l_nowtick;
+	if(ptq->flag == 2 || link_list_size(&ptq->local_que) >= que->syn_size){
 		return msgque_sync_push(ptq);
 	}
 	if(que->wait4destroy) return -1;
+	ptq->flag = 0;
 	return 0;
 }
 
@@ -218,11 +291,11 @@ int8_t msgque_put_immeda(msgque_t que,list_node *msg)
 {
 	if(que->wait4destroy)return -1;
 	struct per_thread_que *ptq = get_per_thread_que(que,MSGQ_WRITE);
-	before_put(ptq);
 	assert(ptq->mode == MSGQ_WRITE);
+	ptq->flag = 1;
+	before_put(ptq);
 	if(msg) LINK_LIST_PUSH_BACK(&ptq->local_que,msg);
-	ptq->last_sync = GetSystemMs();
-	return msgque_sync_push(ptq);
+	return msgque_sync_push(ptq);//msgque_sync_push会设置正确的ptq->flag值
 }
 
 int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
@@ -238,6 +311,21 @@ int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
 	*msg = LINK_LIST_POP(list_node*,&ptq->local_que);
 	if(que->wait4destroy) return -1;
 	return 0;
+}
+
+void heart_beat_signal_handler(int sig)
+{
+	struct per_thread_struct *pts = get_per_thread_struct();
+	struct double_link_node *dln = double_link_first(&pts->per_thread_que);
+	while(dln != &pts->per_thread_que.tail){
+		struct per_thread_que *ptq = (struct per_thread_que*)dln;
+		if(ptq->flag == 0){
+            msgque_put_immeda(ptq->que,NULL);
+		}else{
+            ptq->flag = 2;
+		}
+		dln = dln->next;
+	}
 }
 
 void msgque_flush()
