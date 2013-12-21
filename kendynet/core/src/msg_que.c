@@ -582,7 +582,7 @@ void msgque_flush()
 {
         struct per_thread_struct *pts = get_per_thread_struct();
         struct double_link_node *dln = double_link_first(&pts->per_thread_que);
-        while(dln != &pts->per_thread_que.tail){
+        while(dln && dln != &pts->per_thread_que.tail){
                 struct per_thread_que *ptq = (struct per_thread_que*)dln;
                 msgque_put_immeda(ptq->que,NULL);
                 dln = dln->next;
