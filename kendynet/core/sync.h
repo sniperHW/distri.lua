@@ -50,10 +50,15 @@ typedef struct condition
 	pthread_cond_t cond;
 }*condition_t;
 
+void   block_sigusr1();
+void   unblock_sigusr1();
 
 static inline int32_t condition_wait(condition_t c,mutex_t m)
 {
-	return pthread_cond_wait(&c->cond,&m->m_mutex);
+	block_sigusr1();
+	int32_t ret = pthread_cond_wait(&c->cond,&m->m_mutex);
+	unblock_sigusr1();
+	return ret;
 }
 
 
@@ -77,7 +82,10 @@ static int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 		ts.tv_sec += 1;
 		ts.tv_nsec %= (1000*1000*1000);
 	}
-	return pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
+	block_sigusr1();
+	int32_t ret = pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
+	unblock_sigusr1();
+	return ret;
 
 }
 
