@@ -31,7 +31,9 @@
 #include "link_list.h"
 #include "sync.h"
 
+#ifdef MQ_HEART_BEAT
 extern uint32_t msgque_flush_time;//默认心跳冲刷时间是10ms,用户可自己将该变量设置成合适的值
+#endif
 
 //用于销毁队列中残留的消息
 typedef void (*item_destroyer)(void*);
@@ -91,9 +93,10 @@ int8_t msgque_get(msgque_t,list_node **msg,uint32_t timeout);
 //冲刷本线程持有的所有消息队列的local push队列
 void   msgque_flush();
 
+#ifdef MQ_HEART_BEAT
 void   block_sigusr1();
-
 void   unblock_sigusr1();
+#endif
 
 
 #endif

@@ -40,7 +40,7 @@ void   init_timer_item(struct timer_item *item)
 static inline void active(struct timer *timer,struct double_link *wheel)
 {
 	struct double_link_node *node = NULL;
-	while(node = double_link_pop(wheel)){
+    while((node = double_link_pop(wheel)) != NULL){
 		struct timer_item *item = (struct timer_item*)node;
 		item->callback(timer,item,item->ud_ptr);
 	}

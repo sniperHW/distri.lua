@@ -1,9 +1,9 @@
-CFLAGS = -g -Wall 
+CFLAGS = -O2 -g -Wall 
 LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -Ikendynet -Ikendynet/core -I..
-DEFINE = -D_DEBUG -D_LINUX
+DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
 TESTDIR = kendynet/test
 
 kendynet.a: \
@@ -25,24 +25,24 @@ kendynet.a: \
 		   kendynet/core/src/timer.c \
 		   kendynet/core/src/uthread.c \
 		   kendynet/core/src/wpacket.c
-		$(CC) $(CFLAG) -c $^ $(INCLUDE) $(DEFINE)
+		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
 		rm -f *.o
 
 luanet:luanet.c kendynet.a
-	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) 
-	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS)
+	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) $(DEFINE) 
+	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
 	
 tcpserver:kendynet.a $(TESTDIR)/benchserver.c $(TESTDIR)/testcommon.h
-	$(CC) $(CFLAGS) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 tcpclient:kendynet.a $(TESTDIR)/benchclient.c $(TESTDIR)/testcommon.h
-	$(CC) $(CFLAGS) -o tcpclient $(TESTDIR)/benchclient.c kendynet.a $(INCLUDE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o tcpclient $(TESTDIR)/benchclient.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 timer:kendynet.a $(TESTDIR)/testtimer.c
-	$(CC) $(CFLAGS) -o timer $(TESTDIR)/testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)				
+	$(CC) $(CFLAGS) -o timer $(TESTDIR)/testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)				
 msgque:kendynet.a $(TESTDIR)/testmq.c
-	$(CC) $(CFLAGS) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 systick:kendynet.a $(TESTDIR)/testgetsystick.c
-	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	
+	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
 	
 	

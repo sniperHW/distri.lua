@@ -20,7 +20,8 @@ SOURCES += \
     ../kendynet/core/src/epoll.c \
     ../kendynet/core/src/Engine.c \
     ../kendynet/core/src/Connection.c \
-    ../kendynet/core/src/buffer.c
+    ../kendynet/core/src/buffer.c \
+    ../kendynet/test/testmq.c
 
 HEADERS += \
     ../kendynet/core/wpacket.h \

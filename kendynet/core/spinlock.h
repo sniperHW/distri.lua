@@ -18,6 +18,8 @@
 #define _SPINLOCK_H
 #include "atomic.h"
 #include <pthread.h>
+#include<time.h>
+#include<stdlib.h>
 
 typedef struct spinlock
 {

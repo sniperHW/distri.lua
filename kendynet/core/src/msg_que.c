@@ -8,18 +8,25 @@ enum{
     MSGQ_WRITE,
 };
 
-uint32_t msgque_flush_time = 5;
-
+#ifdef MQ_HEART_BEAT
+uint32_t msgque_flush_time = 50;
+#endif
 //每个线程都有一个per_thread_que与que关联
 struct per_thread_que
 {
-	struct double_link_node pnode; //用于链入per_thread_struct->per_thread_que
-	struct double_link_node bnode; //用于链入msg_que->blocks
-	struct link_list local_que;
+    union{
+        struct write_que{
+            struct double_link_node pnode; //用于链入per_thread_struct->per_thread_que
+            uint8_t     flag;//0,正常;1,阻止heart_beat操作,2,设置了冲刷标记
+        }write_que;
+        struct read_que{
+            struct double_link_node bnode; //用于链入msg_que->blocks
+            condition_t cond;
+        }read_que;
+    };
+    struct link_list local_que;
 	msgque_t que;
-	condition_t cond;
 	uint8_t     mode;//MSGQ_READ or MSGQ_WRITE
-	uint8_t     flag;//0,正常;1,阻止heart_beat操作,2,设置了冲刷标记
 };
 
 //一个线程使用的所有msg_que所关联的per_thread_que
@@ -33,6 +40,7 @@ struct per_thread_struct
 static pthread_key_t g_msg_que_key;
 static pthread_once_t g_msg_que_key_once = PTHREAD_ONCE_INIT;
 
+#ifdef MQ_HEART_BEAT
 //心跳处理，用于定时向线程发送信号冲刷msgque
 struct heart_beat
 {
@@ -90,6 +98,7 @@ static inline struct heart_beat* get_heart_beat()
 	pthread_once(&g_heart_beat_key_once,heart_beat_once_routine);
     return g_heart_beat;
 }
+#endif
 
 static void msg_que_once_routine(){
     pthread_key_create(&g_msg_que_key,NULL);
@@ -117,11 +126,13 @@ static inline struct per_thread_struct* get_per_thread_struct()
 		double_link_clear(&pts->per_thread_que);
 		pthread_setspecific(g_msg_que_key,(void*)pts);
 		pts->thread_id = pthread_self();
+#ifdef MQ_HEART_BEAT
 		//关联到heart_beat中
         struct heart_beat *hb = get_heart_beat();
         mutex_lock(hb->mtx);
         double_link_push(&hb->thread_structs,&pts->hnode);
         mutex_unlock(hb->mtx);
+#endif
 	}
 	return pts;
 }
@@ -134,7 +145,7 @@ static inline struct per_thread_que* get_per_thread_que(struct msg_que *que,uint
 		ptq = calloc(1,sizeof(*ptq));
 		ptq->que = que;
 		ptq->mode = mode;
-		ptq->cond = condition_create();
+        if(mode == MSGQ_READ) ptq->read_que.cond = condition_create();
 		pthread_setspecific(que->t_key,(void*)ptq);
 	}
 	return ptq;
@@ -143,25 +154,29 @@ static inline struct per_thread_que* get_per_thread_que(struct msg_que *que,uint
 void msgque_release(msgque_t que){
 	struct per_thread_que *ptq = (struct per_thread_que*)pthread_getspecific(que->t_key);
 	if(ptq){
-	    ptq->flag = 1;
-		double_link_remove(&ptq->pnode);
-		struct per_thread_struct *pts =  get_per_thread_struct();
-		if(double_link_empty(&pts->per_thread_que)){
-			pthread_setspecific(g_msg_que_key,NULL);
-			//从heart_beat中移除
-            struct heart_beat *hb = get_heart_beat();
-            mutex_lock(hb->mtx);
-            double_link_remove(&pts->hnode);
-            mutex_unlock(hb->mtx);
-			free(pts);
-		}
+        if(ptq->mode == MSGQ_WRITE){
+            ptq->write_que.flag = 1;
+            double_link_remove(&ptq->write_que.pnode);
+            struct per_thread_struct *pts =  get_per_thread_struct();
+            if(double_link_empty(&pts->per_thread_que)){
+                pthread_setspecific(g_msg_que_key,NULL);
+#ifdef MQ_HEART_BEAT
+                //从heart_beat中移除
+                struct heart_beat *hb = get_heart_beat();
+                mutex_lock(hb->mtx);
+                double_link_remove(&pts->hnode);
+                mutex_unlock(hb->mtx);
+#endif
+                free(pts);
+            }
+        }
         //销毁local_que中所有消息
         list_node *n;
         if(que->destroy_function){
             while((n = LINK_LIST_POP(list_node*,&ptq->local_que))!=NULL)
                 que->destroy_function((void*)n);
         }
-        condition_destroy(&ptq->cond);
+        if(ptq->mode == MSGQ_READ) condition_destroy(&ptq->read_que.cond);
         free(ptq);
 	}
     ref_decrease((struct refbase*)que);
@@ -186,11 +201,6 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer destroyer)
     return que;
 }
 
-static struct per_thread_que *dbnode2ptr(struct double_link_node *dbn){
-	struct per_thread_que *block_ptq = (struct per_thread_que*)dbn;
-    return (struct per_thread_que *)((char*)dbn - ((char*)&block_ptq->bnode - (char*)block_ptq));
-}
-
 void close_msgque(struct msg_que *que)
 {
     mutex_lock(que->mtx);
@@ -202,8 +212,8 @@ void close_msgque(struct msg_que *que)
     mutex_unlock(que->mtx);
     struct double_link_node *dbn = double_link_pop(&que->blocks);
     while(dbn){
-        struct per_thread_que *ptq = dbnode2ptr(dbn);
-        condition_signal(ptq->cond);
+        struct per_thread_que *ptq = (struct per_thread_que*)dbn;
+        condition_signal(ptq->read_que.cond);
         dbn = double_link_pop(&que->blocks);
     }
 }
@@ -212,6 +222,7 @@ void close_msgque(struct msg_que *que)
 static inline int8_t msgque_sync_push(struct per_thread_que *ptq)
 {
     assert(ptq->mode == MSGQ_WRITE);
+    if(ptq->mode != MSGQ_WRITE) return 0;
 	struct msg_que *que = ptq->que;
 	mutex_lock(que->mtx);
 	if(que->wait4destroy){
@@ -224,30 +235,29 @@ static inline int8_t msgque_sync_push(struct per_thread_que *ptq)
 		struct double_link_node *l = double_link_pop(&que->blocks);
 		if(l){
 			//if there is a block per_thread_struct wake it up
-			struct per_thread_que *block_ptq = dbnode2ptr(l);
+            struct per_thread_que *block_ptq = (struct per_thread_que*)l;
 			mutex_unlock(que->mtx);
-			condition_signal(block_ptq->cond);
-			ptq->flag = 0;
+            condition_signal(block_ptq->read_que.cond);
 			return 0;
 		}
 	}
 	mutex_unlock(que->mtx);
-	ptq->flag = 0;
 	return 0;
 }
 
 static inline int8_t msgque_sync_pop(struct per_thread_que *ptq,uint32_t timeout)
 {
     assert(ptq->mode == MSGQ_READ);
+    if(ptq->mode != MSGQ_READ) return 0;
     struct msg_que *que = ptq->que;
         mutex_lock(que->mtx);
         if(link_list_is_empty(&que->share_que) && timeout){
                 uint32_t end = GetSystemMs() + timeout;
 		while(link_list_is_empty(&que->share_que) && !que->wait4destroy){
-                        double_link_push(&que->blocks,&ptq->bnode);
-                        if(0 != condition_timedwait(ptq->cond,que->mtx,timeout)){
+                        double_link_push(&que->blocks,&ptq->read_que.bnode);
+                        if(0 != condition_timedwait(ptq->read_que.cond,que->mtx,timeout)){
                                 //timeout
-				double_link_remove(&ptq->bnode);
+                double_link_remove(&ptq->read_que.bnode);
                                 break;
                         }
 			uint32_t l_now = GetSystemMs();
@@ -265,7 +275,7 @@ static inline int8_t msgque_sync_pop(struct per_thread_que *ptq,uint32_t timeout
 static inline void before_put(struct per_thread_que *ptq)
 {
 	struct per_thread_struct *pts = get_per_thread_struct();
-	double_link_push(&pts->per_thread_que,&ptq->pnode);
+    double_link_push(&pts->per_thread_que,&ptq->write_que.pnode);
 }
 
 int8_t msgque_put(msgque_t que,list_node *msg)
@@ -273,15 +283,15 @@ int8_t msgque_put(msgque_t que,list_node *msg)
 	if(que->wait4destroy)return -1;
 	struct per_thread_que *ptq = get_per_thread_que(que,MSGQ_WRITE);
 	assert(ptq->mode == MSGQ_WRITE);
-	ptq->flag = 1;
+    if(ptq->mode != MSGQ_WRITE)return 0;
+    ptq->write_que.flag = 1;
 	before_put(ptq);
 	LINK_LIST_PUSH_BACK(&ptq->local_que,msg);
-	if(ptq->flag == 2 || link_list_size(&ptq->local_que) >= que->syn_size){
-		return msgque_sync_push(ptq);
-	}
-	if(que->wait4destroy) return -1;
-	ptq->flag = 0;
-	return 0;
+    int8_t ret = 0;
+    if(ptq->write_que.flag == 2 || link_list_size(&ptq->local_que) >= que->syn_size)
+        ret = msgque_sync_push(ptq);
+    ptq->write_que.flag = 0;
+    return ret;
 }
 
 int8_t msgque_put_immeda(msgque_t que,list_node *msg)
@@ -289,10 +299,13 @@ int8_t msgque_put_immeda(msgque_t que,list_node *msg)
 	if(que->wait4destroy)return -1;
 	struct per_thread_que *ptq = get_per_thread_que(que,MSGQ_WRITE);
 	assert(ptq->mode == MSGQ_WRITE);
-	ptq->flag = 1;
+    if(ptq->mode != MSGQ_WRITE)return 0;
+    ptq->write_que.flag = 1;
 	before_put(ptq);
 	if(msg) LINK_LIST_PUSH_BACK(&ptq->local_que,msg);
-	return msgque_sync_push(ptq);//msgque_sync_push会设置正确的ptq->flag值
+    int8_t ret = msgque_sync_push(ptq);
+    ptq->write_que.flag = 0;
+    return ret;
 }
 
 int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
@@ -300,6 +313,7 @@ int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
 	if(que->wait4destroy)return -1;
 	struct per_thread_que *ptq = get_per_thread_que(que,MSGQ_READ);
 	assert(ptq->mode == MSGQ_READ);
+    if(ptq->mode != MSGQ_READ)return 0;
 	//本地无消息,执行同步
 	if(timeout && link_list_is_empty(&ptq->local_que)){
 		if(-1 == msgque_sync_pop(ptq,timeout))
@@ -310,30 +324,43 @@ int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
 	return 0;
 }
 
-void heart_beat_signal_handler(int sig)
+static inline void _flush_local(struct per_thread_que *ptq)
 {
-	struct per_thread_struct *pts = get_per_thread_struct();
-	struct double_link_node *dln = double_link_first(&pts->per_thread_que);
-	while(dln && dln != &pts->per_thread_que.tail){
-		struct per_thread_que *ptq = (struct per_thread_que*)dln;
-		if(ptq->flag == 0){
-            msgque_put_immeda(ptq->que,NULL);
-		}else{
-            ptq->flag = 2;
-		}
-		dln = dln->next;
-	}
+    assert(ptq->mode == MSGQ_WRITE);
+    if(ptq->que->wait4destroy)return;
+    if(ptq->mode != MSGQ_WRITE)return;
+    if(link_list_is_empty(&ptq->local_que))return;
+    msgque_sync_push(ptq);
 }
 
 void msgque_flush()
 {
+    struct per_thread_struct *pts = get_per_thread_struct();
+    struct double_link_node *dln = double_link_first(&pts->per_thread_que);
+    while(dln && dln != &pts->per_thread_que.tail){
+        struct per_thread_que *ptq = (struct per_thread_que*)dln;
+        ptq->write_que.flag = 1;_flush_local(ptq);ptq->write_que.flag = 0;
+        dln = dln->next;
+    }
+}
+
+
+#ifdef MQ_HEART_BEAT
+void heart_beat_signal_handler(int sig)
+{
+    block_sigusr1();
 	struct per_thread_struct *pts = get_per_thread_struct();
 	struct double_link_node *dln = double_link_first(&pts->per_thread_que);
 	while(dln && dln != &pts->per_thread_que.tail){
 		struct per_thread_que *ptq = (struct per_thread_que*)dln;
-		msgque_put_immeda(ptq->que,NULL);
+        if(ptq->write_que.flag == 0){
+            _flush_local(ptq);
+		}else{
+            ptq->write_que.flag = 2;
+		}
 		dln = dln->next;
 	}
+    unblock_sigusr1();
 }
 
 void   block_sigusr1()
@@ -341,13 +368,14 @@ void   block_sigusr1()
 	sigset_t mask;
 	sigemptyset(&mask);
 	sigaddset(&mask,SIGUSR1);
-	pthread_sigmask(SIG_BLOCK,&mask,NULL);
+    pthread_sigmask(SIG_BLOCK,&mask,NULL);
 }
 
 void   unblock_sigusr1()
 {
-	sigset_t mask;
-	sigemptyset(&mask);
-	sigaddset(&mask,SIGUSR1);
-	pthread_sigmask(SIG_UNBLOCK,&mask,NULL);
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask,SIGUSR1);
+    pthread_sigmask(SIG_UNBLOCK,&mask,NULL);
 }
+#endif

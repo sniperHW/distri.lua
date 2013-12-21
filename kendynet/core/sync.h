@@ -55,15 +55,19 @@ void   unblock_sigusr1();
 
 static inline int32_t condition_wait(condition_t c,mutex_t m)
 {
+#ifdef MQ_HEART_BEAT
 	block_sigusr1();
 	int32_t ret = pthread_cond_wait(&c->cond,&m->m_mutex);
 	unblock_sigusr1();
 	return ret;
+#else
+    return pthread_cond_wait(&c->cond,&m->m_mutex);
+#endif
 }
 
 
 
-static int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
+static inline int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
 #ifdef _WIN
@@ -82,11 +86,14 @@ static int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 		ts.tv_sec += 1;
 		ts.tv_nsec %= (1000*1000*1000);
 	}
+#ifdef MQ_HEART_BEAT
 	block_sigusr1();
 	int32_t ret = pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
-	unblock_sigusr1();
+	unblock_sigusr1();    
 	return ret;
-
+#else
+    return pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
+#endif
 }
 
 static inline int32_t condition_signal(condition_t c)

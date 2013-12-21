@@ -4,7 +4,7 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
 {
     uint32_t now = GetSystemMs();
     struct connection *c = wheelitem2con(wit);
-    struct netservice *n = (struct netservice*)ud;
+    //struct netservice *n = (struct netservice*)ud;
     acquire_conn(c);
     if(c->_recv_timeout && now > c->last_recv + c->recv_timeout)
         c->_recv_timeout(c);

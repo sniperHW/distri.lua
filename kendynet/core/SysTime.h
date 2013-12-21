@@ -7,6 +7,7 @@
 #include <signal.h>
 #include "thread.h"
 #include "common.h"
+#include <stdio.h>
 
 extern pthread_key_t g_systime_key;
 extern pthread_once_t g_systime_key_once;
@@ -51,9 +52,13 @@ void   unblock_sigusr1();
 
 static inline void sleepms(uint32_t ms)
 {
-	block_sigusr1();
-	usleep(ms*1000);
-	unblock_sigusr1();
+#ifdef MQ_HEART_BEAT
+    block_sigusr1();
+    usleep(ms*1000);
+    unblock_sigusr1();
+#else
+    usleep(ms*1000);
+#endif
 }
 
 static inline char *GetCurrentTimeStr(char *buf)

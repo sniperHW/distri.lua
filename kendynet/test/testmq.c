@@ -19,16 +19,38 @@ void *Routine1(void *arg)
             int i = 0;
             for(; i < 10000000; ++i)
             {
-                msgque_put(mq1,&node_list2[j][i]);
+                msgque_put(mq1,&node_list1[j][i]);
             }
-            sleepms(500);
+            msgque_flush();
+            sleepms(200);
         }
     }
 	close_msgque(mq1);
-	printf("Routine3 end\n");
+    printf("Routine1 end\n");
+    return NULL;
 }
 
 void *Routine2(void *arg)
+{
+    for(;;){
+        int j = 0;
+        for(; j < 5;++j)
+        {
+            int i = 0;
+            for(; i < 10000000; ++i)
+            {
+                msgque_put(mq1,&node_list2[j][i]);
+            }
+            msgque_flush();
+            sleepms(200);
+        }
+    }
+    close_msgque(mq1);
+    printf("Routine2 end\n");
+    return NULL;
+}
+
+void *Routine3(void *arg)
 {
 	uint64_t count = 0;
 	uint64_t total_count = 0;
@@ -51,7 +73,8 @@ void *Routine2(void *arg)
 			count = 0;
 		}
 	}
-	printf("Routine2 end\n");
+    printf("Routine3 end\n");
+    return NULL;
 }
 
 
@@ -64,11 +87,15 @@ int main()
 		node_list2[i] = calloc(10000000,sizeof(list_node));
 	}
 	mq1 = msgque_acquire(new_msgque(1024,NULL));
-	thread_t t1 = create_thread(0);
+    thread_t t3 = create_thread(0);
+    thread_start_run(t3,Routine3,NULL);
+
+    thread_t t1 = create_thread(0);
 	thread_start_run(t1,Routine1,NULL);
 
-	thread_t t2 = create_thread(0);
-	thread_start_run(t2,Routine2,NULL);
+    thread_t t2 = create_thread(0);
+    thread_start_run(t2,Routine2,NULL);
+
 	getchar();
 	msgque_release(mq1);
 	return 0;
