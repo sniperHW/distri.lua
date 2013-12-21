@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <signal.h>
 #include "thread.h"
 #include "common.h"
 
@@ -21,7 +22,7 @@ static void systick_once_routine(){
     clock_gettime(CLOCK_MONOTONIC, &ts);
     g_global_ms =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
     g_global_sec = time(NULL);
-	//����һ���߳��Թ̶���Ƶ�ʸ���g_global_ms,���̲߳����˳���֪�����̽���
+	//创建一个线程以固定的频率更新g_global_ms,此线程不会退出，知道进程结束
 	thread_run(systick_routine,NULL);
 }
 
@@ -45,9 +46,14 @@ static inline time_t GetSystemSec()
 #endif
 }
 
+void   block_sigusr1();
+void   unblock_sigusr1();
+
 static inline void sleepms(uint32_t ms)
 {
+	block_sigusr1();
 	usleep(ms*1000);
+	unblock_sigusr1();
 }
 
 static inline char *GetCurrentTimeStr(char *buf)
