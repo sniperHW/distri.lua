@@ -30,19 +30,19 @@ kendynet.a: \
 		rm -f *.o
 
 luanet:luanet.c kendynet.a
-	$(CC) $(CFLAG) -c $(SHARED) luanet.c $(INCLUDE) 
+	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) 
 	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS)
 	rm -f *.o
 	
 tcpserver:kendynet.a $(TESTDIR)/benchserver.c $(TESTDIR)/testcommon.h
-	$(CC) $(CFLAG) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS)
 tcpclient:kendynet.a $(TESTDIR)/benchclient.c $(TESTDIR)/testcommon.h
-	$(CC) $(CFLAG) -o tcpclient $(TESTDIR)/benchclient.c kendynet.a $(INCLUDE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o tcpclient $(TESTDIR)/benchclient.c kendynet.a $(INCLUDE) $(LDFLAGS)
 timer:kendynet.a $(TESTDIR)/testtimer.c
-	$(CC) $(CFLAG) -o timer $(TESTDIR)/testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)				
+	$(CC) $(CFLAGS) -o timer $(TESTDIR)/testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)				
 msgque:kendynet.a $(TESTDIR)/testmq.c
-	$(CC) $(CFLAG) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS)
 systick:kendynet.a $(TESTDIR)/testgetsystick.c
-	$(CC) $(CFLAG) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	
+	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	
 	
 	
