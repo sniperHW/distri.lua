@@ -8,9 +8,9 @@ enum{
     MSGQ_WRITE,
 };
 
-#ifdef MQ_HEART_BEAT
+
 uint32_t msgque_flush_time = 50;
-#endif
+
 //每个线程都有一个per_thread_que与que关联
 struct per_thread_que
 {
@@ -365,9 +365,9 @@ void heart_beat_signal_handler(int sig)
 
 void   block_sigusr1()
 {
-	sigset_t mask;
-	sigemptyset(&mask);
-	sigaddset(&mask,SIGUSR1);
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask,SIGUSR1);
     pthread_sigmask(SIG_BLOCK,&mask,NULL);
 }
 
