@@ -26,7 +26,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "refbase.h"
 #include "double_link.h"
 #include "link_list.h"
 #include "sync.h"
@@ -38,10 +37,8 @@ typedef void (*item_destroyer)(void*);
 
 typedef struct msg_que
 {
-        struct refbase      refbase;
         struct link_list    share_que;
         uint32_t            syn_size;
-        volatile uint8_t    wait4destroy;
         pthread_key_t       t_key;
         mutex_t             mtx;
         struct double_link  blocks;
@@ -51,24 +48,9 @@ typedef struct msg_que
 //默认销毁函数对残留元素执行free
 void default_item_destroyer(void* item);
 
-//增加对que的引用
-static inline struct msg_que* msgque_acquire(msgque_t que){
-    ref_increase((struct refbase*)que);
-    return que;
-}
-
-//释放对que的引用,当计数变为0,que会被销毁
-void msgque_release(msgque_t que);
-
 struct msg_que* new_msgque(uint32_t syn_size,item_destroyer);
 
-void delete_msgque(void*);
-
-/*
-* 请求关闭消息队列但不释放引用,要释放引用，主动调用msg_que_release,确保acquire和release的配对调用
-* 关闭时，如果有线程等待在此消息队列中会被全部唤醒
-*/
-void close_msgque(msgque_t que);
+void delete_msgque(msgque_t*);
 
 
 /* push一条消息到local队列,如果local队列中的消息数量超过阀值执行同步，否则不同步
