@@ -17,8 +17,11 @@
 *  如果后面A对队列执行了pop将会引发错误
 *
 *  [注意2]
-*  对于无法以一定频率执行队列冲刷操作(将本地push队列中的消息同步到共享队列)的线程
-*  为避免消费者出现饥饿务必使用push_now,该函数在将消息push到本地队列后立即执行同步操作
+*  使用者只需调用new_msgque创建新的消息队列，队列内部维持了一个对使用线程的引用
+*  计数，引用线程结束时会将计数减1,当所有引用线程结束后消息队列自行销毁.
+*  
+*  一个线程第一次对一个消息队列调用msgque_put,msgque_put_immeda,msgque_get时，将会
+*  增加此线程对这个消息队列的引用计数
 */
 
 #ifndef _MSG_QUE_H
@@ -26,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "refbase.h"
 #include "double_link.h"
 #include "link_list.h"
 #include "sync.h"
@@ -37,8 +41,10 @@ typedef void (*item_destroyer)(void*);
 
 typedef struct msg_que
 {
+        struct refbase      refbase;
         struct link_list    share_que;
         uint32_t            syn_size;
+        volatile uint8_t    wait4destroy;
         pthread_key_t       t_key;
         mutex_t             mtx;
         struct double_link  blocks;
@@ -48,24 +54,22 @@ typedef struct msg_que
 //默认销毁函数对残留元素执行free
 void default_item_destroyer(void* item);
 
+
 struct msg_que* new_msgque(uint32_t syn_size,item_destroyer);
 
-void delete_msgque(msgque_t*);
-
-
 /* push一条消息到local队列,如果local队列中的消息数量超过阀值执行同步，否则不同步
-* 返回0正常，-1，队列已被请求关闭
+*  返回非0表示出错
 */
 int8_t msgque_put(msgque_t,list_node *msg);
 
 /* push一条消息到local队列,并且立即同步
-* 返回0正常，-1，队列已被请求关闭
+*  返回非0表示出错
 */
 int8_t msgque_put_immeda(msgque_t,list_node *msg);
 
 /*从local队列pop一条消息,如果local队列中没有消息,尝试从共享队列同步消息过来
 * 如果共享队列中没消息，最多等待timeout毫秒
-* 返回0正常，-1，队列已被请求关闭
+*  返回非0表示出错
 */
 int8_t msgque_get(msgque_t,list_node **msg,uint32_t timeout);
 
@@ -77,6 +81,5 @@ void   msgque_flush();
 void   block_sigusr1();
 void   unblock_sigusr1();
 #endif
-
 
 #endif
