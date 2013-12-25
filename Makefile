@@ -1,4 +1,4 @@
-CFLAGS = -g -Wall 
+CFLAGS = -O2 -g -Wall 
 LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc

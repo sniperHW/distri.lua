@@ -9,4 +9,6 @@ int32_t  epoll_init(engine_t);
 int32_t  epoll_loop(engine_t,int32_t timeout);
 int32_t  epoll_register(engine_t,socket_t);
 int32_t  epoll_unregister(engine_t,socket_t);
+int32_t  epoll_unregister_recv(engine_t,socket_t);
+int32_t  epoll_unregister_send(engine_t,socket_t);
 #endif

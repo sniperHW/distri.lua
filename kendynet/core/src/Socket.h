@@ -29,7 +29,7 @@ enum{
 typedef struct socket_wrapper
 {
 	struct double_link_node dnode;
-	volatile int32_t status;       //0:未分配,1:正常,1:收到关闭请求
+    volatile int32_t  status;
 	volatile int32_t  readable;
 	volatile int32_t  writeable;
 	volatile uint32_t stamp;
@@ -69,5 +69,10 @@ int32_t raw_recv(socket_t s,st_io *io_req,uint32_t *err_code);
 
 struct socket_wrapper *get_socket_wrapper(SOCK s);
 int32_t get_fd(SOCK s);
+
+void   shutdown_recv(socket_t s);
+void   shutdown_send(socket_t s);
+void   clear_pending_send(socket_t s);
+void   clear_pending_recv(socket_t s);
 
 #endif

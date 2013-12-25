@@ -4,28 +4,27 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
 {
     uint32_t now = GetSystemMs();
     struct connection *c = wheelitem2con(wit);
-    //struct netservice *n = (struct netservice*)ud;
     acquire_conn(c);
-    if(c->_recv_timeout && now > c->last_recv + c->recv_timeout)
+    if(c->status == SESTABLISH && c->_recv_timeout && now > c->last_recv + c->recv_timeout)
         c->_recv_timeout(c);
-    if(!c->status == 1 && c->_send_timeout)
+    if((c->status == SESTABLISH || c->status == SWAITCLOSE) && c->_send_timeout)
     {
         wpacket_t wpk = (wpacket_t)link_list_head(&c->send_list);
         if(wpk && now > wpk->base.tstamp + c->send_timeout)
             c->_send_timeout(c);
     }
-    if(c->status != 1) register_timer(t,wit,1);
+    if(c->status != SCLOSE) register_timer(t,wit,1);
     release_conn(c);
 }
 
 static int32_t _bind(struct netservice *n,
-							struct connection *c,
-							process_packet _process_packet,
-							on_disconnect _on_disconnect,
-							uint32_t rtimeout,
-                            on_recv_timeout _recv_timeout,
-                            uint32_t stimeout,
-							on_send_timeout _send_timeout)
+                     struct connection *c,
+                     process_packet _process_packet,
+                     on_disconnect _on_disconnect,
+                     uint32_t rtimeout,
+                     on_recv_timeout _recv_timeout,
+                     uint32_t stimeout,
+                     on_send_timeout _send_timeout)
  {
     c->_recv_timeout = _recv_timeout;
     c->_send_timeout = _send_timeout;

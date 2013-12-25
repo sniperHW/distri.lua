@@ -29,7 +29,6 @@ function tcpserver:new()
     self._on_accept = client_come         --处理新到连接
 	self._on_connect = nil
 	self._on_disconnect = client_go     --处理连接关闭
-	self._on_send_finish = nil
 	self._send_timeout = _timeout      
 	self._recv_timeout = _timeout 	
   	setmetatable(o, self)

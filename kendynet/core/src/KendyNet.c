@@ -74,7 +74,7 @@ int32_t Bind2Engine(ENGINE e,SOCK s,OnIoFinish _iofinish,
 
 	engine_t engine = GetEngineByHandle(e);
 	socket_t sock   = get_socket_wrapper(s);
-	if(!engine || ! sock)
+    if(!engine || ! sock || sock->engine)
 		return -1;
 
 	if(setNonblock(s) != 0)
@@ -167,7 +167,7 @@ int32_t Recv(SOCK sock,st_io *io,uint32_t *err_code)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-	if(!s || s->status != 1)
+    if(!s)
 	{
 		*err_code = 0;
 		return -1;
@@ -182,7 +182,7 @@ int32_t Post_Recv(SOCK sock,st_io *io)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-	if(!s || s->status != 1)
+    if(!s)
 		return -1;
 	LINK_LIST_PUSH_BACK(&s->pending_recv,io);
 	if(s->engine && s->readable)
@@ -196,7 +196,7 @@ int32_t Send(SOCK sock,st_io *io,uint32_t *err_code)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-	if(!s || s->status != 1)
+    if(!s)
 	{
 		*err_code = 0;
 		return -1;
@@ -211,7 +211,7 @@ int32_t Post_Send(SOCK sock,st_io *io)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-	if(!s || s->status != 1)
+    if(!s)
 		return -1;
 	LINK_LIST_PUSH_BACK(&s->pending_send,io);
 	if(s->engine && s->writeable)

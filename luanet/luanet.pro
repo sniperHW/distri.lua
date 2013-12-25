@@ -21,7 +21,15 @@ SOURCES += \
     ../kendynet/core/src/Engine.c \
     ../kendynet/core/src/Connection.c \
     ../kendynet/core/src/buffer.c \
-    ../kendynet/test/testmq.c
+    ../kendynet/test/testmq.c \
+    ../kendynet/test/benchserver.c \
+    ../kendynet/test/testtimer.c \
+    ../kendynet/test/testgetsystick.c \
+    ../kendynet/test/tcpserver.c \
+    ../kendynet/test/tcpclient.c \
+    ../kendynet/test/netclient.c \
+    ../kendynet/test/netboradcast.c \
+    ../kendynet/test/benchclient.c
 
 HEADERS += \
     ../kendynet/core/wpacket.h \
@@ -55,5 +63,6 @@ HEADERS += \
     ../kendynet/core/src/uthread_32.h \
     ../kendynet/core/src/Socket.h \
     ../kendynet/core/src/epoll.h \
-    ../kendynet/core/src/Engine.h
+    ../kendynet/core/src/Engine.h \
+    ../kendynet/test/testcommon.h
 

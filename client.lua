@@ -30,7 +30,6 @@ function tcpclient:new()
         self._on_accept = nil         --处理新到连接
         self._on_connect = connect_ok
         self._on_disconnect = nil     --处理连接关闭
-        self._on_send_finish = nil
         self._send_timeout = _timeout      
         self._recv_timeout = _timeout         
         setmetatable(o, self)

@@ -10,6 +10,14 @@
 #include "common.h"
 #include "refbase.h"
 
+enum{
+    SCLOSE = 0,
+    SESTABLISH = 1,
+    SWAITCLOSE = 2,//用户主动关闭，等发送队列中数据发完关闭
+    SHALFCLOSE = 3,//写关闭
+};
+
+
 struct connection;
 struct OVERLAPCONTEXT
 {
@@ -20,7 +28,6 @@ struct OVERLAPCONTEXT
 
 typedef void (*process_packet)(struct connection*,rpacket_t);
 typedef void (*on_disconnect)(struct connection*,uint32_t reason);
-typedef void (*packet_send_finish)(wpacket_t,void*);
 typedef void (*on_recv_timeout)(struct connection*);
 typedef void (*on_send_timeout)(struct connection*);
 
@@ -56,7 +63,7 @@ struct connection
     on_recv_timeout _recv_timeout;
     on_send_timeout _send_timeout;
 	uint8_t  raw;
-	volatile uint8_t status;//0:已经关闭,1:正常,2:请求关闭，待发送缓冲中的包发送完成关闭//is_closed;
+    volatile uint8_t status;
 	uint8_t  doing_send;
 };
 
@@ -77,7 +84,7 @@ void   acquire_conn(struct connection *con);
 
 void   active_close(struct connection*);//active close connection
 
-int32_t send_packet(struct connection*,wpacket_t,packet_send_finish);
+int32_t send_packet(struct connection*,wpacket_t);
 
 int32_t bind2engine(ENGINE,struct connection*,process_packet,on_disconnect);
 

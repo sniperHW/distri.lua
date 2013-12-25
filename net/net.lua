@@ -4,7 +4,6 @@ net = {
 	_on_accept = nil,         --�����µ�����
 	_on_connect = nil,
 	_on_disconnect = nil,     --�������ӹر�
-	_on_send_finish = nil,
 	_send_timeout = nil,      
 	_recv_timeout = nil, 
 }
@@ -53,12 +52,6 @@ end
 function net:recv_timeout(connection)
 	if self._recv_timeout then
 		self._recv_timeout(connection)
-	end
-end
-
-function net:on_send_finish(connection)
-	if self._on_send_finish then
-		self._on_send_finish(connection)
 	end
 end
 

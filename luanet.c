@@ -174,14 +174,8 @@ static int lua_active_close(lua_State *L)
 {
 	struct connection *c = (struct connection *)lua_touserdata(L,1);
 	active_close(c);
+	return 0;
 }
-
-void on_pkt_send_finish(struct connection *c,wpacket_t wpk)
-{
-	struct luaNetService *service = (struct luaNetService *)c->usr_ptr;
-	service->call(service->L,service->m_iKeyIndex,"on_send_finish",c,NULL);
-}
-
 
 wpacket_t luaGetluaWPacket(lua_State *L,int idx)
 {
@@ -192,11 +186,10 @@ wpacket_t luaGetluaWPacket(lua_State *L,int idx)
 
 static int luaSendPacket(lua_State *L)
 {
-	int arg_size = lua_gettop(L);
 	struct connection *c = (struct connection *)lua_touserdata(L,1);
 	wpacket_t w = luaGetluaWPacket(L,2);
 	if(w){	
-		lua_pushnumber(L,send_packet(c,w,arg_size == 3? on_pkt_send_finish:NULL));
+		lua_pushnumber(L,send_packet(c,w));
 	}
 	else
 		lua_pushnumber(L,-1);

@@ -2,8 +2,10 @@
 #include "link_list.h"
 #include <assert.h>
 #include "SysTime.h"
+#include "Socket.h"
 
 #define BUFFER_SIZE 65536
+
 
 //接收相关函数
 static inline void update_next_recv_pos(struct connection *c,int32_t _bytestransfer)
@@ -65,8 +67,7 @@ static inline int unpack(struct connection *c)
 		else
 		{
 			pk_len = c->unpack_buf->size - c->unpack_pos;
-			if(!pk_len)
-				return 1;
+            if(!pk_len) return 1;
 			r = rpk_create(c->unpack_buf,c->unpack_pos,pk_len,c->raw);
 			c->unpack_pos  += pk_len;
 			c->unpack_size -= pk_len;
@@ -81,10 +82,13 @@ static inline int unpack(struct connection *c)
 				c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 			}
 		}
-		if(c->status == 1) c->_process_packet(c,r);
-		if(r)rpk_destroy(&r);
-		if(c->status==0) return 0;
+        if(c->status == SESTABLISH || c->status == SHALFCLOSE)
+            c->_process_packet(c,r);
+        if(r) rpk_destroy(&r);
+        if(c->status == SCLOSE || c->status == SWAITCLOSE)
+            return 0;
 	}while(1);
+
 	return 1;
 }
 
@@ -117,11 +121,9 @@ static inline st_io *prepare_send(struct connection *c)
 			b = b->next;
 			pos = 0;
 		}
-		if(send_size_remain > 0)
-			w = (wpacket_t)w->base.next.next;
+        if(send_size_remain > 0) w = (wpacket_t)w->base.next.next;
 	}
-	if(i)
-	{
+	if(i){
 		c->send_overlap.m_super.iovec_count = i;
 		c->send_overlap.m_super.iovec = c->wsendbuf;
 		O = (st_io*)&c->send_overlap;
@@ -129,7 +131,7 @@ static inline st_io *prepare_send(struct connection *c)
 	return O;
 
 }
-static inline int8_t update_send_list(struct connection *c,int32_t _bytestransfer)
+static inline void update_send_list(struct connection *c,int32_t _bytestransfer)
 {
     assert(_bytestransfer >= 0);
 	wpacket_t w;
@@ -141,11 +143,8 @@ static inline int8_t update_send_list(struct connection *c,int32_t _bytestransfe
 		assert(w);
 		if((uint32_t)bytestransfer >= w->data_size)
 		{
-			//一个包发完,检查是否有send_finish需要执行
-            if(w->packet_sendfinish)w->packet_sendfinish(w,w->base.usr_ptr);
 			bytestransfer -= w->data_size;
 			wpk_destroy(&w);
-            if(c->status == 0) return 0;
 		}
 		else
 		{
@@ -165,12 +164,11 @@ static inline int8_t update_send_list(struct connection *c,int32_t _bytestransfe
 			LINK_LIST_PUSH_FRONT(&c->send_list,w);
 		}
 	}
-	return 1;
 }
 
-int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_finish)
+int32_t send_packet(struct connection *c,wpacket_t w)
 {
-	if(c->status != 1){
+    if(c->status == SCLOSE || c->status == SHALFCLOSE){
 		wpk_destroy(&w);
 		return -1;
 	}
@@ -178,10 +176,6 @@ int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_
 	if(w){
 		w->base.tstamp = GetSystemMs();
 		LINK_LIST_PUSH_BACK(&c->send_list,w);
-	}
-	if(pk_send_finish){
-        w->base.usr_ptr = (void*)c;
-        w->packet_sendfinish = pk_send_finish;
 	}
 	if(!c->doing_send){
 	    c->doing_send = 1;
@@ -193,29 +187,44 @@ int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_
 
 static inline void start_recv(struct connection *c)
 {
-	c->unpack_buf = buffer_create_and_acquire(NULL,BUFFER_SIZE);
-	c->next_recv_buf = buffer_acquire(NULL,c->unpack_buf);
-	c->wrecvbuf[0].iov_len = BUFFER_SIZE;
-	c->wrecvbuf[0].iov_base = c->next_recv_buf->buf;
-	c->recv_overlap.m_super.iovec_count = 1;
-	c->recv_overlap.m_super.iovec = c->wrecvbuf;
-	c->last_recv = GetSystemMs();
-	Post_Recv(c->socket,&c->recv_overlap.m_super);
+    if(c->status == SESTABLISH){
+        c->unpack_buf = buffer_create_and_acquire(NULL,BUFFER_SIZE);
+        c->next_recv_buf = buffer_acquire(NULL,c->unpack_buf);
+        c->wrecvbuf[0].iov_len = BUFFER_SIZE;
+        c->wrecvbuf[0].iov_base = c->next_recv_buf->buf;
+        c->recv_overlap.m_super.iovec_count = 1;
+        c->recv_overlap.m_super.iovec = c->wrecvbuf;
+        c->last_recv = GetSystemMs();
+        Post_Recv(c->socket,&c->recv_overlap.m_super);
+    }
 }
 
 void active_close(struct connection *c)
 {
-	if(c->status == 1){
+    if(c->status == SESTABLISH){
 		if(LINK_LIST_IS_EMPTY(&c->send_list)){
-			c->status = 0;
+            //没有数据需要发送了直接关闭
+            c->status = SCLOSE;
 			CloseSocket(c->socket);
+            printf("active close\n");
+            c->_on_disconnect(c,0);
 		}else
-			c->status = 2;//有数据待发送，延迟关闭
-		printf("active close\n");
-		c->_on_disconnect(c,0);
-	}
+        {
+            //还有数据需要发送，等数据发送完毕后再关闭
+            socket_t sw = get_socket_wrapper(c->socket);
+            shutdown_recv(sw);
+            c->status = SWAITCLOSE;
+        }
+    }else if(c->status == SHALFCLOSE)
+    {
+        c->status = SCLOSE;
+        CloseSocket(c->socket);
+        printf("active close\n");
+        c->_on_disconnect(c,0);
+    }
 }
 
+struct socket_wrapper *get_socket_wrapper(SOCK s);
 void RecvFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 {
 	uint32_t recv_size;
@@ -228,12 +237,10 @@ void RecvFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 			return;
 		else if(bytestransfer < 0 && err_code != EAGAIN){
 			printf("recv close\n");
-			if(c->status == 1){
-				if(LINK_LIST_IS_EMPTY(&c->send_list)){
-					c->status = 0;
-					CloseSocket(c->socket);
-				}else
-					c->status = 2;
+            if(c->status != SCLOSE){
+                c->status = SCLOSE;
+                CloseSocket(c->socket);
+                //被动关闭
 				c->_on_disconnect(c,err_code);
 			}
 			return;
@@ -287,27 +294,31 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 		    return;
 		else if(bytestransfer < 0 && err_code != EAGAIN){
 			printf("send close\n");
-			if(c->status == 1){
-				if(LINK_LIST_IS_EMPTY(&c->send_list)){
-					c->status = 0;
-					CloseSocket(c->socket);
-				}else
-					c->status = 2;
-				c->_on_disconnect(c,err_code);
-			}
+            if(c->status == SESTABLISH)
+            {
+                socket_t sw = get_socket_wrapper(c->socket);
+                shutdown_send(sw);//不再写数据
+                c->status = SHALFCLOSE;
+            }else if(c->status == SWAITCLOSE)
+            {
+                c->status = SCLOSE;
+                CloseSocket(c->socket);
+                c->_on_disconnect(c,err_code);
+            }
 			return;
 		}else if(bytestransfer > 0)
 		{
 			do{
-				if(!update_send_list(c,bytestransfer)) return;
+                update_send_list(c,bytestransfer);
 				st_io *io = prepare_send(c);
 				if(!io) {
 				    c->doing_send = 0;
-					if(c->status == 2)
+                    if(c->status == SWAITCLOSE)
 					{
-						//所有数据发送完毕，可以关闭了
-						c->status = 0;
-						CloseSocket(c->socket);
+                        //数据已经发送完毕，关闭
+                        c->status = SCLOSE;
+                        CloseSocket(c->socket);
+                        c->_on_disconnect(c,err_code);
 					}
 				    return;
 				}
@@ -351,6 +362,7 @@ struct connection *new_conn(SOCK s,uint8_t is_raw)
 	c->send_overlap.c = c;
 	c->raw = is_raw;
 	c->ref.refcount = 1;
+    c->status = SESTABLISH;
 	c->ref.destroyer = connection_destroy;
 	return c;
 }

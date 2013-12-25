@@ -46,6 +46,39 @@ int32_t epoll_unregister(engine_t e,socket_t s)
 	return ret;
 }
 
+int32_t  epoll_unregister_recv(engine_t e,socket_t s)
+{
+    assert(e);assert(s);
+    struct epoll_event ev;int32_t ret;
+    if(s->socket_type == DATA){
+        ev.events = EV_OUT | EV_ET | EPOLLRDHUP;
+        TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_MOD,s->fd,&ev));
+    }
+    else if(s->socket_type == LISTEN)
+        TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_DEL,s->fd,&ev));
+    else
+        return -1;
+    s->readable = 0;
+    if(s->writeable == 0 || LINK_LIST_IS_EMPTY(&s->pending_send))
+        double_link_remove((struct double_link_node*)s);
+    return ret;
+}
+
+int32_t  epoll_unregister_send(engine_t e,socket_t s)
+{
+    assert(e);assert(s);
+    struct epoll_event ev;int32_t ret;
+    if(s->socket_type == DATA){
+        ev.events = EV_IN | EV_ET | EPOLLRDHUP;
+        TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_MOD,s->fd,&ev));
+    }else
+        return -1;
+    s->writeable = 0;
+    if(s->readable == 0 || LINK_LIST_IS_EMPTY(&s->pending_recv))
+        double_link_remove((struct double_link_node*)s);
+    return ret;
+}
+
 int8_t check_connect_timeout(struct double_link_node *dln, void *ud)
 {
     socket_t s = (socket_t)dln;

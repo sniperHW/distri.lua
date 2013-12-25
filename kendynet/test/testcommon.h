@@ -30,7 +30,7 @@ void send2_all_client(rpacket_t r)
 	uint32_t i = 0;
 	for(; i < MAX_CLIENT; ++i){
 		if(clients[i]){
-			send_packet(clients[i],wpk_create_by_other((struct packet*)r),NULL);
+            send_packet(clients[i],wpk_create_by_other((struct packet*)r));
 			++packet_send_count;
 		}
 	}
@@ -59,7 +59,7 @@ void sendpacket()
             uint32_t sys_t = GetSystemMs();
             wpk_write_uint32(wpk,sys_t);
             wpk_write_string(wpk,"hello kenny");
-            send_packet(clients[i],wpk,NULL);
+            send_packet(clients[i],wpk);
 		}
 	}
 }

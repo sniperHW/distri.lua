@@ -10,7 +10,7 @@ void on_process_packet(struct connection *c,rpacket_t r)
 {
     recvsize += rpk_len(r);
     recvcount++;
-    send_packet(c,wpk_create_by_other((struct packet*)r),NULL);
+    send_packet(c,wpk_create_by_other((struct packet*)r));
 	//send2_all_client(r);
 }
 
@@ -34,7 +34,6 @@ void accept_client(SOCK s,void*ud)
 
 int main(int argc,char **argv)
 {
-    mutil_thread = 0;
 	setup_signal_handler();
 	init_clients();
     InitNetSystem();
