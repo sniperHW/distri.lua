@@ -8,13 +8,13 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
     acquire_conn(c);
     if(c->_recv_timeout && now > c->last_recv + c->recv_timeout)
         c->_recv_timeout(c);
-    if(!c->is_closed && c->_send_timeout)
+    if(!c->status == 1 && c->_send_timeout)
     {
         wpacket_t wpk = (wpacket_t)link_list_head(&c->send_list);
         if(wpk && now > wpk->base.tstamp + c->send_timeout)
             c->_send_timeout(c);
     }
-    if(!c->is_closed) register_timer(t,wit,1);
+    if(c->status != 1) register_timer(t,wit,1);
     release_conn(c);
 }
 

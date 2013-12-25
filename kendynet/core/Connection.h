@@ -56,7 +56,7 @@ struct connection
     on_recv_timeout _recv_timeout;
     on_send_timeout _send_timeout;
 	uint8_t  raw;
-	volatile uint8_t is_closed;
+	volatile uint8_t status;//0:已经关闭,1:正常,2:请求关闭，待发送缓冲中的包发送完成关闭//is_closed;
 	uint8_t  doing_send;
 };
 

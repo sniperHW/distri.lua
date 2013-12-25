@@ -31,7 +31,7 @@ static inline int unpack(struct connection *c)
 {
 	uint32_t pk_len = 0;
 	uint32_t pk_total_size;
-	rpacket_t r;
+	rpacket_t r = NULL;
 	do{
 		if(!c->raw)
 		{
@@ -81,9 +81,9 @@ static inline int unpack(struct connection *c)
 				c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 			}
 		}
-		c->_process_packet(c,r);
-		rpk_destroy(&r);
-		if(c->is_closed) return 0;
+		if(c->status == 1) c->_process_packet(c,r);
+		if(r)rpk_destroy(&r);
+		if(c->status==0) return 0;
 	}while(1);
 	return 1;
 }
@@ -145,7 +145,7 @@ static inline int8_t update_send_list(struct connection *c,int32_t _bytestransfe
             if(w->packet_sendfinish)w->packet_sendfinish(w,w->base.usr_ptr);
 			bytestransfer -= w->data_size;
 			wpk_destroy(&w);
-            if(c->is_closed) return 0;
+            if(c->status == 0) return 0;
 		}
 		else
 		{
@@ -170,7 +170,7 @@ static inline int8_t update_send_list(struct connection *c,int32_t _bytestransfe
 
 int32_t send_packet(struct connection *c,wpacket_t w,packet_send_finish pk_send_finish)
 {
-	if(c->is_closed){
+	if(c->status != 1){
 		wpk_destroy(&w);
 		return -1;
 	}
@@ -205,9 +205,12 @@ static inline void start_recv(struct connection *c)
 
 void active_close(struct connection *c)
 {
-	if(c->is_closed == 0){
-		c->is_closed = 1;
-		CloseSocket(c->socket);
+	if(c->status == 1){
+		if(LINK_LIST_IS_EMPTY(&c->send_list)){
+			c->status = 0;
+			CloseSocket(c->socket);
+		}else
+			c->status = 2;//有数据待发送，延迟关闭
 		printf("active close\n");
 		c->_on_disconnect(c,0);
 	}
@@ -225,9 +228,14 @@ void RecvFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 			return;
 		else if(bytestransfer < 0 && err_code != EAGAIN){
 			printf("recv close\n");
-			c->is_closed = 1;
-            CloseSocket(c->socket);
-            c->_on_disconnect(c,err_code);
+			if(c->status == 1){
+				if(LINK_LIST_IS_EMPTY(&c->send_list)){
+					c->status = 0;
+					CloseSocket(c->socket);
+				}else
+					c->status = 2;
+				c->_on_disconnect(c,err_code);
+			}
 			return;
 		}else if(bytestransfer > 0){
 			int32_t total_size = 0;
@@ -279,9 +287,14 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 		    return;
 		else if(bytestransfer < 0 && err_code != EAGAIN){
 			printf("send close\n");
-			c->is_closed = 1;
-            CloseSocket(c->socket);
-            c->_on_disconnect(c,err_code);
+			if(c->status == 1){
+				if(LINK_LIST_IS_EMPTY(&c->send_list)){
+					c->status = 0;
+					CloseSocket(c->socket);
+				}else
+					c->status = 2;
+				c->_on_disconnect(c,err_code);
+			}
 			return;
 		}else if(bytestransfer > 0)
 		{
@@ -290,6 +303,12 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 				st_io *io = prepare_send(c);
 				if(!io) {
 				    c->doing_send = 0;
+					if(c->status == 2)
+					{
+						//所有数据发送完毕，可以关闭了
+						c->status = 0;
+						CloseSocket(c->socket);
+					}
 				    return;
 				}
 				bytestransfer = Send(c->socket,io,&err_code);

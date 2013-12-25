@@ -36,7 +36,20 @@ SOCK OpenSocket(int32_t family,int32_t type,int32_t protocol)
 
 int32_t CloseSocket(SOCK sock)
 {
-	return release_socket_wrapper(sock);
+	struct socket_wrapper *sw = get_socket_wrapper(sock);
+	if(sw){
+		if(sw->status == 1){
+			if(LINK_LIST_IS_EMPTY(&sw->pending_send))
+				return release_socket_wrapper(sock);
+			else{
+				//还有数据待发送，等数据包发送完毕后再释放
+				sw->status = 2;
+				return 0;
+			}
+		}else
+			return 0;
+	}
+	return -1;
 }
 
 SOCK Connect(SOCK sock,const struct sockaddr *servaddr,socklen_t addrlen)
