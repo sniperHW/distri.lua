@@ -17,14 +17,14 @@ void process_connect(socket_t s)
     socklen_t errlen = sizeof(err);
 
     if (getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
-        s->on_connect(INVALID_SOCK,s->ud,-1);
+        s->on_connect(INVALID_SOCK,s->ud,err);
         CloseSocket(s->sock);
         return;
     }
 
     if(err){
         errno = err;
-        s->on_connect(INVALID_SOCK,s->ud,-1);
+        s->on_connect(INVALID_SOCK,s->ud,errno);
         CloseSocket(s->sock);
         return;
     }
@@ -149,12 +149,14 @@ int32_t  Process(socket_t s)
 void   shutdown_recv(socket_t s)
 {
     if(s->engine) s->engine->UnRegisterRecv(s->engine,s);
+	s->status = (s->status | SRCLOSE);
     shutdown(s->fd,SHUT_RD);
 }
 
 void   shutdown_send(socket_t s)
 {
     if(s->engine) s->engine->UnRegisterSend(s->engine,s);
+	s->status = (s->status | SWCLOSE);
 }
 
 void   clear_pending_send(socket_t sw)
@@ -183,6 +185,7 @@ struct socket_pool
 {
 	struct double_link    free_list;
 	struct socket_wrapper pool[MAX_SOCKET];
+	uint32_t              feed;
 	mutex_t mtx;
 
 };
@@ -193,6 +196,7 @@ void init_socket_pool()
 	g_socket_pool = (struct socket_pool*)calloc(1,sizeof(*g_socket_pool));
 	double_link_clear(&g_socket_pool->free_list);
 	g_socket_pool->mtx = mutex_create();
+	g_socket_pool->feed = 0;
 	int32_t i = 0;
 	for(; i < MAX_SOCKET; ++i){
 		double_link_push(&g_socket_pool->free_list,(struct double_link_node*)&g_socket_pool->pool[i]);
@@ -206,12 +210,15 @@ void destroy_socket_pool()
 
 SOCK acquire_socket_wrapper()
 {
+	uint32_t feed;
 	mutex_lock(g_socket_pool->mtx);
 	struct socket_wrapper *sw = (struct socket_wrapper *)double_link_pop(&g_socket_pool->free_list);
+	feed = g_socket_pool->feed;
+	g_socket_pool->feed = (g_socket_pool->feed + 1)%MAX_UINT32;
 	mutex_unlock(g_socket_pool->mtx);
     if(!sw) return INVALID_SOCK;
-	sw->stamp = GetSystemMs();
-    sw->status = 1;
+	sw->stamp = feed;
+    sw->status = SESTABLISH;
 	LINK_LIST_CLEAR(&sw->pending_send);
 	LINK_LIST_CLEAR(&sw->pending_recv);
 	SOCK sock = (uint32_t)(sw - &g_socket_pool->pool[0]);
@@ -231,8 +238,8 @@ int32_t release_socket_wrapper(SOCK s)
 	if(sw->engine)
 		sw->engine->UnRegister(sw->engine,sw);
 	close(sw->fd);
-	sw->stamp = 0;
-    sw->status = 0;
+	sw->stamp = MAX_UINT32;
+    sw->status = SCLOSE;
     clear_pending_send(sw);
     clear_pending_recv(sw);
 	mutex_lock(g_socket_pool->mtx);
@@ -245,17 +252,15 @@ struct socket_wrapper *get_socket_wrapper(SOCK s)
 {
 	uint32_t idx = (uint32_t)(s >> 32);
 	uint32_t stamp = (uint32_t)s;
-    if(idx >= MAX_SOCKET || g_socket_pool->pool[idx].stamp != stamp || g_socket_pool->pool[idx].status == 0)
+    if(idx >= MAX_SOCKET || g_socket_pool->pool[idx].stamp != stamp || g_socket_pool->pool[idx].status == SCLOSE)
 		return NULL;
 	return &g_socket_pool->pool[idx];
 }
 
 int32_t get_fd(SOCK s)
 {
-	uint32_t idx = (uint32_t)(s >> 32);
-	uint32_t stamp = (uint32_t)s;
-    if(idx >= MAX_SOCKET || g_socket_pool->pool[idx].stamp != stamp || g_socket_pool->pool[idx].status == 0)
-		return -1;
-	return g_socket_pool->pool[idx].fd;
+	struct socket_wrapper *sw = get_socket_wrapper(s);
+	if(!sw) return -1;
+	return sw->fd;
 }
 

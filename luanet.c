@@ -227,6 +227,13 @@ static int luaEngineRun(lua_State *L)
 	return 1;
 }
 
+static int luaReleaseConnection(lua_State *L)
+{
+	struct connection *c = (struct connection *)lua_touserdata(L,1);
+	if(c)release_conn(c);
+	return 0;
+}
+
 void RegisterNet(lua_State *L){  
     
 	lua_register(L,"Listen",&luaListen);
@@ -236,7 +243,8 @@ void RegisterNet(lua_State *L){
 	lua_register(L,"active_close",&lua_active_close);   
     lua_register(L,"GetSysTick",&luaGetSysTick);
 	lua_register(L,"EngineRun",&luaEngineRun);
-	lua_register(L,"SendPacket",&luaSendPacket);  	
+	lua_register(L,"SendPacket",&luaSendPacket);
+	lua_register(L,"ReleaseConnection",&luaReleaseConnection);
 	InitNetSystem();
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);

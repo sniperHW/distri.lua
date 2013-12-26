@@ -57,6 +57,12 @@ enum sock_protocol
 #endif
 };
 
+//从关联的engine中去掉读监听，同时向对端发送读关闭
+void    ShutDownRecv(SOCK);
+
+//从关联的engine中去掉写监听,但不向对端发送写关闭
+void    ShutDownSend(SOCK);
+
 int32_t CloseSocket(SOCK);
 
 /*

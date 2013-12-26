@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <errno.h>
 /*Mutex*/
 typedef struct mutex
 {
@@ -50,42 +51,36 @@ typedef struct condition
 	pthread_cond_t cond;
 }*condition_t;
 
-void   block_sigusr1();
+/*void   block_sigusr1();
 void   unblock_sigusr1();
-
+*/
 static inline int32_t condition_wait(condition_t c,mutex_t m)
 {
-#ifdef MQ_HEART_BEAT
+/*#ifdef MQ_HEART_BEAT
 	block_sigusr1();
 	int32_t ret = pthread_cond_wait(&c->cond,&m->m_mutex);
 	unblock_sigusr1();
 	return ret;
 #else
     return pthread_cond_wait(&c->cond,&m->m_mutex);
-#endif
+#endif*/
+	return pthread_cond_wait(&c->cond,&m->m_mutex);
 }
 
 
 
-static inline int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
+static inline int32_t _condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
-#ifdef _WIN
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	uint64_t msec = ms%1000;
-	ts.tv_sec = now.tv_sec + ms/1000;
-	ts.tv_nsec = now.tv_usec * 1000 + msec*1000*1000;
-#else
 	clock_gettime(CLOCK_REALTIME, &ts);
 	uint64_t msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);
-#endif
 	if(ts.tv_nsec >= 1000*1000*1000){
 		ts.tv_sec += 1;
 		ts.tv_nsec %= (1000*1000*1000);
 	}
+/*
 #ifdef MQ_HEART_BEAT
 	block_sigusr1();
 	int32_t ret = pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
@@ -93,7 +88,30 @@ static inline int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 	return ret;
 #else
     return pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
-#endif
+#endif*/
+	return pthread_cond_timedwait(&c->cond,&m->m_mutex,&ts);
+}
+
+static inline int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	uint32_t cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
+	uint32_t timeout = cur_tick + (uint32_t)ms;
+	for(;;){
+		int32_t ret = _condition_timedwait(c,m,ms);
+		if(ret == 0 || errno != EINTR)
+			return ret;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000; 
+		if(timeout > cur_tick)
+			ms = timeout - cur_tick;
+		else{
+			errno = ETIMEDOUT;
+			return ret;
+		}
+	}
+	return 0;
 }
 
 static inline int32_t condition_signal(condition_t c)

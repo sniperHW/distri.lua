@@ -10,14 +10,6 @@
 #include "common.h"
 #include "refbase.h"
 
-enum{
-    SCLOSE = 0,
-    SESTABLISH = 1,
-    SWAITCLOSE = 2,//用户主动关闭，等发送队列中数据发完关闭
-    SHALFCLOSE = 3,//写关闭
-};
-
-
 struct connection;
 struct OVERLAPCONTEXT
 {
@@ -63,7 +55,7 @@ struct connection
     on_recv_timeout _recv_timeout;
     on_send_timeout _send_timeout;
 	uint8_t  raw;
-    volatile uint8_t status;
+    volatile uint32_t status;
 	uint8_t  doing_send;
 };
 

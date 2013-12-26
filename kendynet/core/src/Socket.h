@@ -26,10 +26,18 @@ enum{
 	CONNECT = 3,
 };
 
+enum{
+	SCLOSE = 0,
+	SESTABLISH = 1 << 1,  //双向通信正常
+	SWCLOSE = 1 << 2,     //写关闭
+	SRCLOSE = 1 << 3,     //读关闭
+	SWAITCLOSE = 1 << 4,  //用户主动关闭，等发送队列中数据发完关闭
+};
+
 typedef struct socket_wrapper
 {
 	struct double_link_node dnode;
-    volatile int32_t  status;
+    volatile uint32_t  status;
 	volatile int32_t  readable;
 	volatile int32_t  writeable;
 	volatile uint32_t stamp;
@@ -74,5 +82,21 @@ void   shutdown_recv(socket_t s);
 void   shutdown_send(socket_t s);
 void   clear_pending_send(socket_t s);
 void   clear_pending_recv(socket_t s);
+
+static inline int8_t test_sendable(uint32_t status){
+	if(status == 0 || status & SWCLOSE)
+		return 0;
+	return 1;
+}
+
+static inline int8_t test_recvable(uint32_t status){
+	if(status == 0 || status & SRCLOSE)
+		return 0;
+	return 1;
+}
+
+static inline int8_t test_waitclose(uint32_t status){
+	return status & SWAITCLOSE;
+}
 
 #endif

@@ -1,13 +1,14 @@
 #include "netservice.h"
+#include "Socket.h"
 
 void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
 {
     uint32_t now = GetSystemMs();
     struct connection *c = wheelitem2con(wit);
     acquire_conn(c);
-    if(c->status == SESTABLISH && c->_recv_timeout && now > c->last_recv + c->recv_timeout)
+    if(test_recvable(c->status) && c->_recv_timeout && now > c->last_recv + c->recv_timeout)
         c->_recv_timeout(c);
-    if((c->status == SESTABLISH || c->status == SWAITCLOSE) && c->_send_timeout)
+    if(test_sendable(c->status) && c->_send_timeout)
     {
         wpacket_t wpk = (wpacket_t)link_list_head(&c->send_list);
         if(wpk && now > wpk->base.tstamp + c->send_timeout)

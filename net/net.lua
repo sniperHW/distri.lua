@@ -41,6 +41,7 @@ function net:on_disconnect(connection)
 	if self._on_disconnect then
 		self._on_disconnect(connection)
 	end
+	ReleaseConnection(connection)
 end
 
 function net:send_timeout(connection)

@@ -85,16 +85,36 @@ int8_t check_connect_timeout(struct double_link_node *dln, void *ud)
     uint32_t l_now = (uint32_t)ud;
     if(l_now >= s->timeout){
         s->engine->UnRegister(s->engine,s);
-        s->on_connect(INVALID_SOCK,s->ud,-2);
+        s->on_connect(INVALID_SOCK,s->ud,ETIMEDOUT);
         CloseSocket(s->sock);
         return 1;
     }
     return 0;
 }
 
+static int32_t _epoll_wait(int epfd, struct epoll_event *events,int maxevents, int timeout)
+{
+	uint32_t _timeout = GetSystemMs() + (uint32_t)timeout;
+	for(;;){
+		int32_t nfds = epoll_wait(epfd,events,MAX_SOCKET,timeout);
+		if(nfds < 0 && errno == EINTR){
+			uint32_t cur_tick = GetSystemMs();
+			if(_timeout > cur_tick){
+				timeout = _timeout - cur_tick;
+				errno = 0;
+			}
+			else
+				return 0;
+		}else
+			return nfds;
+	}	
+	return 0;
+}
+
 int32_t epoll_loop(engine_t n,int32_t ms)
 {
 	assert(n);
+	if(ms < 0)ms = 0;
 	uint32_t sleep_ms;
 	uint32_t timeout = GetSystemMs() + ms;
 	uint32_t current_tick;
@@ -120,7 +140,7 @@ int32_t epoll_loop(engine_t n,int32_t ms)
 
 		current_tick = GetSystemMs();
 		sleep_ms = timeout > current_tick ? timeout - current_tick:0;
-		int32_t nfds = TEMP_FAILURE_RETRY(epoll_wait(n->poller_fd,n->events,MAX_SOCKET,sleep_ms));
+		int32_t nfds = _epoll_wait(n->poller_fd,n->events,MAX_SOCKET,sleep_ms);
 		if(nfds < 0)
 			return -1;
 		int32_t i;

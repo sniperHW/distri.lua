@@ -167,7 +167,7 @@ int32_t Recv(SOCK sock,st_io *io,uint32_t *err_code)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-    if(!s)
+    if(!s || !test_recvable(s->status))
 	{
 		*err_code = 0;
 		return -1;
@@ -182,7 +182,7 @@ int32_t Post_Recv(SOCK sock,st_io *io)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-    if(!s)
+    if(!s || !test_recvable(s->status))
 		return -1;
 	LINK_LIST_PUSH_BACK(&s->pending_recv,io);
 	if(s->engine && s->readable)
@@ -196,7 +196,7 @@ int32_t Send(SOCK sock,st_io *io,uint32_t *err_code)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-    if(!s)
+    if(!s || !test_sendable(s->status))
 	{
 		*err_code = 0;
 		return -1;
@@ -211,7 +211,7 @@ int32_t Post_Send(SOCK sock,st_io *io)
 {
 	assert(io);
 	socket_t s = get_socket_wrapper(sock);
-    if(!s)
+    if(!s || !test_sendable(s->status))
 		return -1;
 	LINK_LIST_PUSH_BACK(&s->pending_send,io);
 	if(s->engine && s->writeable)

@@ -34,6 +34,19 @@ SOCK OpenSocket(int32_t family,int32_t type,int32_t protocol)
 	return sock;
 }
 
+
+void    ShutDownRecv(SOCK sock)
+{
+	struct socket_wrapper *sw = get_socket_wrapper(sock);
+	if(sw)shutdown_recv(sw);
+}
+
+void    ShutDownSend(SOCK sock)
+{
+	struct socket_wrapper *sw = get_socket_wrapper(sock);
+	if(sw)shutdown_send(sw);
+}
+
 int32_t CloseSocket(SOCK sock)
 {
 	struct socket_wrapper *sw = get_socket_wrapper(sock);

@@ -16,4 +16,6 @@ enum
 	MSG_END,
 };
 
+#define MAX_UINT32 0xffffffff
+
 #endif

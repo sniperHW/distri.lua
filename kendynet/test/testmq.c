@@ -13,6 +13,7 @@ msgque_t mq1;
 
 void *Routine1(void *arg)
 {
+	msgque_open_write(mq1);
     for(;;){
         int j = 0;
         for(; j < 5;++j)
@@ -32,6 +33,7 @@ void *Routine1(void *arg)
 
 void *Routine2(void *arg)
 {
+	msgque_open_write(mq1);
     for(;;){
         int j = 0;
         for(; j < 5;++j)
@@ -51,6 +53,7 @@ void *Routine2(void *arg)
 
 void *Routine3(void *arg)
 {
+	msgque_open_write(mq1);
 	for(;;){
 		int j = 0;
 		for(; j < 5;++j)
@@ -70,6 +73,7 @@ void *Routine3(void *arg)
 
 void *Routine4(void *arg)
 {
+	msgque_open_read(mq1);
 	uint64_t count = 0;
 	uint64_t total_count = 0;
 	uint32_t tick = GetSystemMs();
@@ -86,7 +90,7 @@ void *Routine4(void *arg)
 		uint32_t now = GetSystemMs();
 		if(now - tick > 1000)
 		{
-			printf("recv:%d\n",(count*1000)/(now-tick));
+			printf("recv:%lld\n",(count*1000)/(now-tick));
 			tick = now;
 			count = 0;
 		}

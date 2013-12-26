@@ -47,6 +47,7 @@ void remove_client(struct connection *c,uint32_t reason)
 			break;
 		}
 	}
+	release_conn(c);
 }
 
 void sendpacket()
