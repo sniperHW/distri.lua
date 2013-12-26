@@ -96,7 +96,7 @@ static int32_t _epoll_wait(int epfd, struct epoll_event *events,int maxevents, i
 {
 	uint32_t _timeout = GetSystemMs() + (uint32_t)timeout;
 	for(;;){
-		int32_t nfds = _epoll_wait(epfd,events,MAX_SOCKET,timeout);
+        int32_t nfds = epoll_wait(epfd,events,MAX_SOCKET,timeout);
 		if(nfds < 0 && errno == EINTR){
 			uint32_t cur_tick = GetSystemMs();
 			if(_timeout > cur_tick){
@@ -140,7 +140,7 @@ int32_t epoll_loop(engine_t n,int32_t ms)
 
 		current_tick = GetSystemMs();
 		sleep_ms = timeout > current_tick ? timeout - current_tick:0;
-		int32_t nfds = epoll_wait(n->poller_fd,n->events,MAX_SOCKET,sleep_ms);
+        int32_t nfds = _epoll_wait(n->poller_fd,n->events,MAX_SOCKET,sleep_ms);
 		if(nfds < 0)
 			return -1;
 		int32_t i;

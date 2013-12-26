@@ -12,7 +12,7 @@ struct refbase
 
 static inline void ref_increase(struct refbase *r)
 {
-		ATOMIC_INCREASE(&r->refcount);
+    ATOMIC_INCREASE(&r->refcount);
 }
 
 static inline void ref_decrease(struct refbase *r)
