@@ -14,16 +14,12 @@ SOCK OpenSocket(int32_t family,int32_t type,int32_t protocol);
 
 int32_t InitNetSystem()
 {
-	init_socket_pool();
 	signal(SIGPIPE,SIG_IGN);
 	return 0;
 }
 
 
-void   CleanNetSystem()
-{
-	destroy_socket_pool();
-}
+void  CleanNetSystem(){}
 
 static inline engine_t GetEngineByHandle(ENGINE handle)
 {
@@ -129,7 +125,7 @@ int32_t EConnect(ENGINE e,const char *ip,int32_t port,void*ud,OnConnect _on_conn
 	if(inet_pton(INET,ip,&servaddr.sin_addr) < 0)
 	{
 		printf("%s\n",strerror(errno));
-		return INVALID_SOCK;
+		return -1;
 	}
 	SOCK sock = OpenSocket(INET,STREAM,TCP);
 	if(sock == INVALID_SOCK)

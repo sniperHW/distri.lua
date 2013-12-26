@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include "double_link.h"
 #include "KendyNet.h"
+#include "refbase.h"
 
 enum{
 	DATA = 1,
@@ -37,10 +38,10 @@ enum{
 typedef struct socket_wrapper
 {
 	struct double_link_node dnode;
+	struct refbase ref;
     volatile uint32_t  status;
 	volatile int32_t  readable;
 	volatile int32_t  writeable;
-	volatile uint32_t stamp;
 	struct engine  *engine;
 	int32_t fd;
 	struct link_list pending_send;//尚未处理的发请求
@@ -75,6 +76,10 @@ int32_t  Process(socket_t);
 int32_t raw_send(socket_t s,st_io *io_req,uint32_t *err_code);
 int32_t raw_recv(socket_t s,st_io *io_req,uint32_t *err_code);
 
+
+SOCK new_socket_wrapper();
+void acquire_socket_wrapper(SOCK s);
+void release_socket_wrapper(SOCK s);
 struct socket_wrapper *get_socket_wrapper(SOCK s);
 int32_t get_fd(SOCK s);
 

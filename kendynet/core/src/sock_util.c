@@ -1,10 +1,7 @@
 #include "sock_util.h"
 #include "common.h"
 #include "Socket.h"
-
-SOCK acquire_socket_wrapper();
-int32_t release_socket_wrapper(SOCK s);
-struct socket_wrapper *get_socket_wrapper(SOCK s);
+#include "Engine.h"
 
 typedef int32_t SOCKET;
 
@@ -24,7 +21,7 @@ SOCK OpenSocket(int32_t family,int32_t type,int32_t protocol)
 	{
 		return INVALID_SOCK;
 	}
-	SOCK sock = acquire_socket_wrapper();
+	SOCK sock = new_socket_wrapper();
 	if(sock == INVALID_SOCK)
 	{
 		close(sockfd);
@@ -50,7 +47,12 @@ void    ShutDownSend(SOCK sock)
 int32_t CloseSocket(SOCK sock)
 {
 	struct socket_wrapper *sw = get_socket_wrapper(sock);
-    if(sw) return release_socket_wrapper(sock);
+    if(sw){ 
+		if(sw->engine) sw->engine->UnRegister(sw->engine,sw);
+		close(sw->fd);
+		release_socket_wrapper(sock);
+		return 0;
+	}
 	return -1;
 }
 
@@ -183,7 +185,7 @@ SOCK _accept(socket_t s,struct sockaddr *sa,socklen_t *salen)
 				return INVALID_SOCK;
 			}
 		}
-		SOCK newsock = acquire_socket_wrapper();
+		SOCK newsock = new_socket_wrapper();
 		if(newsock == INVALID_SOCK)
 		{
 			close(n);

@@ -25,8 +25,8 @@
 
 typedef void* ENGINE;
 #define INVALID_ENGINE NULL
-typedef uint64_t SOCK;
-#define INVALID_SOCK 0
+typedef void* SOCK;
+#define INVALID_SOCK NULL
 
 #include "sock_util.h"
 

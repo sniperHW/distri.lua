@@ -11,6 +11,48 @@
 
 SOCK _accept(socket_t s,struct sockaddr *sa,socklen_t *salen);
 
+void destroy_socket_wrapper(void *arg)
+{
+	struct socket_wrapper *sw = (struct socket_wrapper *)arg;
+	sw = (struct socket_wrapper *)((char*)arg - ((char*)&sw->ref - (char*)sw));
+	clear_pending_send(sw);
+	clear_pending_recv(sw);
+	free(sw);
+	printf("destroy_socket_wrapper\n");
+}
+
+SOCK new_socket_wrapper()
+{
+	struct socket_wrapper *sw = calloc(1,sizeof(*sw));
+	sw->status = SESTABLISH;
+	sw->ref.refcount = 1;
+	sw->ref.destroyer = destroy_socket_wrapper;
+	return (SOCK)sw;
+}
+
+void acquire_socket_wrapper(SOCK s)
+{
+	struct socket_wrapper *sw = (struct socket_wrapper *)s;
+	ref_increase(&sw->ref);
+}
+
+void release_socket_wrapper(SOCK s)
+{
+	struct socket_wrapper *sw = (struct socket_wrapper *)s;
+	ref_decrease(&sw->ref);
+}
+
+struct socket_wrapper *get_socket_wrapper(SOCK s)
+{
+	return (struct socket_wrapper *)s;
+}
+
+int32_t get_fd(SOCK s)
+{
+	struct socket_wrapper *sw = (struct socket_wrapper *)s;
+	return sw->fd;
+}
+
 void process_connect(socket_t s)
 {
     int err = 0;
@@ -84,7 +126,7 @@ int32_t raw_recv(socket_t s,st_io *io_req,uint32_t *err_code)
 }
 
 
-static inline int8_t _recv(socket_t s)
+static inline void _recv(socket_t s)
 {
 	assert(s);
 	st_io* io_req = 0;
@@ -98,8 +140,6 @@ static inline int8_t _recv(socket_t s)
 			if(err_code != EAGAIN)  s->io_finish(bytes_transfer,io_req,err_code);
 		}
 	}
-    if(s->status == 0)return 0;
-    return 1;
 }
 
 int32_t raw_send(socket_t s,st_io *io_req,uint32_t *err_code)
@@ -120,7 +160,7 @@ int32_t raw_send(socket_t s,st_io *io_req,uint32_t *err_code)
 	return ret;
 }
 
-static inline int8_t _send(socket_t s)
+static inline void _send(socket_t s)
 {
 	assert(s);
 	st_io* io_req = 0;
@@ -134,15 +174,16 @@ static inline int8_t _send(socket_t s)
 			if(err_code != EAGAIN)  s->io_finish(bytes_transfer,io_req,err_code);
 		}
 	}
-    if(s->status == 0)return 0;
-    return 1;
 }
 
 int32_t  Process(socket_t s)
-{
-	if(!_recv(s) || !_send(s))return 0;//s maybe close in _recv/_send
+{	
+	acquire_socket_wrapper((SOCK)s);
+	_recv(s);
+	_send(s);
 	int32_t read_active = s->readable && !LINK_LIST_IS_EMPTY(&s->pending_recv);
 	int32_t write_active = s->writeable && !LINK_LIST_IS_EMPTY(&s->pending_send);
+	release_socket_wrapper((SOCK)s);
 	return (read_active || write_active);
 }
 
@@ -180,87 +221,3 @@ void   clear_pending_recv(socket_t sw)
     }
     LINK_LIST_CLEAR(&sw->pending_recv);
 }
-
-struct socket_pool
-{
-	struct double_link    free_list;
-	struct socket_wrapper pool[MAX_SOCKET];
-	uint32_t              feed;
-	mutex_t mtx;
-
-};
-
-static struct socket_pool *g_socket_pool;
-void init_socket_pool()
-{
-	g_socket_pool = (struct socket_pool*)calloc(1,sizeof(*g_socket_pool));
-	double_link_clear(&g_socket_pool->free_list);
-	g_socket_pool->mtx = mutex_create();
-	g_socket_pool->feed = 0;
-	int32_t i = 0;
-	for(; i < MAX_SOCKET; ++i){
-		double_link_push(&g_socket_pool->free_list,(struct double_link_node*)&g_socket_pool->pool[i]);
-	}
-}
-
-void destroy_socket_pool()
-{
-	mutex_destroy(&g_socket_pool->mtx);
-}
-
-SOCK acquire_socket_wrapper()
-{
-	uint32_t feed;
-	mutex_lock(g_socket_pool->mtx);
-	struct socket_wrapper *sw = (struct socket_wrapper *)double_link_pop(&g_socket_pool->free_list);
-	feed = g_socket_pool->feed;
-	g_socket_pool->feed = (g_socket_pool->feed + 1)%MAX_UINT32;
-	mutex_unlock(g_socket_pool->mtx);
-    if(!sw) return INVALID_SOCK;
-	sw->stamp = feed;
-    sw->status = SESTABLISH;
-	LINK_LIST_CLEAR(&sw->pending_send);
-	LINK_LIST_CLEAR(&sw->pending_recv);
-	SOCK sock = (uint32_t)(sw - &g_socket_pool->pool[0]);
-	sock = (sock << 32) + sw->stamp;
-	return sock;
-}
-
-int32_t release_socket_wrapper(SOCK s)
-{
-	uint32_t idx = (uint32_t)(s >> 32);
-	uint32_t stamp = (uint32_t)s;
-	if(idx >= MAX_SOCKET || g_socket_pool->pool[idx].stamp != stamp)
-		return -1;
-	struct socket_wrapper *sw = &g_socket_pool->pool[idx];
-
-	double_link_remove((struct double_link_node*)sw);
-	if(sw->engine)
-		sw->engine->UnRegister(sw->engine,sw);
-	close(sw->fd);
-	sw->stamp = MAX_UINT32;
-    sw->status = SCLOSE;
-    clear_pending_send(sw);
-    clear_pending_recv(sw);
-	mutex_lock(g_socket_pool->mtx);
-	double_link_push(&g_socket_pool->free_list,(struct double_link_node*)sw);
-	mutex_unlock(g_socket_pool->mtx);
-	return 0;
-}
-
-struct socket_wrapper *get_socket_wrapper(SOCK s)
-{
-	uint32_t idx = (uint32_t)(s >> 32);
-	uint32_t stamp = (uint32_t)s;
-    if(idx >= MAX_SOCKET || g_socket_pool->pool[idx].stamp != stamp || g_socket_pool->pool[idx].status == SCLOSE)
-		return NULL;
-	return &g_socket_pool->pool[idx];
-}
-
-int32_t get_fd(SOCK s)
-{
-	struct socket_wrapper *sw = get_socket_wrapper(s);
-	if(!sw) return -1;
-	return sw->fd;
-}
-
