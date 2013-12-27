@@ -108,7 +108,7 @@ static int netservice_delete(lua_State *L)
 	return 0;
 }
 
-static void lua_process_packet(struct connection *c,rpacket_t rpk)
+static int8_t lua_process_packet(struct connection *c,rpacket_t rpk)
 {
 	struct luaNetService *service = (struct luaNetService *)c->usr_ptr;	
 	uint32_t len = 0;
@@ -128,6 +128,7 @@ static void lua_process_packet(struct connection *c,rpacket_t rpk)
 		service->call(service->L,service->m_iKeyIndex,"process_packet",c,buf);
 		free(buf);		
 	}
+    return 1;
 }
 
 static void lua_recv_timeout(struct connection *c)

@@ -29,7 +29,11 @@ SOURCES += \
     ../kendynet/test/tcpclient.c \
     ../kendynet/test/netclient.c \
     ../kendynet/test/netboradcast.c \
-    ../kendynet/test/benchclient.c
+    ../kendynet/test/benchclient.c \
+    ../kendynet/core/src/datasocket.c \
+    ../kendynet/core/src/coronet.c \
+    ../kendynet/core/src/refbase.c \
+    ../luanet.c
 
 HEADERS += \
     ../kendynet/core/wpacket.h \
@@ -64,5 +68,7 @@ HEADERS += \
     ../kendynet/core/src/Socket.h \
     ../kendynet/core/src/epoll.h \
     ../kendynet/core/src/Engine.h \
-    ../kendynet/test/testcommon.h
+    ../kendynet/test/testcommon.h \
+    ../kendynet/core/datasocket.h \
+    ../kendynet/core/coronet.h
 

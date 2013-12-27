@@ -47,7 +47,9 @@ typedef struct socket_wrapper
 	struct link_list pending_send;//尚未处理的发请求
 	struct link_list pending_recv;//尚未处理的读请求
     int8_t  socket_type;           //DATA or ACCEPTOR
-	union{
+    struct sockaddr_in addr_local;
+    struct sockaddr_in addr_remote;
+    union{
 	    //for data socket
         struct{
             void (*io_finish)(int32_t,st_io*,uint32_t err_code);
@@ -59,8 +61,8 @@ typedef struct socket_wrapper
             void *ud;
             SOCK  sock;
             union{
-                void (*on_accept)(SOCK,void*);
-                void (*on_connect)(SOCK,connect_request*,int);
+                void (*on_accept)(SOCK,struct sockaddr_in*,void*);
+                void (*on_connect)(SOCK,struct sockaddr_in*,void*,int);
             };
         };
 	};

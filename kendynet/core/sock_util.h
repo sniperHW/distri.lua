@@ -84,8 +84,8 @@ SOCK Tcp_Listen(const char *ip,uint16_t port,int32_t backlog);
 /*
  * brief: 获取远端连接的IP,端口号.
  */
-int32_t getRemoteAddrPort(SOCK sock,char *buf,uint16_t *port);
-int32_t getLocalAddrPort(SOCK sock,struct sockaddr_in *remoAddr,socklen_t *len,char *buf,uint16_t *port);
+//int32_t getRemoteAddrPort(SOCK sock,char *buf,uint16_t *port);
+//int32_t getLocalAddrPort(SOCK sock,struct sockaddr_in *remoAddr,socklen_t *len,char *buf,uint16_t *port);
 
 /*
 ssize_t write_fd(int fd,void *ptr,size_t nbytes,int sendfd);

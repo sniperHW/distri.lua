@@ -48,7 +48,7 @@ static inline ident make_ident(struct refbase *ptr)
 
 static inline ident make_empty_ident()
 {
-	ident _ident = {0,0};
+    ident _ident = {0,0};
 	return _ident;
 }
 
@@ -70,9 +70,12 @@ static inline struct refbase *cast_2_refbase(ident _ident)
 	return 0;
 }
 
-static inline int32_t is_ident_vaild(ident _ident)
+static inline int32_t is_vaild_ident(ident _ident)
 {
 	if(!_ident.ptr || !_ident.identity) return 0;
 	return 1;
 }
+
+#define TO_IDENT(OTHER_IDENT) (*(ident*)&OTHER_IDENT)
+
 #endif

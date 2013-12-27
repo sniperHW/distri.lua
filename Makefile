@@ -24,6 +24,7 @@ kendynet.a: \
 		   kendynet/core/src/thread.c \
 		   kendynet/core/src/timer.c \
 		   kendynet/core/src/uthread.c \
+		   kendynet/core/src/refbase.c \
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o

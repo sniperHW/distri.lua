@@ -46,10 +46,10 @@ static SOCK _listen(struct netservice *n,
 }
 
 
-int32_t _connect(struct netservice *n,connect_request *creq,OnConnect on_connect,
+int32_t _connect(struct netservice *n,const char *ip,int32_t port,void *ud,OnConnect on_connect,
                  uint32_t timeout)
 {
-    return EConnect(n->engine,creq,on_connect,timeout);
+    return EConnect(n->engine,ip,port,ud,on_connect,timeout);
 }
 
 int32_t _loop(struct netservice *n,uint32_t ms)

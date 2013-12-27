@@ -85,7 +85,7 @@ int8_t check_connect_timeout(struct double_link_node *dln, void *ud)
     uint32_t l_now = (uint32_t)ud;
     if(l_now >= s->timeout){
         s->engine->UnRegister(s->engine,s);
-        s->on_connect(INVALID_SOCK,s->ud,ETIMEDOUT);
+        s->on_connect(INVALID_SOCK,&s->addr_remote,s->ud,ETIMEDOUT);
         CloseSocket(s->sock);
         return 1;
     }

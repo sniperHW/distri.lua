@@ -11,8 +11,10 @@ datasocket_t create_datasocket(struct connection *c,SOCK s)
 {
 	datasocket_t sock = calloc(1,sizeof(*sock));
 	ref_init(&sock->ref,destroy_datasocket,1);
-	if(c)
+    if(c){
 		sock->c = c;
+        c->usr_ptr = sock;
+    }
 	else if(s != INVALID_SOCK)
 		sock->s = s;
 	else
@@ -20,5 +22,7 @@ datasocket_t create_datasocket(struct connection *c,SOCK s)
 		free(sock);
 		return NULL;
 	}
+    ident _ident = make_ident(&sock->ref);
+    sock->sident = CAST_2_SOCK(_ident);
 	return sock;
 }

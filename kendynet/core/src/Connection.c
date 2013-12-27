@@ -82,8 +82,12 @@ static inline int unpack(struct connection *c)
 				c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 			}
 		}
-        if(test_recvable(c->status)) c->_process_packet(c,r);
-        if(r) rpk_destroy(&r);
+        if(r){
+            int8_t process_ret = 1;
+            if(test_recvable(c->status))
+                process_ret = c->_process_packet(c,r);
+            if(process_ret) rpk_destroy(&r);
+        }
         if(!test_recvable(c->status)) return 0;
 	}while(1);
 

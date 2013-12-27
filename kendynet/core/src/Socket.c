@@ -55,37 +55,42 @@ int32_t get_fd(SOCK s)
 void process_connect(socket_t s)
 {
     int err = 0;
-    socklen_t errlen = sizeof(err);
+    socklen_t len = sizeof(err);
 
-    if (getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
-        s->on_connect(INVALID_SOCK,s->ud,err);
+    if (getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
+        s->on_connect(INVALID_SOCK,&s->addr_remote,s->ud,err);
         CloseSocket(s->sock);
         return;
     }
 
     if(err){
         errno = err;
-        s->on_connect(INVALID_SOCK,s->ud,errno);
+        s->on_connect(INVALID_SOCK,&s->addr_remote,s->ud,errno);
         CloseSocket(s->sock);
         return;
     }
     //connect success
     s->engine->UnRegister(s->engine,s);
-    s->on_connect(s->sock,s->ud,0);
+    len = sizeof(s->addr_local);
+    getsockname(s->fd,(struct sockaddr*)&s->addr_local,&len);
+    s->on_connect(s->sock,&s->addr_remote,s->ud,0);
 }
 
 void process_accept(socket_t s)
 {
     SOCK client;
-    struct sockaddr_in ClientAddress;
-    int32_t nClientLength = sizeof(ClientAddress);
+    //struct sockaddr_in ClientAddress;
+    socklen_t len = sizeof(s->addr_remote);
     while(1)
     {
-        client = _accept(s, (struct sockaddr*)&ClientAddress, (socklen_t*)&nClientLength);
+        client = _accept(s, (struct sockaddr*)&s->addr_remote,&len);
         if (client == INVALID_SOCK)
             break;
-        else
-            s->on_accept(client,s->ud);
+        else{
+            len = sizeof(s->addr_local);
+            getsockname(s->fd,(struct sockaddr*)&s->addr_local,&len);
+            s->on_accept(client,&s->addr_remote,s->ud);
+        }
     }
 }
 

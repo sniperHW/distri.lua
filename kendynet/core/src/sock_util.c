@@ -196,7 +196,7 @@ SOCK _accept(socket_t s,struct sockaddr *sa,socklen_t *salen)
 	}
 	return INVALID_SOCK;
 }
-
+/*
 int32_t getLocalAddrPort(SOCK sock,struct sockaddr_in *remoAddr,socklen_t *len,char *buf,uint16_t *port)
 {
 
@@ -238,7 +238,7 @@ int32_t getRemoteAddrPort(SOCK sock,char *buf,uint16_t *port)
 	}
 	return -1;
 }
-
+*/
 int32_t setNonblock(SOCK sock)
 {
 

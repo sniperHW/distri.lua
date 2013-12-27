@@ -57,8 +57,8 @@ typedef void (*OnIoFinish)(int32_t,st_io*,uint32_t err_code);
 //连接关闭时,对所有未完成的请求执行的callback
 typedef void (*OnClearPending)(st_io*);
 
-typedef void (*OnAccept)(SOCK,void*ud);
-typedef void (*OnConnect)(SOCK,connect_request*,int err);
+typedef void (*OnAccept)(SOCK,struct sockaddr_in*,void *ud);
+typedef void (*OnConnect)(SOCK,struct sockaddr_in*,void *ud,int err);
 
 ENGINE   CreateEngine();
 void     CloseEngine(ENGINE);
@@ -66,10 +66,10 @@ int32_t  EngineRun(ENGINE,int32_t timeout);
 int32_t  Bind2Engine(ENGINE,SOCK,OnIoFinish,OnClearPending);
 
 //when you want to stop listen,CloseSocket(SOCK)
-SOCK EListen(ENGINE,const char *ip,int32_t port,void*ud,OnAccept);
+SOCK EListen(ENGINE,const char *ip,int32_t port,void *ud,OnAccept);
 
 //if nonblock connect ms > 0
-int32_t EConnect(ENGINE,connect_request *creq,OnConnect,uint32_t ms);
+int32_t EConnect(ENGINE,const char *ip,int32_t port,void *ud,OnConnect,uint32_t ms);
 
 
 /* return:

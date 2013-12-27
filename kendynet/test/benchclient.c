@@ -7,27 +7,27 @@ uint32_t ava_interval = 0;
 
 char *msg;
 uint32_t send_size = 0;
-void on_process_packet(struct connection *c,rpacket_t r)
+int8_t on_process_packet(struct connection *c,rpacket_t r)
 {
     //wpacket_t l_wpk = NEW_WPK(send_size);
     //wpk_write_binary(l_wpk,(void*)msg,send_size);
     //send_packet(c,l_wpk,NULL);
     send_packet(c,wpk_create_by_other((struct packet*)r));
+    return 1;
 }
 
-void on_connect(SOCK s,connect_request *creq,int err)
+void on_connect(SOCK s,struct sockaddr_in *addr_remote, void *ud,int err)
 {
     if(s != INVALID_SOCK){
         struct connection * con = new_conn(s,0);
         add_client(con);
-		struct netservice *tcpclient = (struct netservice *)creq->usr_ptr;
+        struct netservice *tcpclient = (struct netservice *)ud;
 		tcpclient->bind(tcpclient,con,on_process_packet,remove_client
 						,0,NULL,0,NULL);
         wpacket_t wpk = NEW_WPK(send_size);
         wpk_write_binary(wpk,(void*)msg,send_size);
         send_packet(con,wpk);
     }
-	free(creq);
 }
 
 void _sendpacket()
@@ -53,11 +53,7 @@ int main(int argc,char **argv)
     msg = calloc(1,send_size);
     int i = 0;
     for(; i < csize; ++i){
-        connect_request *creq = calloc(1,sizeof(*creq));
-		creq->port = atoi(argv[2]);
-		strcpy(creq->ip,argv[1]);
-		creq->usr_ptr = (void*)tcpclient;
-		tcpclient->connect(tcpclient,creq,on_connect,10000);
+        tcpclient->connect(tcpclient,argv[1],atoi(argv[2]),(void*)tcpclient,on_connect,10000);
 	}
     //uint32_t tick,now;
     //tick = now = GetSystemMs();

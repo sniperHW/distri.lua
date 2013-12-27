@@ -30,31 +30,32 @@ struct engine_struct
 
 #define MAX_NETPOLLER 64         //最大POLLER数量
 
+struct coronet;
+
 /* 连接成功后回调，此时连接还未绑定到通信poller,不可收发消息
 *  用户可以选择直接关闭传进来的连接，或者将连接绑定到通信poller
 */
 
-struct coronet;
-typedef void (*coro_on_connect)(struct coronet*,ident);               
+typedef void (*coro_on_connect)(struct coronet*,sock_ident);
 
 /*
 *  绑定到通信poller成功后回调用，此时连接可正常收发消息
 */
-typedef void (*coro_on_connected)(ident);
+typedef void (*coro_on_connected)(sock_ident);
 
 /*
 *  连接断开后回调用
 */
-typedef void (*coro_on_disconnect)(ident,uint32_t err);
+typedef void (*coro_on_disconnect)(sock_ident,uint32_t err);
 
 
 /*
 *  网络消息回调
 */
-typedef void (*coro_process_packet)(ident,rpacket_t);
+typedef void (*coro_process_packet)(sock_ident,rpacket_t);
 
 
-typedef void (*coro_connect_failed)(connect_request *creq,uint32_t);
+typedef void (*coro_connect_failed)(struct sockaddr_in*,uint32_t);
 
 typedef struct coronet
 {
@@ -85,11 +86,11 @@ void      stop_coronet(coronet_t);
 
 void      destroy_coronet(coronet_t);
 
-int32_t   coronet_bind(coronet_t,ident sock,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout);
+int32_t   coronet_bind(coronet_t,sock_ident sock,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout);
 
-int32_t   coronet_listen(coronet_t,const char*,int32_t);
+int32_t   coronet_listen(coronet_t,const char *ip,int32_t port);
 
-int32_t   coronet_connect(coronet_t,connect_request *creq,uint32_t);
+int32_t   coronet_connect(coronet_t,const char *ip,int32_t port,uint32_t timeout);
 
 void      peek_msg(coronet_t,uint32_t timeout);
 

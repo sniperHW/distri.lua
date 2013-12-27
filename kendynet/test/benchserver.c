@@ -2,17 +2,19 @@
 #include <stdlib.h>
 #include "core/netservice.h"
 #include "testcommon.h"
+#include "refbase.h"
 
 uint32_t recvsize = 0;
 uint32_t recvcount = 0;
 
-void on_process_packet(struct connection *c,rpacket_t r)
+int8_t on_process_packet(struct connection *c,rpacket_t r)
 {
     recvsize += rpk_len(r);
     recvcount++;
     send_packet(c,wpk_create_by_other((struct packet*)r));
 	//active_close(c);
 	//send2_all_client(r);
+    return 1;
 }
 
 void client_come(struct connection *c)
@@ -26,13 +28,14 @@ void client_go(struct connection *c,uint32_t reason)
 	release_conn(c);
 }
 
-void accept_client(SOCK s,void*ud)
+void accept_client(SOCK s,struct sockaddr_in *addr_remote,void*ud)
 {
 	struct connection *c = new_conn(s,0);
 	client_come(c);
 	struct netservice *tcpserver = (struct netservice *)ud;
 	tcpserver->bind(tcpserver,c,on_process_packet,client_go,0,NULL,0,NULL);
 }
+
 
 int main(int argc,char **argv)
 {

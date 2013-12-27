@@ -111,18 +111,18 @@ SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,OnAccept accept_functi
 	return INVALID_SOCK;
 }
 
-int32_t EConnect(ENGINE e,connect_request *creq,OnConnect _on_connect,uint32_t ms)
+int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,OnConnect _on_connect,uint32_t ms)
 {
     engine_t engine = GetEngineByHandle(e);
 	if(!engine) return -1;
-	if(creq == NULL || _on_connect == 0)
+    if(ip == NULL || _on_connect == 0)
         return -1;
 
     struct sockaddr_in servaddr;
 	memset((void*)&servaddr,0,sizeof(servaddr));
 	servaddr.sin_family = INET;
-	servaddr.sin_port = htons(creq->port);
-	if(inet_pton(INET,creq->ip,&servaddr.sin_addr) < 0)
+    servaddr.sin_port = htons(port);
+    if(inet_pton(INET,ip,&servaddr.sin_addr) < 0)
 	{
 		printf("%s\n",strerror(errno));
 		return -1;
@@ -136,7 +136,7 @@ int32_t EConnect(ENGINE e,connect_request *creq,OnConnect _on_connect,uint32_t m
     }
     socket_t s = get_socket_wrapper(sock);
     if(connect(s->fd,(const struct sockaddr *)&servaddr,sizeof(servaddr)) == 0)
-        _on_connect(sock,creq,0);
+        _on_connect(sock,&servaddr,ud,0);
     else{
         if(errno != EINPROGRESS)
         {
@@ -147,8 +147,9 @@ int32_t EConnect(ENGINE e,connect_request *creq,OnConnect _on_connect,uint32_t m
         s->timeout = GetSystemMs() + ms;
         s->sock = sock;
         s->engine = engine;
-        s->ud = creq;
+        s->ud = ud;
         s->on_connect = _on_connect;
+        s->addr_remote = servaddr;
         if(engine->Register(engine,s) == 0)
             return 0;
         else{

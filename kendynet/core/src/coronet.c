@@ -52,12 +52,12 @@ struct msg_bind
 	int8_t   raw;
 };
 
-int32_t coronet_bind(coronet_t c,ident sock,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
+int32_t coronet_bind(coronet_t c,sock_ident sock,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
 {
 	if(c->flag == 1)return -1;
 	struct msg_bind *msg = calloc(1,sizeof(*msg));
 	msg->base.type = MSG_BIND;
-	msg->base._ident = sock;
+    msg->base._ident = TO_IDENT(sock);
 	msg->recv_timeout = recv_timeout;
 	msg->send_timeout = send_timeout;
 	msg->raw = raw;
@@ -69,7 +69,7 @@ int32_t coronet_bind(coronet_t c,ident sock,int8_t raw,uint32_t send_timeout,uin
 	return 0;
 }
 
-static void do_on_accpet(SOCK sock,void *ud)
+static void do_on_accpet(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
 	struct connection *c = new_conn(s,1);
 	datasocket_t d = create_datasocket(c,INVALID_SOCK);
@@ -83,15 +83,31 @@ static void do_on_accpet(SOCK sock,void *ud)
 	}
 }
 
-static void do_on_connect(SOCK sock,connect_request *creq,int err);
+static void do_on_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,int err)
 {
+    if(sock == INVALID_SOCK){
+        //connect failed
+    }
+    else
+    {
 
+    }
+}
+
+static int8_t do_process_packet(struct connection *c,rpacket_t r)
+{
+    datasocket_t d = (datasocket_t)c->usr_ptr;
+    r->_ident = TO_IDENT(d->sident);
+    if(0 != msgque_put(d->que,(list_node*)r))
+        return 1;
+    return 0;
 }
 
 static void process_msg(struct engine_struct *n,msg_t msg)
 {
 	if(msg->type == MSG_BIND)
 	{
+
 
 	}else if(msg->type == MSG_CONNECT)
 	{

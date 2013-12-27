@@ -18,7 +18,13 @@ struct OVERLAPCONTEXT
 };
 
 
-typedef void (*process_packet)(struct connection*,rpacket_t);
+/*
+*   返回1：process_packet调用后rpacket_t自动销毁
+*   否则,将由使用者自己销毁
+*/
+typedef int8_t (*process_packet)(struct connection*,rpacket_t);
+
+
 typedef void (*on_disconnect)(struct connection*,uint32_t reason);
 typedef void (*on_recv_timeout)(struct connection*);
 typedef void (*on_send_timeout)(struct connection*);
