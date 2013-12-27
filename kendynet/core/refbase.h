@@ -4,22 +4,63 @@
 #include <stdint.h>
 #include "atomic.h"
 
+extern atomic_32_t global_counter;
+
 struct refbase
 {
 	atomic_32_t refcount;
+	atomic_64_t identity;
+	atomic_32_t flag;
 	void (*destroyer)(void*);
 };
 
-static inline void ref_increase(struct refbase *r)
+void ref_init(struct refbase *r,void (*destroyer)(void*),int32_t initcount);
+
+static inline atomic_32_t ref_increase(struct refbase *r)
 {
-    ATOMIC_INCREASE(&r->refcount);
+    return ATOMIC_INCREASE(&r->refcount);
 }
 
-static inline void ref_decrease(struct refbase *r)
+static inline atomic_32_t ref_decrease(struct refbase *r)
 {
-    if(ATOMIC_DECREASE(&r->refcount) <= 0 && r->destroyer)
-        r->destroyer(r);
+	atomic_32_t new_count = ATOMIC_DECREASE(&r->refcount);
+    if(new_count <= 0 && r->destroyer){
+		r->identity = 0;
+		_FENCE;
+		while(!COMPARE_AND_SWAP(&r->flag,0,1));
+		r->destroyer(r);
+	}
+	return new_count;
 }
 
 
+struct ident
+{
+	uint64_t identity;
+	struct refbase *ptr;
+};
+
+static inline struct ident make_ident(struct refbase *ptr)
+{
+	struct ident _ident = {ptr->identity,ptr};
+	return _ident;
+}
+
+static inline struct refbase *cast_2_refbase(struct ident _ident)
+{
+	while(_ident.identity == _ident.ptr->identity)
+	{
+		if(COMPARE_AND_SWAP(&_ident.ptr->flag,0,1))
+		{
+			if(_ident.identity == _ident.ptr->identity){
+				ref_increase(_ident.ptr);
+				_FENCE;
+				_ident.ptr->flag = 0;
+				return _ident.ptr;
+			}else
+				return 0;
+		}
+	}
+	return 0;
+}
 #endif

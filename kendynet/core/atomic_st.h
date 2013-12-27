@@ -37,9 +37,6 @@ struct atomic_type
 struct atomic_type *create_atomic_type(uint32_t size);
 void destroy_atomic_type(struct atomic_type **_at);
 
-#define _FENCE __asm__ volatile("" : : : "memory")
-
-
 #define GET_ATOMIC_ST(NAME,TYPE)\
 static inline void NAME(struct atomic_type *at,TYPE *ret)\
 {\
