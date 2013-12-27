@@ -38,6 +38,16 @@ typedef struct
 	int32_t    iovec_count;
 }st_io;
 
+typedef struct 
+{
+	char     ip[32];
+	int32_t  port;
+	union{
+		uint64_t  usr_data;
+		void     *usr_ptr;
+	};
+}connect_request;
+
 //初始化网络系统
 int32_t      InitNetSystem();
 
@@ -48,7 +58,7 @@ typedef void (*OnIoFinish)(int32_t,st_io*,uint32_t err_code);
 typedef void (*OnClearPending)(st_io*);
 
 typedef void (*OnAccept)(SOCK,void*ud);
-typedef void (*OnConnect)(SOCK,void*ud,int err);
+typedef void (*OnConnect)(SOCK,connect_request*,int err);
 
 ENGINE   CreateEngine();
 void     CloseEngine(ENGINE);
@@ -59,7 +69,7 @@ int32_t  Bind2Engine(ENGINE,SOCK,OnIoFinish,OnClearPending);
 SOCK EListen(ENGINE,const char *ip,int32_t port,void*ud,OnAccept);
 
 //if nonblock connect ms > 0
-int32_t EConnect(ENGINE,const char *ip,int32_t port,void*ud,OnConnect,uint32_t ms);
+int32_t EConnect(ENGINE,connect_request *creq,OnConnect,uint32_t ms);
 
 
 /* return:

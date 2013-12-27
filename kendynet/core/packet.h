@@ -33,6 +33,7 @@ struct packet
 	union{
         uint64_t  usr_data;
         void     *usr_ptr;
+		ident     _ident;
 	};
 	uint32_t  begin_pos;
 	uint32_t  tstamp;

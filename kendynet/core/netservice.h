@@ -27,7 +27,7 @@ typedef struct netservice{
     int32_t (*bind)(struct netservice *,struct connection*,process_packet,on_disconnect,
                     uint32_t,on_recv_timeout,uint32_t,on_send_timeout);
     SOCK    (*listen)(struct netservice*,const char*,int32_t,void*,OnAccept);
-    int32_t (*connect)(struct netservice*,const char*,int32_t,void*,OnConnect,uint32_t);
+    int32_t (*connect)(struct netservice*,connect_request*,OnConnect,uint32_t);
     int32_t (*loop)(struct netservice*,uint32_t ms);
 }netservice;
 

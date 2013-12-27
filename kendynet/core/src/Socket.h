@@ -60,7 +60,7 @@ typedef struct socket_wrapper
             SOCK  sock;
             union{
                 void (*on_accept)(SOCK,void*);
-                void (*on_connect)(SOCK,void*,int);
+                void (*on_connect)(SOCK,connect_request*,int);
             };
         };
 	};

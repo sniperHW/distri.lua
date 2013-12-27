@@ -229,20 +229,6 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer destroyer)
 	return que;
 }
 
-int8_t msgque_open_read(msgque_t que)
-{
-	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
-	if(ptq->mode != MSGQ_READ) return -1;
-	return 0;
-}
-
-int8_t msgque_open_write(msgque_t que)
-{
-	ptq_t ptq = get_per_thread_que(que,MSGQ_WRITE);
-	if(ptq->mode != MSGQ_WRITE) return -1;
-	return 0;
-}
-
 //push消息并执行同步操作
 static inline void msgque_sync_push(ptq_t ptq)
 {
@@ -289,8 +275,7 @@ static inline void msgque_sync_pop(ptq_t ptq,uint32_t timeout)
 
 static inline int8_t _put(msgque_t que,list_node *msg,uint8_t type)
 {
-	ptq_t ptq = (ptq_t)pthread_getspecific(que->t_key);
-	if(!ptq) return -1;
+	ptq_t ptq = get_per_thread_que(que,MSGQ_WRITE);
 	if(ptq->mode == MSGQ_READ && msg)
 	{
 		msgque_sync_pop(ptq,0);
@@ -327,8 +312,7 @@ int8_t msgque_put_immeda(msgque_t que,list_node *msg)
 
 int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
 {
-	ptq_t ptq = (ptq_t)pthread_getspecific(que->t_key);
-	if(!ptq) return -1;
+	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
 	assert(ptq->mode == MSGQ_READ);
 	if(ptq->mode != MSGQ_READ)return -1;
 	//本地无消息,执行同步

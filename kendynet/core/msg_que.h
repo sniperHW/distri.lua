@@ -57,10 +57,6 @@ void default_item_destroyer(void* item);
 
 struct msg_que* new_msgque(uint32_t syn_size,item_destroyer);
 
-int8_t msgque_open_read(msgque_t);
-
-int8_t msgque_open_write(msgque_t);
-
 /* push一条消息到local队列,如果local队列中的消息数量超过阀值执行同步，否则不同步
 *  返回非0表示出错
 */

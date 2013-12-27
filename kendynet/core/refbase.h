@@ -34,19 +34,25 @@ static inline atomic_32_t ref_decrease(struct refbase *r)
 }
 
 
-struct ident
+typedef struct ident
 {
 	uint64_t identity;
 	struct refbase *ptr;
-};
+}ident;
 
-static inline struct ident make_ident(struct refbase *ptr)
+static inline ident make_ident(struct refbase *ptr)
 {
-	struct ident _ident = {ptr->identity,ptr};
+	ident _ident = {ptr->identity,ptr};
 	return _ident;
 }
 
-static inline struct refbase *cast_2_refbase(struct ident _ident)
+static inline ident make_empty_ident()
+{
+	ident _ident = {0,0};
+	return _ident;
+}
+
+static inline struct refbase *cast_2_refbase(ident _ident)
 {
 	while(_ident.identity == _ident.ptr->identity)
 	{
@@ -62,5 +68,11 @@ static inline struct refbase *cast_2_refbase(struct ident _ident)
 		}
 	}
 	return 0;
+}
+
+static inline int32_t is_ident_vaild(ident _ident)
+{
+	if(!_ident.ptr || !_ident.identity) return 0;
+	return 1;
 }
 #endif
