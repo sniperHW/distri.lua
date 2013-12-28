@@ -244,12 +244,14 @@ void   msgque_putinterrupt(msgque_t que,void *ud,interrupt_function callback)
 
 void   msgque_removeinterrupt(msgque_t que)
 {
-	mutex_lock(que->mtx);
 	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
+	if(ptq->read_que.bnode.next || ptq->read_que.bnode.pre){
+		mutex_lock(que->mtx);
+		double_link_remove(&ptq->read_que.bnode);
+		mutex_unlock(que->mtx);
+	}
 	ptq->read_que.ud = NULL;
 	ptq->read_que.notify_function = NULL;
-	double_link_remove(&ptq->read_que.bnode);
-	mutex_unlock(que->mtx);
 }
 
 //push消息并执行同步操作
