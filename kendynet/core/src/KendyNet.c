@@ -191,7 +191,8 @@ int32_t Post_Recv(SOCK sock,st_io *io)
 	LINK_LIST_PUSH_BACK(&s->pending_recv,io);
 	if(s->engine && s->readable)
 	{
-		double_link_push(&s->engine->actived,(struct double_link_node*)s);
+        putin_active(s->engine,(struct double_link_node*)s);
+        //double_link_push(&s->engine->actived,(struct double_link_node*)s);
 	}
 	return 0;
 }
@@ -220,7 +221,8 @@ int32_t Post_Send(SOCK sock,st_io *io)
 	LINK_LIST_PUSH_BACK(&s->pending_send,io);
 	if(s->engine && s->writeable)
 	{
-		double_link_push(&s->engine->actived,(struct double_link_node*)s);
+        putin_active(s->engine,(struct double_link_node*)s);
+        //double_link_push(&s->engine->actived,(struct double_link_node*)s);
 	}
 	return 0;
 }

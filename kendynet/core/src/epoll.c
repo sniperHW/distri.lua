@@ -12,8 +12,6 @@ int32_t  epoll_init(engine_t e)
 	e->poller_fd = TEMP_FAILURE_RETRY(epoll_create(MAX_SOCKET));
 	if(e->poller_fd < 0) return -1;
 	memset(e->events,0,sizeof(e->events));
-	double_link_init(&e->actived);
-
 	//创建唤醒管道
 	int p[2];
 	if(pipe(p) != 0){ 
@@ -154,7 +152,7 @@ int32_t epoll_loop(engine_t n,int32_t ms)
 	        uint32_t l_now = GetSystemMs();
 	        double_link_check_remove(&n->connecting,check_connect_timeout,(void*)l_now);
 	    }
-		if(!double_link_empty(&n->actived))
+        /*if(!double_link_empty(&n->actived))
 		{
 			uint32_t size = double_link_size(&n->actived);
 			uint32_t i = 0;
@@ -165,10 +163,20 @@ int32_t epoll_loop(engine_t n,int32_t ms)
 					double_link_push(&n->actived,(struct double_link_node*)s);
 				}
 			}
-		}
-
+        }*/
+        if(!is_active_empty(n))
+        {
+            struct double_link *actived = get_active_list(n);
+            n->actived_index = (n->actived_index+1)%2;
+            socket_t s;
+            while((s = (socket_t)double_link_pop(actived)) != NULL)
+            {
+                if(Process(s))
+                    putin_active(n,(struct double_link_node*)s);
+            }
+        }
 		current_tick = GetSystemMs();
-		if(double_link_empty(&n->actived))
+        if(is_active_empty(n))
 			sleep_ms = timeout > current_tick ? timeout - current_tick:0;
 		else
 			sleep_ms = 0;

@@ -98,7 +98,8 @@ void on_read_active(socket_t s)
 {
     s->readable = 1;
     if(!LINK_LIST_IS_EMPTY(&s->pending_recv)){
-        double_link_push(&s->engine->actived,(struct double_link_node*)s);
+         putin_active(s->engine,(struct double_link_node*)s);
+        //double_link_push(&s->engine->actived,(struct double_link_node*)s);
     }
 }
 
@@ -106,7 +107,8 @@ void on_write_active(socket_t s)
 {
     s->writeable = 1;
     if(!LINK_LIST_IS_EMPTY(&s->pending_send)){
-        double_link_push(&s->engine->actived,(struct double_link_node*)s);
+        putin_active(s->engine,(struct double_link_node*)s);
+        //double_link_push(&s->engine->actived,(struct double_link_node*)s);
     }
 }
 
