@@ -23,7 +23,7 @@ int32_t  epoll_init(engine_t e)
 
 	struct epoll_event ev;
 	ev.data.fd = e->pipe_reader;
-	ev.events = EV_OUT;
+    ev.events = EV_IN;
 	if(0 != epoll_ctl(e->poller_fd,EPOLL_CTL_ADD,e->pipe_reader,&ev))
 	{
 		close(e->pipe_reader);
