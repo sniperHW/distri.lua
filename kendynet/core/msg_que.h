@@ -71,7 +71,7 @@ int8_t msgque_put_immeda(msgque_t,list_node *msg);
 * 如果共享队列中没消息，最多等待timeout毫秒
 *  返回非0表示出错
 */
-int8_t msgque_get(msgque_t,list_node **msg,uint32_t timeout);
+int8_t msgque_get(msgque_t,list_node **msg,int32_t timeout);
 
 
 //冲刷本线程持有的所有消息队列的local push队列

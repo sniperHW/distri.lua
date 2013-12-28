@@ -3,7 +3,10 @@
 void destroy_datasocket(void *ptr)
 {
 	datasocket_t sock = (datasocket_t)ptr;
-	release_conn(sock->c);
+	if(sock->c) 
+		release_conn(sock->c);
+	else if(sock->s != INVALID_SOCK) 
+		CloseSocket(sock->s);
 	free(sock);
 }
 

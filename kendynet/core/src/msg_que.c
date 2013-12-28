@@ -250,23 +250,32 @@ static inline void msgque_sync_push(ptq_t ptq)
 	mutex_unlock(que->mtx);
 }
 
-static inline void msgque_sync_pop(ptq_t ptq,uint32_t timeout)
+static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
 {
 	msgque_t que = ptq->que;
 	mutex_lock(que->mtx);
-	if(link_list_is_empty(&que->share_que) && timeout){
-		uint32_t end = GetSystemMs() + timeout;
-		while(link_list_is_empty(&que->share_que)){
+	if(timeout < 0){
+		if(link_list_is_empty(&que->share_que) && timeout){
+			uint32_t end = GetSystemMs() + timeout;
 			double_link_push(&que->blocks,&ptq->read_que.bnode);
-			if(0 != condition_timedwait(ptq->read_que.cond,que->mtx,timeout)){
-				//timeout
-				double_link_remove(&ptq->read_que.bnode);
-				break;
-			}
-			uint32_t l_now = GetSystemMs();
-			if(l_now < end) timeout = end - l_now;
-			else break;//timeout
+			do{
+				if(0 != condition_timedwait(ptq->read_que.cond,que->mtx,timeout)){
+					//timeout
+					double_link_remove(&ptq->read_que.bnode);
+					break;
+				}
+				uint32_t l_now = GetSystemMs();
+				if(l_now < end) timeout = end - l_now;
+				else break;//timeout
+			}while(link_list_is_empty(&que->share_que));
 		}
+	}
+	else if(link_list_is_empty(&que->share_que))
+	{
+		double_link_push(&que->blocks,&ptq->read_que.bnode);
+		do{	
+			condition_wait(ptq->read_que.cond,que->mtx);
+		}while(link_list_is_empty(&que->share_que));
 	}
 	if(!link_list_is_empty(&que->share_que))
 		link_list_swap(&ptq->local_que,&que->share_que);
@@ -310,7 +319,7 @@ int8_t msgque_put_immeda(msgque_t que,list_node *msg)
 	return _put(que,msg,1);
 }
 
-int8_t msgque_get(msgque_t que,list_node **msg,uint32_t timeout)
+int8_t msgque_get(msgque_t que,list_node **msg,int32_t timeout)
 {
 	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
 	assert(ptq->mode == MSGQ_READ);
