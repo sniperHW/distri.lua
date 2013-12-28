@@ -58,6 +58,12 @@ int32_t _loop(struct netservice *n,uint32_t ms)
     return EngineRun(n->engine,ms);
 }
 
+int32_t _wakeup(struct netservice *n)
+{
+	return EWakeUp(n->engine);
+}
+
+
 struct netservice *new_service()
 {
     struct netservice *n = calloc(1,sizeof(*n));
@@ -73,6 +79,7 @@ struct netservice *new_service()
     n->listen = _listen;
     n->loop = _loop;
     n->connect = _connect;
+	n->wakeup = _wakeup;
     return n;
 }
 

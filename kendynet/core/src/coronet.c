@@ -255,13 +255,22 @@ static inline void process_send(struct engine_struct *e,wpacket_t wpk)
 	}
 }
 
+static void notify_function(void *arg)
+{
+	netservice *n = (netservice*)arg;
+	n->wakeup(n);
+}
+
 static void *mainloop(void *arg)
 {
 	printf("start io thread\n");
 	struct engine_struct *n = (struct engine_struct *)arg;
 	while(0 == n->flag)
 	{
-		for(;;){
+		uint32_t tick = GetSystemMs();
+		uint32_t timeout = tick + 50;
+		int8_t is_empty = 0;
+		for(;tick < timeout;){
 			list_node *node = NULL;
 			msgque_get(n->mq_in,&node,0);
 			if(node)
@@ -276,10 +285,20 @@ static void *mainloop(void *arg)
 					process_msg(n,msg);
 				}
 			}
-			else
+			else{
+				is_empty = 1;
 				break;
+			}
+			tick = GetSystemMs();
 		}
-		n->netpoller->loop(n->netpoller,50);
+		if(is_empty){
+			//注册中断器，如果阻塞在loop里时mq_in收到消息会调用唤醒函数唤醒loop
+			msgque_putinterrupt(n->mq_in,(void*)n->netpoller,notify_function);
+			n->netpoller->loop(n->netpoller,100);
+			msgque_removeinterrupt(n->mq_in);
+		}
+		else
+			n->netpoller->loop(n->netpoller,0);
 	}
 	return NULL;
 }

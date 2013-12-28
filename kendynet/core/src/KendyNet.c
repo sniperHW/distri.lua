@@ -111,6 +111,13 @@ SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,OnAccept accept_functi
 	return INVALID_SOCK;
 }
 
+int32_t EWakeUp(ENGINE e)
+{
+	engine_t engine = GetEngineByHandle(e);
+	if(!engine) return -1;
+	return engine->WakeUp(engine);
+}
+
 int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,OnConnect _on_connect,uint32_t ms)
 {
     engine_t engine = GetEngineByHandle(e);

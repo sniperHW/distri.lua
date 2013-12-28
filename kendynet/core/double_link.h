@@ -18,23 +18,31 @@
 #ifndef _DOUBLE_LINK_H
 #define _DOUBLE_LINK_H
 
-
+struct double_link;
 struct double_link_node
 {
+	struct double_link      *container;
 	struct double_link_node *pre;
 	struct double_link_node *next;
 };
 
 struct double_link
 {
-	struct double_link_node head;
-	struct double_link_node tail;
+	uint32_t size;
+	struct   double_link_node head;
+	struct   double_link_node tail;
 };
 
 
 static inline int32_t double_link_empty(struct double_link *dl)
 {
-	return dl->head.next == &dl->tail ? 1:0;
+	return dl->size == 0;
+	//return dl->head.next == &dl->tail ? 1:0;
+}
+
+static inline int32_t double_link_size(struct double_link *dl)
+{
+	return dl->size;
 }
 
 static inline struct double_link_node *double_link_first(struct double_link *dl)
@@ -59,6 +67,7 @@ static inline int32_t double_link_remove(struct double_link_node *dln)
 	dln->pre->next = dln->next;
 	dln->next->pre = dln->pre;
 	dln->pre = dln->next = NULL;
+	--dln->container->size;
 	return 0;
 }
 
@@ -81,14 +90,17 @@ static inline int32_t double_link_push(struct double_link *dl,struct double_link
 	dln->pre = dl->tail.pre;
 	dl->tail.pre = dln;
 	dln->next = &dl->tail;
+	dln->container = dl;
+	++dl->size;
 	return 0;
 }
 
-static inline void double_link_clear(struct double_link *dl)
+static inline void double_link_init(struct double_link *dl)
 {
 	dl->head.pre = dl->tail.next = NULL;
 	dl->head.next = &dl->tail;
 	dl->tail.pre = &dl->head;
+	dl->size = 0;
 }
 
 //if the dblnk_check return 1,dln will be remove
@@ -117,5 +129,7 @@ static inline void double_link_move(struct double_link *dl1,struct double_link *
 	dl2->tail.pre->next = &dl1->tail;
 	dl1->tail.pre->next = dl2->head.next;
 	dl1->tail.pre = dl2->tail.next;
+	dl1->size += dl2->size;
+	dl2->size = 0;
 }
 #endif

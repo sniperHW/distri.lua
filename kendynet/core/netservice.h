@@ -29,6 +29,7 @@ typedef struct netservice{
     SOCK    (*listen)(struct netservice*,const char*,int32_t,void*,OnAccept);
     int32_t (*connect)(struct netservice*,const char *ip,int32_t port,void *ud,OnConnect,uint32_t);
     int32_t (*loop)(struct netservice*,uint32_t ms);
+	int32_t (*wakeup)(struct netservice*);
 }netservice;
 
 struct netservice *new_service();

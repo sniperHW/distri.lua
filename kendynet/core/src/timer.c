@@ -109,7 +109,7 @@ struct wheel* new_wheel(uint32_t size)
 	wheel->size = size;
 	wheel->cur_idx = 0;
 	int32_t i = 0;
-	for(; i < size; ++i) double_link_clear(&wheel->wheel[i]);
+	for(; i < size; ++i) double_link_init(&wheel->wheel[i]);
 	return wheel;
 }
 

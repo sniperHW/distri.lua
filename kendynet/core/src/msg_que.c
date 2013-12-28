@@ -20,8 +20,10 @@ typedef struct per_thread_que
 			uint8_t     flag;//0,正常;1,阻止heart_beat操作,2,设置了冲刷标记
 		}write_que;
 		struct read_que{
-			struct double_link_node bnode; //用于链入msg_que->blocks
+			struct double_link_node bnode; //用于链入msg_que->blocks或msg_que->can_interrupt
 			condition_t cond;
+			interrupt_function  notify_function;
+			void*     ud;
 		}read_que;
 	};
 	struct link_list local_que;
@@ -76,7 +78,7 @@ void heart_beat_signal_handler(int sig);
 static void heart_beat_once_routine(){
 	pthread_key_create(&g_heart_beat_key,NULL);
 	g_heart_beat = calloc(1,sizeof(*g_heart_beat));
-	double_link_clear(&g_heart_beat->thread_structs);
+	double_link_init(&g_heart_beat->thread_structs);
 	g_heart_beat->mtx = mutex_create();
 
 	//注册信号处理函数
@@ -123,7 +125,7 @@ static inline pts_t get_per_thread_struct()
 	pts_t pts = (pts_t)pthread_getspecific(g_msg_que_key);
 	if(!pts){
 		pts = calloc(1,sizeof(*pts));
-		double_link_clear(&pts->per_thread_que);
+		double_link_init(&pts->per_thread_que);
 		pthread_setspecific(g_msg_que_key,(void*)pts);
 		pts->thread_id = pthread_self();
 #ifdef MQ_HEART_BEAT
@@ -219,7 +221,7 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer destroyer)
 	pthread_once(&g_msg_que_key_once,msg_que_once_routine);
 	struct msg_que *que = calloc(1,sizeof(*que));
 	pthread_key_create(&que->t_key,delete_per_thread_que);
-	double_link_clear(&que->blocks);
+	double_link_init(&que->blocks);
 	que->mtx = mutex_create();
 	que->refbase.destroyer = delete_msgque;
 	link_list_clear(&que->share_que);
@@ -227,6 +229,27 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer destroyer)
 	que->destroy_function = destroyer;
 	get_per_thread_que(que,MSGQ_NONE);
 	return que;
+}
+
+
+void   msgque_putinterrupt(msgque_t que,void *ud,interrupt_function callback)
+{
+	mutex_lock(que->mtx);
+	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
+	ptq->read_que.ud = ud;
+	ptq->read_que.notify_function = callback;
+	double_link_push(&que->can_interrupt,&ptq->read_que.bnode);
+	mutex_unlock(que->mtx);
+}
+
+void   msgque_removeinterrupt(msgque_t que)
+{
+	mutex_lock(que->mtx);
+	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
+	ptq->read_que.ud = NULL;
+	ptq->read_que.notify_function = NULL;
+	double_link_remove(&ptq->read_que.bnode);
+	mutex_unlock(que->mtx);
 }
 
 //push消息并执行同步操作
@@ -246,6 +269,12 @@ static inline void msgque_sync_push(ptq_t ptq)
 			mutex_unlock(que->mtx);
 			condition_signal(block_ptq->read_que.cond);
 		}
+	}
+	//对所有在can_interrupt中的元素调用回调
+	while(!double_link_empty(&que->can_interrupt))
+	{
+		ptq_t ptq = (ptq_t)double_link_pop(&que->can_interrupt);
+		ptq->read_que.notify_function(ptq->read_que.ud);
 	}
 	mutex_unlock(que->mtx);
 }

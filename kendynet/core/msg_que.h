@@ -44,10 +44,10 @@ typedef struct msg_que
         struct refbase      refbase;
         struct link_list    share_que;
         uint32_t            syn_size;
-        volatile uint8_t    wait4destroy;
         pthread_key_t       t_key;
         mutex_t             mtx;
         struct double_link  blocks;
+		struct double_link  can_interrupt;
         item_destroyer      destroy_function;
 }*msgque_t;
 
@@ -72,6 +72,11 @@ int8_t msgque_put_immeda(msgque_t,list_node *msg);
 *  返回非0表示出错
 */
 int8_t msgque_get(msgque_t,list_node **msg,int32_t timeout);
+
+
+typedef void (*interrupt_function)(void*);
+void   msgque_putinterrupt(msgque_t,void *ud,interrupt_function);
+void   msgque_removeinterrupt(msgque_t);
 
 
 //冲刷本线程持有的所有消息队列的local push队列

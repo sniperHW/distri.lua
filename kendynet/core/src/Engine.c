@@ -17,8 +17,9 @@ engine_t create_engine()
 		e->UnRegister = epoll_unregister;
         e->UnRegisterRecv = epoll_unregister_recv;
         e->UnRegisterSend = epoll_unregister_send;
-		double_link_clear(&e->actived);
-		double_link_clear(&e->connecting);
+		e->WakeUp = epoll_wakeup;
+		double_link_init(&e->actived);
+		double_link_init(&e->connecting);
 	}
 	return e;
 }

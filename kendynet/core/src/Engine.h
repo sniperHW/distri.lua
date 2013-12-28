@@ -17,8 +17,11 @@ typedef struct engine
 	int32_t  (*UnRegister)(struct engine*,struct socket_wrapper*);
     int32_t  (*UnRegisterRecv)(struct engine*,struct socket_wrapper*);
     int32_t  (*UnRegisterSend)(struct engine*,struct socket_wrapper*);
+	int32_t  (*WakeUp)(struct engine*);
 	int32_t   poller_fd;
-	struct    epoll_event events[MAX_SOCKET];
+	struct    epoll_event events[MAX_SOCKET+1];
+	int32_t   pipe_writer;//用于异步唤醒的管道
+	int32_t   pipe_reader;
 	struct    double_link actived;
 	struct    double_link connecting;
 }*engine_t;

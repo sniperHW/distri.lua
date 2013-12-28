@@ -71,6 +71,8 @@ SOCK EListen(ENGINE,const char *ip,int32_t port,void *ud,OnAccept);
 //if nonblock connect ms > 0
 int32_t EConnect(ENGINE,const char *ip,int32_t port,void *ud,OnConnect,uint32_t ms);
 
+int32_t EWakeUp(ENGINE);
+
 
 /* return:
 *  0,  io pending

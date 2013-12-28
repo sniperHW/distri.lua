@@ -11,4 +11,5 @@ int32_t  epoll_register(engine_t,socket_t);
 int32_t  epoll_unregister(engine_t,socket_t);
 int32_t  epoll_unregister_recv(engine_t,socket_t);
 int32_t  epoll_unregister_send(engine_t,socket_t);
+int32_t  epoll_wakeup(engine_t);
 #endif
