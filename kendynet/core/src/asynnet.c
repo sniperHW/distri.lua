@@ -82,7 +82,7 @@ struct msg_connection
 	uint32_t    reason;
 };
 
-static void do_on_disconnect(struct connection *c,uint32_t reason)
+static void asyncb_disconnect(struct connection *c,uint32_t reason)
 {
     asynsock_t d = (asynsock_t)c->usr_ptr;
 	if(d->que){
@@ -98,12 +98,7 @@ static void do_on_disconnect(struct connection *c,uint32_t reason)
     asynsock_release(d);
 }
 
-static void do_on_recv_timeout(struct connection *c)
-{
-	active_close(c);
-}
-
-static void do_on_send_timeout(struct connection *c)
+static void asyncb_io_timeout(struct connection *c)
 {
 	active_close(c);
 }
@@ -111,7 +106,7 @@ static void do_on_send_timeout(struct connection *c)
 static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
 	struct connection *c = new_conn(sock,1);
-	c->_on_disconnect = do_on_disconnect;
+    c->_on_disconnect = asyncb_disconnect;
     asynsock_t d = asynsock_new(c,INVALID_SOCK);
 	msgque_t mq =  (msgque_t)ud;
 	struct msg_connection *msg = calloc(1,sizeof(*msg));
@@ -126,12 +121,12 @@ static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void
 	}
 }
 
-static void do_on_accpet(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
+static void asyncb_accpet(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
 	new_connection(sock,addr_remote,ud);
 }
 
-static void do_on_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,int err)
+static void asyncb_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,int err)
 {
     if(sock == INVALID_SOCK){
 		msgque_t mq =  (msgque_t)ud;
@@ -149,7 +144,7 @@ static void do_on_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,int
 		new_connection(sock,addr_remote,ud);
 }
 
-static int8_t do_process_packet(struct connection *c,rpacket_t r)
+static int8_t asyncb_process_packet(struct connection *c,rpacket_t r)
 {
     asynsock_t d = (asynsock_t)c->usr_ptr;
     r->base._ident = TO_IDENT(d->sident);
@@ -171,13 +166,13 @@ static void process_msg(struct poller_st *n,msg_t msg)
 				struct msg_bind *_msgbind = (struct msg_bind*)msg;
 				c->raw = _msgbind->raw;
 				d->usr_ptr = _msgbind->ud;
-				if(0 != n->netpoller->bind(n->netpoller,c,do_process_packet,do_on_disconnect,
-								   _msgbind->recv_timeout,do_on_recv_timeout,
-								   _msgbind->send_timeout,do_on_send_timeout))
+                if(0 != n->netpoller->bind(n->netpoller,c,asyncb_process_packet,asyncb_disconnect,
+                                   _msgbind->recv_timeout,asyncb_io_timeout,
+                                   _msgbind->send_timeout,asyncb_io_timeout))
 				{
 					d->que = n->_coronet->mq_out;
 					//绑定出错，直接关闭连接
-					do_on_disconnect(c,0);
+                    asyncb_disconnect(c,0);
 				}else{
 					d->sndque = n->mq_in;
 					//通知逻辑绑定成功
@@ -195,7 +190,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 	}else if(msg->type == MSG_CONNECT)
 	{
 		struct msg_connect *_msg = (struct msg_connect*)msg;
-		if(0 != n->netpoller->connect(n->netpoller,_msg->ip,_msg->port,(void*)n->_coronet->mq_out,do_on_connect,_msg->timeout))
+        if(0 != n->netpoller->connect(n->netpoller,_msg->ip,_msg->port,(void*)n->_coronet->mq_out,asyncb_connect,_msg->timeout))
 		{
 			//connect失败
 			struct msg_connection *tmsg = calloc(1,sizeof(*tmsg));
@@ -210,7 +205,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 	}else if(msg->type == MSG_LISTEN)
 	{
 		struct msg_listen *_msg = (struct msg_listen*)msg;
-		SOCK s = n->netpoller->listen(n->netpoller,_msg->ip,_msg->port,(void*)n->_coronet->mq_out,do_on_accpet);
+        SOCK s = n->netpoller->listen(n->netpoller,_msg->ip,_msg->port,(void*)n->_coronet->mq_out,asyncb_accpet);
 		
 		struct msg_connection *tmsg = calloc(1,sizeof(*tmsg));
 		tmsg->base.type = MSG_LISTEN_RET;
@@ -319,16 +314,17 @@ static void mq_item_destroyer(void *ptr)
 	}
 }
 
+
 asynnet_t asynnet_new(uint8_t  pollercount,
-                      coro_on_connect     _coro_on_connect,
-                      coro_on_connected   _coro_on_connected,
-                      coro_on_disconnect  _coro_on_disconnect,
-                      coro_connect_failed _coro_connect_failed,
-                      coro_listen_ret     _coro_listen_ret,
-                      coro_process_packet _coro_process_packet)
+                      ASYNCB_CONNECT        on_connect,
+                      ASYNCB_CONNECTED      on_connected,
+                      ASYNCB_DISCNT         on_disconnect,
+                      ASYNCB_PROCESS_PACKET process_packet,
+                      ASYNCN_CONNECT_FAILED connect_failed,
+                      ASYNCB_LISTEN         listen_ret)
 {
 	if(pollercount == 0)return NULL;
-	if(!_coro_on_connect || !_coro_on_connected || !_coro_on_disconnect || !_coro_process_packet)
+    if(!on_connect || !on_connected || !on_disconnect || !process_packet)
 		return NULL;
 	if(pollercount > MAX_NETPOLLER)
 		pollercount = MAX_NETPOLLER;
@@ -336,12 +332,12 @@ asynnet_t asynnet_new(uint8_t  pollercount,
 	if(!c) return NULL;
 	c->poller_count = pollercount;
 	c->mq_out = new_msgque(1024,mq_item_destroyer);
-	c->_coro_on_connect = _coro_on_connect;
-	c->_coro_on_connected = _coro_on_connected;
-	c->_coro_on_disconnect = _coro_on_disconnect;
-	c->_coro_process_packet = _coro_process_packet;
-	c->_coro_connect_failed = _coro_connect_failed;
-	c->_coro_listen_ret = _coro_listen_ret;
+    c->on_connect = on_connect;
+    c->on_connected = on_connected;
+    c->on_disconnect = on_disconnect;
+    c->process_packet = process_packet;
+    c->connect_failed = connect_failed;
+    c->listen_ret = listen_ret;
 	//创建线程池
     c->accptor_and_connector.poller_thd = create_thread(THREAD_JOINABLE);
 	c->accptor_and_connector.mq_in = new_msgque(1024,mq_item_destroyer);
@@ -420,30 +416,30 @@ static void dispatch_msg(asynnet_t c,msg_t msg)
 	{
 		rpacket_t rpk = (rpacket_t)msg;
 		sock_ident sock = CAST_2_SOCK(rpk->base._ident);
-		if(c->_coro_process_packet(c,sock,rpk))
+        if(c->process_packet(c,sock,rpk))
 			rpk_destroy(&rpk);
 	}else{
 		struct msg_connection *tmsg = (struct msg_connection*)msg;
 		sock_ident sock = CAST_2_SOCK(tmsg->base._ident);
 		if(msg->type == MSG_ONCONNECT){
-			if(c->_coro_on_connect)
-				c->_coro_on_connect(c,sock,tmsg->ip,tmsg->port);
+            if(c->on_connect)
+                c->on_connect(c,sock,tmsg->ip,tmsg->port);
 			else
                 asynsock_close(sock);
 		}
 		else if(msg->type == MSG_ONCONNECTED){
-			if(c->_coro_on_connected)
-				c->_coro_on_connected(c,sock,tmsg->ip,tmsg->port);
+            if(c->on_connected)
+                c->on_connected(c,sock,tmsg->ip,tmsg->port);
 			else
                 asynsock_close(sock);
 		}
-		else if(msg->type == MSG_DISCONNECTED && c->_coro_on_disconnect){
-				c->_coro_on_disconnect(c,sock,tmsg->ip,tmsg->port,tmsg->reason);
+        else if(msg->type == MSG_DISCONNECTED && c->on_disconnect){
+                c->on_disconnect(c,sock,tmsg->ip,tmsg->port,tmsg->reason);
 		}
-		else if(msg->type == MSG_CONNECT_FAIL && c->_coro_connect_failed)
-			c->_coro_connect_failed(c,tmsg->ip,tmsg->port,tmsg->reason);
-		else if(msg->type == MSG_LISTEN_RET && c->_coro_listen_ret)
-			c->_coro_listen_ret(c,sock,tmsg->ip,tmsg->port,tmsg->reason);
+        else if(msg->type == MSG_CONNECT_FAIL && c->connect_failed)
+            c->connect_failed(c,tmsg->ip,tmsg->port,tmsg->reason);
+        else if(msg->type == MSG_LISTEN_RET && c->listen_ret)
+            c->listen_ret(c,sock,tmsg->ip,tmsg->port,tmsg->reason);
 		free(msg);
 	}
 }
