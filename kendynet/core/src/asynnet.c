@@ -3,6 +3,32 @@
 #include "asynsock.h"
 #include "systime.h"
 
+struct asynnet;
+struct poller_st
+{
+    msgque_t         mq_in;          //用于接收从逻辑层过来的消息
+    netservice*      netpoller;      //底层的poller
+    thread_t         poller_thd;
+    struct asynnet*  _coronet;
+    atomic_32_t  flag;
+};
+
+struct asynnet
+{
+    uint32_t  poller_count;
+    msgque_t  mq_out;                                 //用于向逻辑层发送消息
+    struct poller_st      accptor_and_connector;       //监听器和连接器
+    struct poller_st      netpollers[MAX_NETPOLLER];
+    ASYNCB_CONNECT        on_connect;
+    ASYNCB_CONNECTED      on_connected;
+    ASYNCB_DISCNT         on_disconnect;
+    ASYNCB_PROCESS_PACKET process_packet;
+    ASYNCN_CONNECT_FAILED connect_failed;
+    ASYNCB_LISTEN         listen_ret;
+    atomic_32_t         flag;
+};
+
+
 struct msg_listen
 {
 	struct msg base;
