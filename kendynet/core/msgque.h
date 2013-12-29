@@ -24,8 +24,8 @@
 *  增加此线程对这个消息队列的引用计数
 */
 
-#ifndef _MSG_QUE_H
-#define _MSG_QUE_H
+#ifndef _MSGQUE_H
+#define _MSGQUE_H
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

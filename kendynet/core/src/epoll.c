@@ -1,12 +1,12 @@
 #include "epoll.h"
-#include "Socket.h"
+#include "socket.h"
 #include "sock_util.h"
-#include "SysTime.h"
+#include "systime.h"
 #include "common.h"
 #include <assert.h>
 
 
-int32_t  epoll_init(engine_t e)
+int32_t  epoll_init(poller_t e)
 {
 	assert(e);
 	e->poller_fd = TEMP_FAILURE_RETRY(epoll_create(MAX_SOCKET));
@@ -34,7 +34,7 @@ int32_t  epoll_init(engine_t e)
 	return 	0;
 }
 
-int32_t epoll_register(engine_t e, socket_t s)
+int32_t epoll_register(poller_t e, socket_t s)
 {
 	assert(e);assert(s);
 	int32_t ret = -1;
@@ -54,7 +54,7 @@ int32_t epoll_register(engine_t e, socket_t s)
 }
 
 
-int32_t epoll_unregister(engine_t e,socket_t s)
+int32_t epoll_unregister(poller_t e,socket_t s)
 {
 	assert(e);assert(s);
 	struct epoll_event ev;int32_t ret;
@@ -65,7 +65,7 @@ int32_t epoll_unregister(engine_t e,socket_t s)
 	return ret;
 }
 
-int32_t  epoll_unregister_recv(engine_t e,socket_t s)
+int32_t  epoll_unregister_recv(poller_t e,socket_t s)
 {
     assert(e);assert(s);
     struct epoll_event ev;int32_t ret;
@@ -83,7 +83,7 @@ int32_t  epoll_unregister_recv(engine_t e,socket_t s)
     return ret;
 }
 
-int32_t  epoll_unregister_send(engine_t e,socket_t s)
+int32_t  epoll_unregister_send(poller_t e,socket_t s)
 {
     assert(e);assert(s);
     struct epoll_event ev;int32_t ret;
@@ -111,7 +111,7 @@ int8_t check_connect_timeout(struct double_link_node *dln, void *ud)
     return 0;
 }
 
-int32_t epoll_wakeup(engine_t e)
+int32_t epoll_wakeup(poller_t e)
 {
 	return write(e->pipe_writer,"x",1);
 }
@@ -135,7 +135,7 @@ static int32_t _epoll_wait(int epfd, struct epoll_event *events,int maxevents, i
 	return 0;
 }
 
-int32_t epoll_loop(engine_t n,int32_t ms)
+int32_t epoll_loop(poller_t n,int32_t ms)
 {
 	assert(n);
 	if(ms < 0)ms = 0;

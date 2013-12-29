@@ -1,7 +1,7 @@
-#include "msg_que.h"
+#include "msgque.h"
 #include <assert.h>
 #include <stdio.h>
-#include "SysTime.h"
+#include "systime.h"
 
 enum{
 	MSGQ_NONE = 0,

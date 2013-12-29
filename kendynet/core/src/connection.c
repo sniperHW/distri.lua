@@ -1,8 +1,8 @@
-#include "Connection.h"
+#include "connection.h"
 #include "link_list.h"
 #include <assert.h>
-#include "SysTime.h"
-#include "Socket.h"
+#include "systime.h"
+#include "socket.h"
 
 #define BUFFER_SIZE 65536
 

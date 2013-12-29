@@ -1,13 +1,13 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "KendyNet.h"
+#include "kendynet.h"
 #include "sock_util.h"
-#include "Engine.h"
-#include "Socket.h"
+#include "poller.h"
+#include "socket.h"
 #include <stdio.h>
 #include "sync.h"
-#include "SysTime.h"
+#include "systime.h"
 
 SOCK _accept(socket_t s,struct sockaddr *sa,socklen_t *salen);
 

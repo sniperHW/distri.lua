@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "core/KendyNet.h"
-#include "core/Connection.h"
-#include "core/SysTime.h"
+#include "core/kendynet.h"
+#include "core/connection.h"
+#include "core/systime.h"
 #include "testcommon.h"
 
 uint32_t ava_interval = 0;

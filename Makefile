@@ -8,23 +8,25 @@ TESTDIR = kendynet/test
 
 kendynet.a: \
 		   kendynet/core/src/buffer.c \
-		   kendynet/core/src/Connection.c \
-		   kendynet/core/src/Engine.c \
+		   kendynet/core/src/connection.c \
+		   kendynet/core/src/poller.c \
 		   kendynet/core/src/epoll.c \
 		   kendynet/core/src/except.c \
-		   kendynet/core/src/KendyNet.c \
-		   kendynet/core/src/msg_que.c \
+		   kendynet/core/src/kendynet.c \
+		   kendynet/core/src/msgque.c \
 		   kendynet/core/src/netservice.c \
-		   kendynet/core/src/RBtree.c \
+		   kendynet/core/src/rbtree.c \
 		   kendynet/core/src/rpacket.c \
-		   kendynet/core/src/Socket.c \
+		   kendynet/core/src/socket.c \
 		   kendynet/core/src/sock_util.c \
 		   kendynet/core/src/spinlock.c \
-		   kendynet/core/src/SysTime.c \
+		   kendynet/core/src/systime.c \
 		   kendynet/core/src/thread.c \
 		   kendynet/core/src/timer.c \
 		   kendynet/core/src/uthread.c \
 		   kendynet/core/src/refbase.c \
+		   kendynet/core/src/asynnet.c \
+		   kendynet/core/src/asynsock.c \
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o

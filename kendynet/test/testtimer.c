@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "core/timer.h"
-#include "core/SysTime.h"
+#include "core/systime.h"
 #include "core/sync.h"
 
 struct ttimer

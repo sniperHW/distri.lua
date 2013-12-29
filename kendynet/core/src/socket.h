@@ -18,7 +18,7 @@
 #define _SOCKETWRAPPER_H
 #include <stdint.h>
 #include "double_link.h"
-#include "KendyNet.h"
+#include "kendynet.h"
 #include "refbase.h"
 
 enum{
@@ -42,7 +42,7 @@ typedef struct socket_wrapper
     volatile uint32_t  status;
 	volatile int32_t  readable;
 	volatile int32_t  writeable;
-	struct engine  *engine;
+    struct poller  *engine;
 	int32_t fd;
 	struct link_list pending_send;//尚未处理的发请求
 	struct link_list pending_recv;//尚未处理的读请求

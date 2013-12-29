@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "core/KendyNet.h"
+#include "core/kendynet.h"
 #include "core/thread.h"
 #include "core/atomic.h"
-#include "core/SysTime.h"
-#include "core/msg_que.h"
+#include "core/systime.h"
+#include "core/msgque.h"
 
 list_node *node_list1[5];
 list_node *node_list2[5];

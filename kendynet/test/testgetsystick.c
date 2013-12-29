@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "core/SysTime.h"
+#include "core/systime.h"
 
 
 int main()

@@ -1,14 +1,14 @@
-#include "KendyNet.h"
+#include "kendynet.h"
 #include "link_list.h"
 #include <stdlib.h>
 #include <assert.h>
 #include "common.h"
-#include "Engine.h"
-
+#include "poller.h"
 #include "epoll.h"
-engine_t create_engine()
+
+poller_t poller_new()
 {
-	engine_t e = malloc(sizeof(*e));
+    poller_t e = malloc(sizeof(*e));
 	if(e)
 	{
 		e->Init = epoll_init;
@@ -26,7 +26,7 @@ engine_t create_engine()
 	return e;
 }
 
-void   free_engine(engine_t *e)
+void   poller_delete(poller_t *e)
 {
 	assert(e);
 	assert(*e);

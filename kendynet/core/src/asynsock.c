@@ -1,8 +1,8 @@
-#include "datasocket.h"
+#include "asynsock.h"
 
-void destroy_datasocket(void *ptr)
+void asynsock_destroy(void *ptr)
 {
-	datasocket_t sock = (datasocket_t)ptr;
+    asynsock_t sock = (asynsock_t)ptr;
 	if(sock->c) 
 		release_conn(sock->c);
 	else if(sock->s != INVALID_SOCK) 
@@ -10,10 +10,10 @@ void destroy_datasocket(void *ptr)
 	free(sock);
 }
 
-datasocket_t create_datasocket(struct connection *c,SOCK s)
+asynsock_t asynsock_new(struct connection *c,SOCK s)
 {
-	datasocket_t sock = calloc(1,sizeof(*sock));
-	ref_init(&sock->ref,destroy_datasocket,1);
+    asynsock_t sock = calloc(1,sizeof(*sock));
+    ref_init(&sock->ref,asynsock_destroy,1);
     if(c){
 		sock->c = c;
         c->usr_ptr = sock;

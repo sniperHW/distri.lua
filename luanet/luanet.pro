@@ -33,7 +33,16 @@ SOURCES += \
     ../kendynet/core/src/datasocket.c \
     ../kendynet/core/src/coronet.c \
     ../kendynet/core/src/refbase.c \
-    ../luanet.c
+    ../luanet.c \
+    ../kendynet/core/src/systime.c \
+    ../kendynet/core/src/rbtree.c \
+    ../kendynet/core/src/poller.c \
+    ../kendynet/core/src/msgque.c \
+    ../kendynet/core/src/kendynet.c \
+    ../kendynet/core/src/connection.c \
+    ../kendynet/core/src/asynsock.c \
+    ../kendynet/core/src/asynnet.c \
+    ../kendynet/core/src/socket.c
 
 HEADERS += \
     ../kendynet/core/wpacket.h \
@@ -70,5 +79,14 @@ HEADERS += \
     ../kendynet/core/src/Engine.h \
     ../kendynet/test/testcommon.h \
     ../kendynet/core/datasocket.h \
-    ../kendynet/core/coronet.h
+    ../kendynet/core/coronet.h \
+    ../kendynet/core/systime.h \
+    ../kendynet/core/rbtree.h \
+    ../kendynet/core/msgque.h \
+    ../kendynet/core/kendynet.h \
+    ../kendynet/core/connection.h \
+    ../kendynet/core/asynnet.h \
+    ../kendynet/core/src/poller.h \
+    ../kendynet/core/src/asynsock.h \
+    ../kendynet/core/src/socket.h
 

@@ -41,6 +41,6 @@
 #define EV_ERR EPOLLERR
 #define EV_ET  EPOLLET
 
-#include "KendyNet.h"
+#include "kendynet.h"
 
 #endif

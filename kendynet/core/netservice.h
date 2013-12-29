@@ -16,9 +16,9 @@
 */
 #ifndef _NETSERVICE_H
 #define _NETSERVICE_H
-#include "KendyNet.h"
-#include "Connection.h"
-#include "SysTime.h"
+#include "kendynet.h"
+#include "connection.h"
+#include "systime.h"
 #include "timer.h"
 
 typedef struct netservice{

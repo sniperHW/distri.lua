@@ -1,6 +1,6 @@
 #ifndef _CONNECTION_H
 #define _CONNECTION_H
-#include "KendyNet.h"
+#include "kendynet.h"
 #include "wpacket.h"
 #include "rpacket.h"
 #include <stdint.h>

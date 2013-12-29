@@ -1,11 +1,11 @@
-#include "KendyNet.h"
-#include "Engine.h"
-#include "Socket.h"
+#include "kendynet.h"
+#include "poller.h"
+#include "socket.h"
 #include "link_list.h"
 #include "sock_util.h"
 #include <assert.h>
 #include "double_link.h"
-#include "SysTime.h"
+#include "systime.h"
 
 socket_t get_socket_wrapper(SOCK s);
 void init_socket_pool();
@@ -21,21 +21,21 @@ int32_t InitNetSystem()
 
 void  CleanNetSystem(){}
 
-static inline engine_t GetEngineByHandle(ENGINE handle)
+static inline poller_t GetEngineByHandle(ENGINE handle)
 {
-	return (engine_t)handle;
+    return (poller_t)handle;
 }
 
 static inline void  ReleaseEngine(ENGINE handle)
 {
-	engine_t e = (engine_t)handle;
-	free_engine(&e);
+    poller_t e = (poller_t)handle;
+    poller_delete(&e);
 }
 
 
 int32_t EngineRun(ENGINE engine,int32_t timeout)
 {
-	engine_t e = GetEngineByHandle(engine);
+    poller_t e = GetEngineByHandle(engine);
 	if(!e)
 		return -1;
 	return e->Loop(e,timeout);
@@ -43,10 +43,10 @@ int32_t EngineRun(ENGINE engine,int32_t timeout)
 
 ENGINE CreateEngine()
 {
-	ENGINE engine = create_engine();
+    ENGINE engine = poller_new();
 	if(engine != INVALID_ENGINE)
 	{
-		engine_t e = GetEngineByHandle(engine);
+        poller_t e = GetEngineByHandle(engine);
 		if(0 != e->Init(e))
 		{
 			CloseEngine(engine);
@@ -68,7 +68,7 @@ int32_t Bind2Engine(ENGINE e,SOCK s,OnIoFinish _iofinish,
     if(!_iofinish)
         return -1;
 
-	engine_t engine = GetEngineByHandle(e);
+    poller_t engine = GetEngineByHandle(e);
 	socket_t sock   = get_socket_wrapper(s);
     if(!engine || ! sock || sock->engine)
 		return -1;
@@ -88,7 +88,7 @@ int32_t Bind2Engine(ENGINE e,SOCK s,OnIoFinish _iofinish,
 
 SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,OnAccept accept_function)
 {
-	engine_t engine = GetEngineByHandle(e);
+    poller_t engine = GetEngineByHandle(e);
 	if(!engine) return INVALID_SOCK;
 	SOCK ListenSocket;
 	ListenSocket = Tcp_Listen(ip,port,256);
@@ -113,14 +113,14 @@ SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,OnAccept accept_functi
 
 int32_t EWakeUp(ENGINE e)
 {
-	engine_t engine = GetEngineByHandle(e);
+    poller_t engine = GetEngineByHandle(e);
 	if(!engine) return -1;
 	return engine->WakeUp(engine);
 }
 
 int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,OnConnect _on_connect,uint32_t ms)
 {
-    engine_t engine = GetEngineByHandle(e);
+    poller_t engine = GetEngineByHandle(e);
 	if(!engine) return -1;
     if(ip == NULL || _on_connect == 0)
         return -1;
