@@ -132,7 +132,7 @@ static void asyncb_io_timeout(struct connection *c)
 static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
 	struct connection *c = new_conn(sock,1);
-    c->_on_disconnect = asyncb_disconnect;
+    c->cb_disconnect = asyncb_disconnect;
     asynsock_t d = asynsock_new(c,INVALID_SOCK);
 	msgque_t mq =  (msgque_t)ud;
 	struct msg_connection *msg = calloc(1,sizeof(*msg));

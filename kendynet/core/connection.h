@@ -22,12 +22,12 @@ struct OVERLAPCONTEXT
 *   返回1：process_packet调用后rpacket_t自动销毁
 *   否则,将由使用者自己销毁
 */
-typedef int8_t (*process_packet)(struct connection*,rpacket_t);
+typedef int8_t (*CCB_PROCESS_PKT)(struct connection*,rpacket_t);
 
 
-typedef void (*on_disconnect)(struct connection*,uint32_t reason);
-typedef void (*on_recv_timeout)(struct connection*);
-typedef void (*on_send_timeout)(struct connection*);
+typedef void (*CCB_DISCONNECT)(struct connection*,uint32_t reason);
+typedef void (*CCB_RECV_TIMEOUT)(struct connection*);
+typedef void (*CCB_SEND_TIMEOUT)(struct connection*);
 
 #define MAX_WBAF 512
 #define MAX_SEND_SIZE 65536
@@ -48,8 +48,8 @@ struct connection
 	buffer_t unpack_buf;
 
 	struct link_list send_list;//待发送的包
-	process_packet _process_packet;
-	on_disconnect  _on_disconnect;
+    CCB_PROCESS_PKT cb_process_packet;
+    CCB_DISCONNECT  cb_disconnect;
 	union{
         uint64_t usr_data;
         void    *usr_ptr;
@@ -58,8 +58,8 @@ struct connection
 	struct timer_item wheelitem;
 	uint32_t recv_timeout;
     uint32_t send_timeout;
-    on_recv_timeout _recv_timeout;
-    on_send_timeout _send_timeout;
+    CCB_RECV_TIMEOUT cb_recv_timeout;
+    CCB_SEND_TIMEOUT cb_send_timeout;
 	uint8_t  raw;
     volatile uint32_t status;
 	uint8_t  doing_send;
@@ -84,6 +84,6 @@ void   active_close(struct connection*);//active close connection
 
 int32_t send_packet(struct connection*,wpacket_t);
 
-int32_t bind2engine(ENGINE,struct connection*,process_packet,on_disconnect);
+int32_t bind2engine(ENGINE,struct connection*,CCB_PROCESS_PKT,CCB_DISCONNECT);
 
 #endif

@@ -85,7 +85,7 @@ static inline int unpack(struct connection *c)
         if(r){
             int8_t process_ret = 1;
             if(test_recvable(c->status))
-                process_ret = c->_process_packet(c,r);
+                process_ret = c->cb_process_packet(c,r);
             if(process_ret) rpk_destroy(&r);
         }
         if(!test_recvable(c->status)) return 0;
@@ -209,7 +209,7 @@ void active_close(struct connection *c)
             c->status = SCLOSE;
 			CloseSocket(c->socket);
             printf("active close\n");
-            c->_on_disconnect(c,0);
+            c->cb_disconnect(c,0);
 		}else
         {
             //还有数据需要发送，等数据发送完毕后再关闭
@@ -236,7 +236,7 @@ void RecvFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
                 c->status = SCLOSE;
                 CloseSocket(c->socket);
                 //被动关闭
-				c->_on_disconnect(c,err_code);
+                c->cb_disconnect(c,err_code);
 			}
 			return;
 		}else if(bytestransfer > 0){
@@ -297,7 +297,7 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
             {
                 c->status = SCLOSE;
                 CloseSocket(c->socket);
-                c->_on_disconnect(c,0);
+                c->cb_disconnect(c,0);
             }
 			return;
 		}else if(bytestransfer > 0)
@@ -312,7 +312,7 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
                         //数据已经发送完毕，关闭
                         c->status = SCLOSE;
                         CloseSocket(c->socket);
-                        c->_on_disconnect(c,0);
+                        c->cb_disconnect(c,0);
 					}
 				    return;
 				}
@@ -369,10 +369,10 @@ void acquire_conn(struct connection *con){
 }
 
 int32_t bind2engine(ENGINE e,struct connection *c,
-    process_packet _process_packet,on_disconnect _on_disconnect)
+    CCB_PROCESS_PKT cb_process_packet,CCB_DISCONNECT cb_disconnect)
 {
-	c->_process_packet = _process_packet;
-	c->_on_disconnect = _on_disconnect;
+    c->cb_process_packet = cb_process_packet;
+    c->cb_disconnect = cb_disconnect;
 	start_recv(c);
 	return Bind2Engine(e,c->socket,IoFinish,NULL);
 }

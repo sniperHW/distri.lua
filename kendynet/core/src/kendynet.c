@@ -61,11 +61,11 @@ void CloseEngine(ENGINE handle)
 	ReleaseEngine(handle);
 }
 
-int32_t Bind2Engine(ENGINE e,SOCK s,OnIoFinish _iofinish,
-        OnClearPending _clear_pending)
+int32_t Bind2Engine(ENGINE e,SOCK s,CB_IOFINISH iofinish,
+        CB_CLEARPENDING clear_pending)
 {
     //iofinish should not be NULL
-    if(!_iofinish)
+    if(!iofinish)
         return -1;
 
     poller_t engine = GetEngineByHandle(e);
@@ -75,8 +75,8 @@ int32_t Bind2Engine(ENGINE e,SOCK s,OnIoFinish _iofinish,
 
 	if(setNonblock(s) != 0)
         return -1;
-	sock->io_finish = _iofinish;
-	sock->clear_pending_io = _clear_pending;
+    sock->io_finish = iofinish;
+    sock->clear_pending_io = clear_pending;
 	sock->engine = engine;
 	sock->socket_type = DATA;
 	if(engine->Register(engine,sock) == 0)
@@ -86,10 +86,10 @@ int32_t Bind2Engine(ENGINE e,SOCK s,OnIoFinish _iofinish,
 	return -1;
 }
 
-SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,OnAccept accept_function)
+SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,CB_ACCEPT on_accept)
 {
     poller_t engine = GetEngineByHandle(e);
-	if(!engine) return INVALID_SOCK;
+    if(!engine || ! on_accept) return INVALID_SOCK;
 	SOCK ListenSocket;
 	ListenSocket = Tcp_Listen(ip,port,256);
 	if(ListenSocket == INVALID_SOCK) return INVALID_SOCK;
@@ -99,7 +99,7 @@ SOCK EListen(ENGINE e,const char *ip,int32_t port,void*ud,OnAccept accept_functi
        return INVALID_SOCK;
     }
 	socket_t sock   = get_socket_wrapper(ListenSocket);
-	sock->on_accept = accept_function;
+    sock->on_accept = on_accept;
 	sock->ud = ud;
 	sock->engine = engine;
 	sock->socket_type = LISTEN;
@@ -118,11 +118,11 @@ int32_t EWakeUp(ENGINE e)
 	return engine->WakeUp(engine);
 }
 
-int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,OnConnect _on_connect,uint32_t ms)
+int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,CB_CONNECT on_connect,uint32_t ms)
 {
     poller_t engine = GetEngineByHandle(e);
 	if(!engine) return -1;
-    if(ip == NULL || _on_connect == 0)
+    if(ip == NULL || on_connect == 0)
         return -1;
 
     struct sockaddr_in servaddr;
@@ -143,7 +143,7 @@ int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,OnConnect _on_con
     }
     socket_t s = get_socket_wrapper(sock);
     if(connect(s->fd,(const struct sockaddr *)&servaddr,sizeof(servaddr)) == 0)
-        _on_connect(sock,&servaddr,ud,0);
+        on_connect(sock,&servaddr,ud,0);
     else{
         if(errno != EINPROGRESS)
         {
@@ -155,7 +155,7 @@ int32_t EConnect(ENGINE e,const char *ip,int32_t port,void *ud,OnConnect _on_con
         s->sock = sock;
         s->engine = engine;
         s->ud = ud;
-        s->on_connect = _on_connect;
+        s->on_connect = on_connect;
         s->addr_remote = servaddr;
         if(engine->Register(engine,s) == 0)
             return 0;

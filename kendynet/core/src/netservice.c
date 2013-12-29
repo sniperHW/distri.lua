@@ -6,13 +6,13 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
     uint32_t now = GetSystemMs();
     struct connection *c = wheelitem2con(wit);
     acquire_conn(c);
-    if(test_recvable(c->status) && c->_recv_timeout && now > c->last_recv + c->recv_timeout)
-        c->_recv_timeout(c);
-    if(test_sendable(c->status) && c->_send_timeout)
+    if(test_recvable(c->status) && c->cb_recv_timeout && now > c->last_recv + c->recv_timeout)
+        c->cb_recv_timeout(c);
+    if(test_sendable(c->status) && c->cb_send_timeout)
     {
         wpacket_t wpk = (wpacket_t)link_list_head(&c->send_list);
         if(wpk && now > wpk->base.tstamp + c->send_timeout)
-            c->_send_timeout(c);
+            c->cb_send_timeout(c);
     }
     if(c->status != SCLOSE) register_timer(t,wit,1);
     release_conn(c);
@@ -20,33 +20,33 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
 
 static int32_t _bind(struct netservice *n,
                      struct connection *c,
-                     process_packet _process_packet,
-                     on_disconnect _on_disconnect,
+                     CCB_PROCESS_PKT cb_process_packet,
+                     CCB_DISCONNECT cb_disconnect,
                      uint32_t rtimeout,
-                     on_recv_timeout _recv_timeout,
+                     CCB_RECV_TIMEOUT cb_recv_timeout,
                      uint32_t stimeout,
-                     on_send_timeout _send_timeout)
+                     CCB_SEND_TIMEOUT cb_send_timeout)
  {
-    c->_recv_timeout = _recv_timeout;
-    c->_send_timeout = _send_timeout;
+    c->cb_recv_timeout = cb_recv_timeout;
+    c->cb_send_timeout = cb_send_timeout;
     c->recv_timeout = rtimeout;
     c->send_timeout = stimeout;
     c->wheelitem.ud_ptr = (void*)n;
     c->wheelitem.callback = check_timeout;
     register_timer(n->timer,con2wheelitem(c),1);
-    return bind2engine(n->engine,c,_process_packet,_on_disconnect);
+    return bind2engine(n->engine,c,cb_process_packet,cb_disconnect);
  }
 
 
 
 static SOCK _listen(struct netservice *n,
-                           const char *ip,int32_t port,void *ud, OnAccept on_accept)
+                           const char *ip,int32_t port,void *ud,CB_ACCEPT on_accept)
 {
   return EListen(n->engine,ip,port,ud,on_accept);
 }
 
 
-int32_t _connect(struct netservice *n,const char *ip,int32_t port,void *ud,OnConnect on_connect,
+int32_t _connect(struct netservice *n,const char *ip,int32_t port,void *ud,CB_CONNECT on_connect,
                  uint32_t timeout)
 {
     return EConnect(n->engine,ip,port,ud,on_connect,timeout);
