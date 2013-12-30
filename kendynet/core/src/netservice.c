@@ -10,7 +10,7 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
         c->cb_recv_timeout(c);
     if(test_sendable(c->status) && c->cb_send_timeout)
     {
-        wpacket_t wpk = (wpacket_t)link_list_head(&c->send_list);
+        wpacket_t wpk = (wpacket_t)llist_head(&c->send_list);
         if(wpk && now > wpk->base.tstamp + c->send_timeout)
             c->cb_send_timeout(c);
     }

@@ -1,5 +1,5 @@
 #include "kendynet.h"
-#include "link_list.h"
+#include "llist.h"
 #include <stdlib.h>
 #include <assert.h>
 #include "common.h"
@@ -19,9 +19,9 @@ poller_t poller_new()
         e->UnRegisterSend = epoll_unregister_send;
 		e->WakeUp = epoll_wakeup;
         e->actived_index = 0;
-        double_link_init(&e->actived[0]);
-        double_link_init(&e->actived[1]);
-		double_link_init(&e->connecting);
+        dlist_init(&e->actived[0]);
+        dlist_init(&e->actived[1]);
+        dlist_init(&e->connecting);
 	}
 	return e;
 }

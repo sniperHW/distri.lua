@@ -17,7 +17,7 @@
 #ifndef _KENDYNET_H
 #define _KENDYNET_H
 #include <stdint.h>
-#include "link_list.h"
+#include "llist.h"
 #include "common_define.h"
 
 //定义系统支持的最大套接字数量
@@ -33,7 +33,7 @@ typedef void* SOCK;
 /*IO请求和完成队列使用的结构*/
 typedef struct
 {
-	LIST_NODE;
+    lnode      next;
 	struct     iovec *iovec;
 	int32_t    iovec_count;
 }st_io;

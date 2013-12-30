@@ -8,7 +8,7 @@ struct wheel
 	time_t   round_time;      //一轮执行完后的时间
 	uint32_t cur_idx;
 	uint32_t size;
-	struct double_link wheel[0];
+    struct dlist wheel[0];
 };
 
 struct timer
@@ -37,10 +37,10 @@ void   init_timer_item(struct timer_item *item)
     item->ud_ptr = NULL;
 }
 
-static inline void active(struct timer *timer,struct double_link *wheel)
+static inline void active(struct timer *timer,struct dlist *wheel)
 {
-	struct double_link_node *node = NULL;
-    while((node = double_link_pop(wheel)) != NULL){
+    struct dnode *node = NULL;
+    while((node = dlist_pop(wheel)) != NULL){
 		struct timer_item *item = (struct timer_item*)node;
 		item->callback(timer,item,item->ud_ptr);
 	}
@@ -60,7 +60,7 @@ void update_timer(struct timer *timer,time_t now)
 			else{
 				//将wheel[i]中的内容整体移到type-1的cur_idx中
 				struct wheel *lower = timer->wheels[type-1];
-				double_link_move(&lower->wheel[0],&wheel->wheel[wheel->cur_idx]);
+                dlist_move(&lower->wheel[0],&wheel->wheel[wheel->cur_idx]);
 			}
 			wheel->cur_idx = (wheel->cur_idx + 1) % _mod[type];
 			if(wheel->cur_idx == 0){
@@ -79,7 +79,7 @@ static inline int32_t Add(struct wheel *wheel,struct timer_item *item,
 	if(timeout < wheel->round_time){
 		uint32_t idx = cal_index(elapse,type);
 		assert(idx < wheel->size);
-		double_link_push(&wheel->wheel[idx],(struct double_link_node*)item);
+        dlist_push(&wheel->wheel[idx],(struct dnode*)item);
 		return 1;
 	}
 	return 0;
@@ -100,16 +100,16 @@ int8_t register_timer(struct timer *timer,struct timer_item *item,time_t timeout
 
 void unregister_timer(struct timer_item *item)
 {
-	double_link_remove((struct double_link_node *)item);
+    dlist_remove((struct dnode *)item);
 }
 
 struct wheel* new_wheel(uint32_t size)
 {
-	struct wheel *wheel = calloc(1,sizeof(*wheel) + size*sizeof(struct double_link));
+    struct wheel *wheel = calloc(1,sizeof(*wheel) + size*sizeof(struct dnode));
 	wheel->size = size;
 	wheel->cur_idx = 0;
 	int32_t i = 0;
-	for(; i < size; ++i) double_link_init(&wheel->wheel[i]);
+    for(; i < size; ++i) dlist_init(&wheel->wheel[i]);
 	return wheel;
 }
 

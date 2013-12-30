@@ -43,7 +43,7 @@ int32_t asynnet_listen(asynnet_t c,const char *ip,int32_t port)
 	msg->base.type = MSG_LISTEN;
 	strcpy(msg->ip,ip);
 	msg->port = port;
-	if(0 != msgque_put_immeda(c->accptor_and_connector.mq_in,(list_node*)msg)){
+    if(0 != msgque_put_immeda(c->accptor_and_connector.mq_in,(lnode*)msg)){
 		free(msg);
 		return -1;
 	}
@@ -66,7 +66,7 @@ int32_t asynnet_connect(asynnet_t c,const char *ip,int32_t port,uint32_t timeout
 	strcpy(msg->ip,ip);
 	msg->port = port;
 	msg->timeout = timeout;
-	if(0 != msgque_put_immeda(c->accptor_and_connector.mq_in,(list_node*)msg)){
+    if(0 != msgque_put_immeda(c->accptor_and_connector.mq_in,(lnode*)msg)){
 		free(msg);
 		return -1;
 	}
@@ -93,7 +93,7 @@ int32_t asynnet_bind(asynnet_t c,sock_ident sock,void *ud,int8_t raw,uint32_t se
 	msg->raw = raw;
 	msg->ud =  ud;
 	int32_t idx = rand()%c->poller_count;
-	if(0 != msgque_put_immeda(c->netpollers[idx].mq_in,(list_node*)msg)){
+    if(0 != msgque_put_immeda(c->netpollers[idx].mq_in,(lnode*)msg)){
 		free(msg);
 		return -1;
 	}
@@ -118,7 +118,7 @@ static void asyncb_disconnect(struct connection *c,uint32_t reason)
 		msg->reason = reason;
 		get_addr_remote(d->sident,msg->ip,32);
 		get_port_remote(d->sident,&msg->port);
-		if(0 != msgque_put_immeda(d->que,(list_node*)msg))
+        if(0 != msgque_put_immeda(d->que,(lnode*)msg))
 			free(msg);
 	}
     asynsock_release(d);
@@ -141,7 +141,7 @@ static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void
 	get_addr_remote(d->sident,msg->ip,32);
 	get_port_remote(d->sident,&msg->port);
 
-	if(0 != msgque_put_immeda(mq,(list_node*)msg)){
+    if(0 != msgque_put_immeda(mq,(lnode*)msg)){
         asynsock_release(d);
 		free(msg);
 	}
@@ -162,7 +162,7 @@ static void asyncb_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,in
 		msg->reason = err;
 		inet_ntop(INET,addr_remote,msg->ip,32);
 		msg->port = ntohs(addr_remote->sin_port);		
-		if(0 != msgque_put_immeda(mq,(list_node*)msg)){
+        if(0 != msgque_put_immeda(mq,(lnode*)msg)){
 			free(msg);
 		}
     }
@@ -174,7 +174,7 @@ static int8_t asyncb_process_packet(struct connection *c,rpacket_t r)
 {
     asynsock_t d = (asynsock_t)c->usr_ptr;
     r->base._ident = TO_IDENT(d->sident);
-    if(0 != msgque_put(d->que,(list_node*)r))
+    if(0 != msgque_put(d->que,(lnode*)r))
         return 1;
     return 0;
 }
@@ -207,7 +207,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 					tmsg->base.type = MSG_ONCONNECTED;
 					get_addr_remote(d->sident,tmsg->ip,32);
 					get_port_remote(d->sident,&tmsg->port);
-					if(0 != msgque_put_immeda(n->_coronet->mq_out,(list_node*)tmsg))
+                    if(0 != msgque_put_immeda(n->_coronet->mq_out,(lnode*)tmsg))
 						free(tmsg);
 				}
 			}
@@ -224,7 +224,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 			tmsg->reason = errno;
 			strcpy(tmsg->ip,_msg->ip);
 			tmsg->port = _msg->port;
-			if(0 != msgque_put_immeda(n->_coronet->mq_out,(list_node*)tmsg)){
+            if(0 != msgque_put_immeda(n->_coronet->mq_out,(lnode*)tmsg)){
 				free(tmsg);
 			}
 		}
@@ -245,7 +245,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 			tmsg->reason = errno;
 		strcpy(tmsg->ip,_msg->ip);
 		tmsg->port = _msg->port;
-		if(0 != msgque_put_immeda(n->_coronet->mq_out,(list_node*)tmsg)){
+        if(0 != msgque_put_immeda(n->_coronet->mq_out,(lnode*)tmsg)){
             if(d) asynsock_release(d);
 			free(tmsg);
 		}
@@ -292,7 +292,7 @@ static void *mainloop(void *arg)
 		uint32_t timeout = tick + 50;
 		int8_t is_empty = 0;
 		for(;tick < timeout;){
-			list_node *node = NULL;
+            lnode *node = NULL;
 			msgque_get(n->mq_in,&node,0);
 			if(node)
 			{
@@ -423,7 +423,7 @@ int32_t asynsock_close(sock_ident s)
 			msg_t msg = calloc(1,sizeof(*msg));
 			msg->_ident = TO_IDENT(s);
 			msg->type = MSG_ACTIVE_CLOSE;
-			if(0 != msgque_put_immeda(d->sndque,(list_node*)msg))
+            if(0 != msgque_put_immeda(d->sndque,(lnode*)msg))
 			{
 				free(msg);
 				ret = -2;
@@ -477,7 +477,7 @@ void peek_msg(asynnet_t c,uint32_t ms)
 	do{
 		msg_t _msg = NULL;
 		uint32_t sleeptime = timeout - nowtick;
-		msgque_get(c->mq_out,(list_node**)&_msg,sleeptime);
+        msgque_get(c->mq_out,(lnode**)&_msg,sleeptime);
 		if(_msg) dispatch_msg(c,_msg);
 		nowtick = GetSystemMs();
 	}while(c->flag == 0 && nowtick < timeout);

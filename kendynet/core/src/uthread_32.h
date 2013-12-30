@@ -1,7 +1,7 @@
 #include "uthread.h"
 #include <stdlib.h>
 #include <pthread.h>
-#include "link_list.h"
+#include "llist.h"
 
 #ifdef _DEBUG
 void* __attribute__((regparm(3))) uthread_switch(uthread_t from,uthread_t to,void *para)

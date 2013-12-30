@@ -47,7 +47,7 @@ struct connection
 	buffer_t next_recv_buf;
 	buffer_t unpack_buf;
 
-	struct link_list send_list;//待发送的包
+    struct llist send_list;//待发送的包
     CCB_PROCESS_PKT cb_process_packet;
     CCB_DISCONNECT  cb_disconnect;
 	union{

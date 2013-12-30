@@ -97,18 +97,16 @@ void process_accept(socket_t s)
 void on_read_active(socket_t s)
 {
     s->readable = 1;
-    if(!LINK_LIST_IS_EMPTY(&s->pending_recv)){
-         putin_active(s->engine,(struct double_link_node*)s);
-        //double_link_push(&s->engine->actived,(struct double_link_node*)s);
+    if(!LLIST_IS_EMPTY(&s->pending_recv)){
+         putin_active(s->engine,(struct dnode*)s);
     }
 }
 
 void on_write_active(socket_t s)
 {
     s->writeable = 1;
-    if(!LINK_LIST_IS_EMPTY(&s->pending_send)){
-        putin_active(s->engine,(struct double_link_node*)s);
-        //double_link_push(&s->engine->actived,(struct double_link_node*)s);
+    if(!LLIST_IS_EMPTY(&s->pending_send)){
+        putin_active(s->engine,(struct dnode*)s);
     }
 }
 
@@ -125,7 +123,7 @@ int32_t raw_recv(socket_t s,st_io *io_req,uint32_t *err_code)
 		{
 			s->readable = 0;
 			//将请求重新放回到队列
-			LINK_LIST_PUSH_FRONT(&s->pending_recv,io_req);
+            LLIST_PUSH_FRONT(&s->pending_recv,io_req);
 		}
 	}
 	return ret;
@@ -139,7 +137,7 @@ static inline void _recv(socket_t s)
 	uint32_t err_code = 0;
 	if(s->readable)
 	{
-		if((io_req = LINK_LIST_POP(st_io*,&s->pending_recv))!=NULL)
+        if((io_req = LLIST_POP(st_io*,&s->pending_recv))!=NULL)
 		{
 			int32_t bytes_transfer = raw_recv(s,io_req,&err_code);
 			if(bytes_transfer == 0) bytes_transfer = -1;
@@ -160,7 +158,7 @@ int32_t raw_send(socket_t s,st_io *io_req,uint32_t *err_code)
 		{
 			s->writeable = 0;
 			//将请求重新放回到队列
-			LINK_LIST_PUSH_FRONT(&s->pending_send,io_req);
+            LLIST_PUSH_FRONT(&s->pending_send,io_req);
 		}
 	}
 	return ret;
@@ -173,7 +171,7 @@ static inline void _send(socket_t s)
 	uint32_t err_code = 0;
 	if(s->writeable)
 	{
-		if((io_req = LINK_LIST_POP(st_io*,&s->pending_send))!=NULL)
+        if((io_req = LLIST_POP(st_io*,&s->pending_send))!=NULL)
 		{
 			int32_t bytes_transfer = raw_send(s,io_req,&err_code);
 			if(bytes_transfer == 0) bytes_transfer = -1;
@@ -187,8 +185,8 @@ int32_t  Process(socket_t s)
 	acquire_socket_wrapper((SOCK)s);
 	_recv(s);
 	_send(s);
-	int32_t read_active = s->readable && !LINK_LIST_IS_EMPTY(&s->pending_recv);
-	int32_t write_active = s->writeable && !LINK_LIST_IS_EMPTY(&s->pending_send);
+    int32_t read_active = s->readable && !LLIST_IS_EMPTY(&s->pending_recv);
+    int32_t write_active = s->writeable && !LLIST_IS_EMPTY(&s->pending_send);
 	release_socket_wrapper((SOCK)s);
 	return (read_active || write_active);
 }
@@ -210,20 +208,18 @@ void   clear_pending_send(socket_t sw)
 {
     if((sw)->clear_pending_io)
     {
-        list_node *tmp;
-        while((tmp = link_list_pop(&sw->pending_send))!=NULL)
+        lnode *tmp;
+        while((tmp = llist_pop(&sw->pending_send))!=NULL)
             sw->clear_pending_io((st_io*)tmp);
     }
-    LINK_LIST_CLEAR(&sw->pending_send);
 }
 
 void   clear_pending_recv(socket_t sw)
 {
     if((sw)->clear_pending_io)
     {
-        list_node *tmp;
-        while((tmp = link_list_pop(&sw->pending_recv))!=NULL)
+        lnode *tmp;
+        while((tmp = llist_pop(&sw->pending_recv))!=NULL)
             sw->clear_pending_io((st_io*)tmp);
     }
-    LINK_LIST_CLEAR(&sw->pending_recv);
 }

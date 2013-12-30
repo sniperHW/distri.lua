@@ -18,7 +18,7 @@ typedef struct sock_ident{
 
 typedef struct msg
 {
-	list_node next;
+    lnode next;
 	uint8_t   type;
 	union{
 		uint64_t  usr_data;

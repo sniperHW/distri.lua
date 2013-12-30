@@ -18,7 +18,7 @@
 #define _PACKET_H
 
 #include "buffer.h"
-#include "link_list.h"
+#include "llist.h"
 #include <stdint.h>
 #include "allocator.h"
 #include <assert.h>
@@ -26,7 +26,7 @@
 //base of wpacket and rpacket
 struct packet
 {
-	list_node next;
+    lnode     next;
 	uint8_t   type;        //packet type see common_define.h
 	buffer_t  buf;
 	uint8_t   raw;

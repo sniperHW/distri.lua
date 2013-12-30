@@ -1,5 +1,5 @@
 #include "connection.h"
-#include "link_list.h"
+#include "llist.h"
 #include <assert.h>
 #include "systime.h"
 #include "socket.h"
@@ -98,7 +98,7 @@ static inline int unpack(struct connection *c)
 static inline st_io *prepare_send(struct connection *c)
 {
 	int32_t i = 0;
-	wpacket_t w = (wpacket_t)link_list_head(&c->send_list);
+    wpacket_t w = (wpacket_t)llist_head(&c->send_list);
 	buffer_t b;
 	uint32_t pos;
 	st_io *O = NULL;
@@ -141,7 +141,7 @@ static inline void update_send_list(struct connection *c,int32_t _bytestransfer)
 	uint32_t size;
 	while(bytestransfer)
 	{
-		w = LINK_LIST_POP(wpacket_t,&c->send_list);
+        w = LLIST_POP(wpacket_t,&c->send_list);
 		assert(w);
 		if((uint32_t)bytestransfer >= w->data_size)
 		{
@@ -163,7 +163,7 @@ static inline void update_send_list(struct connection *c,int32_t _bytestransfer)
 					w->base.buf = buffer_acquire(w->base.buf,w->base.buf->next);
 				}
 			}
-			LINK_LIST_PUSH_FRONT(&c->send_list,w);
+            LLIST_PUSH_FRONT(&c->send_list,w);
 		}
 	}
 }
@@ -177,7 +177,7 @@ int32_t send_packet(struct connection *c,wpacket_t w)
 	st_io *O;
 	if(w){
 		w->base.tstamp = GetSystemMs();
-		LINK_LIST_PUSH_BACK(&c->send_list,w);
+        LLIST_PUSH_BACK(&c->send_list,w);
 	}
 	if(!c->doing_send){
 	    c->doing_send = 1;
@@ -204,7 +204,7 @@ static inline void start_recv(struct connection *c)
 void active_close(struct connection *c)
 {
     if(c->status & SESTABLISH){
-		if(LINK_LIST_IS_EMPTY(&c->send_list)){
+        if(LLIST_IS_EMPTY(&c->send_list)){
             //没有数据需要发送了直接关闭
             c->status = SCLOSE;
 			CloseSocket(c->socket);
@@ -340,7 +340,7 @@ void connection_destroy(void *arg)
 	struct connection *c = (struct connection*)arg;
 	unregister_timer(con2wheelitem(c));
     wpacket_t w;
-    while((w = LINK_LIST_POP(wpacket_t,&c->send_list))!=NULL)
+    while((w = LLIST_POP(wpacket_t,&c->send_list))!=NULL)
         wpk_destroy(&w);
     buffer_release(&c->unpack_buf);
     buffer_release(&c->next_recv_buf);

@@ -2,8 +2,8 @@
 #define _POLLER_H
 
 #include "sync.h"
-#include "link_list.h"
-#include "double_link.h"
+#include "llist.h"
+#include "dlist.h"
 #include <stdint.h>
 #include "common.h"
 
@@ -22,28 +22,28 @@ typedef struct poller
 	struct    epoll_event events[MAX_SOCKET+1];
 	int32_t   pipe_writer;//用于异步唤醒的管道
 	int32_t   pipe_reader;
-    struct    double_link actived[2];
+    struct    dlist actived[2];
     int8_t    actived_index;
-	struct    double_link connecting;
+    struct    dlist connecting;
 }*poller_t;
 
 poller_t poller_new();
 void   poller_delete(poller_t *);
 
-static inline struct double_link* get_active_list(poller_t e){
+static inline struct dlist* get_active_list(poller_t e){
     return &e->actived[e->actived_index];
 }
 
 static inline int32_t is_active_empty(poller_t e)
 {
-    struct double_link *current_active = &e->actived[e->actived_index];
-    return double_link_empty(current_active);
+    struct dlist *current_active = &e->actived[e->actived_index];
+    return dlist_empty(current_active);
 }
 
-static inline void putin_active(poller_t e,struct double_link_node *dln)
+static inline void putin_active(poller_t e,struct dnode *dln)
 {
-    struct double_link *current_active = &e->actived[e->actived_index];
-    double_link_push(current_active,dln);
+    struct dlist *current_active = &e->actived[e->actived_index];
+    dlist_push(current_active,dln);
 }
 
 #endif

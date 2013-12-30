@@ -3,14 +3,14 @@
 #include "connection.h"
 #include "refbase.h"
 #include "netservice.h"
-#include "double_link.h"
+#include "dlist.h"
 #include "msgque.h"
 #include "asynnet.h"
 
 typedef struct asynsock
 {
 	struct refbase          ref;
-	struct double_link_node dn;
+    struct dnode            dn;
 	struct connection       *c;
 	SOCK                     s;
 	void    *usr_ptr;

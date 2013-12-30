@@ -30,8 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "refbase.h"
-#include "double_link.h"
-#include "link_list.h"
+#include "dlist.h"
+#include "llist.h"
 #include "sync.h"
 
 extern uint32_t msgque_flush_time;//默认心跳冲刷时间是50ms,用户可自己将该变量设置成合适的值
@@ -42,12 +42,12 @@ typedef void (*item_destroyer)(void*);
 typedef struct msg_que
 {
         struct refbase      refbase;
-        struct link_list    share_que;
+        struct llist        share_que;
         uint32_t            syn_size;
         pthread_key_t       t_key;
         mutex_t             mtx;
-        struct double_link  blocks;
-		struct double_link  can_interrupt;
+        struct dlist        blocks;
+        struct dlist        can_interrupt;
         item_destroyer      destroy_function;
 }*msgque_t;
 
@@ -60,18 +60,18 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer);
 /* push一条消息到local队列,如果local队列中的消息数量超过阀值执行同步，否则不同步
 *  返回非0表示出错
 */
-int8_t msgque_put(msgque_t,list_node *msg);
+int8_t msgque_put(msgque_t,lnode *msg);
 
 /* push一条消息到local队列,并且立即同步
 *  返回非0表示出错
 */
-int8_t msgque_put_immeda(msgque_t,list_node *msg);
+int8_t msgque_put_immeda(msgque_t,lnode *msg);
 
 /*从local队列pop一条消息,如果local队列中没有消息,尝试从共享队列同步消息过来
 * 如果共享队列中没消息，最多等待timeout毫秒
 *  返回非0表示出错
 */
-int8_t msgque_get(msgque_t,list_node **msg,int32_t timeout);
+int8_t msgque_get(msgque_t,lnode **msg,int32_t timeout);
 
 
 typedef void (*interrupt_function)(void*);

@@ -46,7 +46,7 @@ int32_t epoll_register(poller_t e, socket_t s)
 		ev.events = EV_IN;
     else if(s->socket_type == CONNECT){
         ev.events = EV_IN | EV_OUT | EV_ET;
-        double_link_push(&e->connecting,(struct double_link_node*)s);
+        dlist_push(&e->connecting,(struct dnode*)s);
     }else
         return -1;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_ADD,s->fd,&ev));
@@ -60,7 +60,7 @@ int32_t epoll_unregister(poller_t e,socket_t s)
 	struct epoll_event ev;int32_t ret;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_DEL,s->fd,&ev));
 	s->readable = s->writeable = 0;
-	double_link_remove((struct double_link_node*)s);
+    dlist_remove((struct dnode*)s);
 	s->engine = NULL;
 	return ret;
 }
@@ -78,8 +78,8 @@ int32_t  epoll_unregister_recv(poller_t e,socket_t s)
     else
         return -1;
     s->readable = 0;
-    if(s->writeable == 0 || LINK_LIST_IS_EMPTY(&s->pending_send))
-        double_link_remove((struct double_link_node*)s);
+    if(s->writeable == 0 || LLIST_IS_EMPTY(&s->pending_send))
+        dlist_remove((struct dnode*)s);
     return ret;
 }
 
@@ -93,12 +93,12 @@ int32_t  epoll_unregister_send(poller_t e,socket_t s)
     }else
         return -1;
     s->writeable = 0;
-    if(s->readable == 0 || LINK_LIST_IS_EMPTY(&s->pending_recv))
-        double_link_remove((struct double_link_node*)s);
+    if(s->readable == 0 || LLIST_IS_EMPTY(&s->pending_recv))
+        dlist_remove((struct dnode*)s);
     return ret;
 }
 
-int8_t check_connect_timeout(struct double_link_node *dln, void *ud)
+int8_t check_connect_timeout(struct dnode *dln, void *ud)
 {
     socket_t s = (socket_t)dln;
     uint32_t l_now = (uint32_t)ud;
@@ -146,11 +146,11 @@ int32_t epoll_loop(poller_t n,int32_t ms)
 	int32_t notify = 0;
 	do{
 
-	    if(!double_link_empty(&n->connecting))
+        if(!dlist_empty(&n->connecting))
 	    {
 	        //check timeout connecting
 	        uint32_t l_now = GetSystemMs();
-	        double_link_check_remove(&n->connecting,check_connect_timeout,(void*)l_now);
+            dlist_check_remove(&n->connecting,check_connect_timeout,(void*)l_now);
 	    }
         /*if(!double_link_empty(&n->actived))
 		{
@@ -166,13 +166,13 @@ int32_t epoll_loop(poller_t n,int32_t ms)
         }*/
         if(!is_active_empty(n))
         {
-            struct double_link *actived = get_active_list(n);
+            struct dlist *actived = get_active_list(n);
             n->actived_index = (n->actived_index+1)%2;
             socket_t s;
-            while((s = (socket_t)double_link_pop(actived)) != NULL)
+            while((s = (socket_t)dlist_pop(actived)) != NULL)
             {
                 if(Process(s))
-                    putin_active(n,(struct double_link_node*)s);
+                    putin_active(n,(struct dnode*)s);
             }
         }
 		current_tick = GetSystemMs();

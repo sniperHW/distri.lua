@@ -18,7 +18,7 @@
 #define _TIMER_H
 #include <time.h>
 #include <stdint.h>
-#include "double_link.h"
+#include "dlist.h"
 
 //5级时间轮，最大到年，最小到秒
 enum
@@ -33,7 +33,7 @@ enum
 struct timer;
 struct timer_item
 {
-	struct double_link_node dlnode;
+    struct dnode dlnode;
 	void  *ud_ptr;
 	void (*callback)(struct timer*,struct timer_item*,void*);
 };
