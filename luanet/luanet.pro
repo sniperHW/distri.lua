@@ -42,7 +42,9 @@ SOURCES += \
     ../kendynet/core/src/connection.c \
     ../kendynet/core/src/asynsock.c \
     ../kendynet/core/src/asynnet.c \
-    ../kendynet/core/src/socket.c
+    ../kendynet/core/src/socket.c \
+    ../kendynet/test/test_atomic_st.c \
+    ../kendynet/core/src/atomic_st.c
 
 HEADERS += \
     ../kendynet/core/wpacket.h \
@@ -88,5 +90,7 @@ HEADERS += \
     ../kendynet/core/asynnet.h \
     ../kendynet/core/src/poller.h \
     ../kendynet/core/src/asynsock.h \
-    ../kendynet/core/src/socket.h
+    ../kendynet/core/src/socket.h \
+    ../kendynet/core/llist.h \
+    ../kendynet/core/dlist.h
 

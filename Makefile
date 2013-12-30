@@ -27,6 +27,7 @@ kendynet.a: \
 		   kendynet/core/src/refbase.c \
 		   kendynet/core/src/asynnet.c \
 		   kendynet/core/src/asynsock.c \
+		   kendynet/core/src/atomic_st.c \
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
@@ -47,5 +48,7 @@ msgque:kendynet.a $(TESTDIR)/testmq.c
 	$(CC) $(CFLAGS) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 systick:kendynet.a $(TESTDIR)/testgetsystick.c
 	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
+atomicst:kendynet.a $(TESTDIR)/test_atomic_st.c
+	$(CC) $(CFLAGS) -o atomicst $(TESTDIR)/test_atomic_st.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
 	
 	

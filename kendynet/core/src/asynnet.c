@@ -413,6 +413,8 @@ int32_t asynsock_close(sock_ident s)
     asynsock_t d = cast_2_asynsock(s);
 	if(d)
 	{
+        if(ATOMIC_SET(&d->isclose,1) == 1)
+            return 0;
 		int32_t ret = 0;
 		if(!d->sndque){
 			active_close(d->c);

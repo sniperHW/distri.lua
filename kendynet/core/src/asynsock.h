@@ -17,6 +17,7 @@ typedef struct asynsock
     sock_ident              sident;
 	msgque_t                sndque;//用于跟poller通信的消息队列
     msgque_t                que;   //用于跟应用层通信的消息队列
+    atomic_8_t              isclose;
 }*asynsock_t;
 
 

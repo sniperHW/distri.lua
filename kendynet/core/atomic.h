@@ -35,5 +35,6 @@ typedef volatile int64_t atomic_64_t;
 #define ATOMIC_DECREASE(PTR) __sync_sub_and_fetch(PTR,1)
 #define ATOMIC_SET(PTR,VAL)  __sync_lock_test_and_set(PTR,VAL)
 
+//#define _FENCE __sync_synchronize()
 #define _FENCE __asm__ volatile("" : : : "memory")
 #endif
