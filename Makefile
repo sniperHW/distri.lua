@@ -28,6 +28,7 @@ kendynet.a: \
 		   kendynet/core/src/asynnet.c \
 		   kendynet/core/src/asynsock.c \
 		   kendynet/core/src/atomic_st.c \
+		   kendynet/core/src/tls.c \
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
@@ -50,5 +51,8 @@ systick:kendynet.a $(TESTDIR)/testgetsystick.c
 	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
 atomicst:kendynet.a $(TESTDIR)/test_atomic_st.c
 	$(CC) $(CFLAGS) -o atomicst $(TESTDIR)/test_atomic_st.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
+testexcp:kendynet.a $(TESTDIR)/testexception.c
+	$(CC) $(CFLAGS) -o testexcp $(TESTDIR)/testexception.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl
+	
 	
 	

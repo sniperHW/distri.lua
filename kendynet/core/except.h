@@ -23,6 +23,13 @@
 #include <string.h>
 #include "llist.h"
 
+
+struct callstack_frame
+{
+    lnode node;
+    char  info[4096];
+};
+
 struct exception_frame
 {
     lnode   node;
@@ -32,6 +39,7 @@ struct exception_frame
     const char   *file;
     const char   *func;
     int8_t  is_process;
+    struct llist  call_stack;
 };
 
 extern pthread_key_t g_exception_key;
@@ -39,6 +47,31 @@ extern pthread_once_t g_exception_key_once;
 
 
 void exception_once_routine();
+
+static inline void clear_call_stack(struct exception_frame *frame)
+{
+    while(!LLIST_IS_EMPTY(&frame->call_stack))
+    {
+        struct callstack_frame *stack_frame = LLIST_POP(struct callstack_frame*,&frame->call_stack);
+        free(stack_frame);
+    }
+}
+
+static inline void print_call_stack(struct exception_frame *frame)
+{
+    if(!frame)return;
+    struct lnode *node = llist_head(&frame->call_stack);
+    int f = 0;
+    while(node != NULL)
+    {
+        struct callstack_frame *cf = (struct callstack_frame*)node;
+        printf("% 2d: %s",++f,cf->info);
+        node = node->next;
+    }
+}
+
+#define PRINT_CALL_STACK print_call_stack(&frame)
+
 
 static inline struct llist *GetCurrentThdExceptionStack()
 {
@@ -86,6 +119,7 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
     frame.func = __FUNCTION__;\
     frame.exception = 0;\
     frame.is_process = 1;\
+    llist_init(&frame.call_stack);\
     expstack_push(&frame);\
 	if((frame.exception = setjmp(frame.jumpbuffer)) == 0)
 	
@@ -99,7 +133,10 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
 
 #define ENDTRY if(!frame.is_process)\
                     exception_throw(frame.exception,frame.file,frame.func,frame.line);\
-               else expstack_pop();\
+               else {\
+                    struct exception_frame *frame = expstack_pop();\
+                    clear_call_stack(frame);\
+                }\
 			}while(0);					
 
 //#define FINALLY
@@ -108,7 +145,8 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
                     while((top = expstack_top())!=NULL){\
                         if(strcmp(top->file,__FILE__) == 0 && strcmp(top->func,__FUNCTION__) == 0)\
                         {\
-                            expstack_pop();\
+                            struct exception_frame *frame = expstack_pop();\
+                            clear_call_stack(frame);\
                         }else\
                         break;\
                     };\

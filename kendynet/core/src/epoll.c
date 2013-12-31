@@ -152,18 +152,6 @@ int32_t epoll_loop(poller_t n,int32_t ms)
 	        uint32_t l_now = GetSystemMs();
             dlist_check_remove(&n->connecting,check_connect_timeout,(void*)l_now);
 	    }
-        /*if(!double_link_empty(&n->actived))
-		{
-			uint32_t size = double_link_size(&n->actived);
-			uint32_t i = 0;
-			for(; i < size;++i)
-			{
-				socket_t s = (socket_t)double_link_pop(&n->actived);
-				if(Process(s)){
-					double_link_push(&n->actived,(struct double_link_node*)s);
-				}
-			}
-        }*/
         if(!is_active_empty(n))
         {
             struct dlist *actived = get_active_list(n);
