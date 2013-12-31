@@ -22,12 +22,14 @@
 
 #define MAX_EXCEPTION 4096
 extern const char* exceptions[MAX_EXCEPTION];
-#define except_alloc_failed     1   //内存分配失败
-#define except_list_empty       2   //list_pop操作,当list为空触发
-#define except_segv_fault       3
-#define except_sigbus           4
-#define except_arith            5
-#define testexception3          6
+enum{
+	except_alloc_failed = 1,   //内存分配失败
+	except_list_empty,         //list_pop操作,当list为空触发
+	except_segv_fault,       
+	except_sigbus,           
+	except_arith,            
+	testexception3,          
+};
 //............
 
 
