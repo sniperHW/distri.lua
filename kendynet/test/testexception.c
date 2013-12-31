@@ -89,8 +89,8 @@ void entry1()
     }CATCH_ALL
     {
         printf("catch all: %s\n",exception_description(EXPNO));
-    }
-    ENDTRY;
+    }ENDTRY;
+    
     return;
 }
 
@@ -111,8 +111,8 @@ void entry2()
     }CATCH_ALL
     {
         printf("catch all: %s\n",exception_description(EXPNO));
-    }
-    ENDTRY;
+    }ENDTRY;
+    
     return;
 }
 
@@ -129,8 +129,8 @@ void *Routine1(void *arg)
     {
         printf("catch all: %s\n",exception_description(EXPNO));
         PRINT_CALL_STACK;
-    }
-    ENDTRY;
+    }ENDTRY;
+    
     return NULL;
 }
 
