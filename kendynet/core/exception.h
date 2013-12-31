@@ -23,6 +23,7 @@
 #define MAX_EXCEPTION 4096
 extern const char* exceptions[MAX_EXCEPTION];
 enum{
+	except_invaild_num =  0,   //不可被使用的异常号
 	except_alloc_failed = 1,   //内存分配失败
 	except_list_empty,         //list_pop操作,当list为空触发
 	except_segv_fault,       

@@ -113,7 +113,7 @@ void exception_throw(int32_t code,const char *file,const char *func,int32_t line
 
 
 const char* exceptions[MAX_EXCEPTION] = {
-    "invaile_excepton_no",
+    "except_invaild_num",
     "except_alloc_failed",
     "except_list_empty",
     "except_segv_fault",
