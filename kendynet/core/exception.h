@@ -17,8 +17,25 @@
 #ifndef _EXCEPTION_H
 #define _EXCEPTION_H
 
+
+#include <stdlib.h>
+
+#define MAX_EXCEPTION 4096
+extern const char* exceptions[MAX_EXCEPTION];
 #define except_alloc_failed 1   //内存分配失败
 #define except_list_empty   2   //list_pop操作,当list为空触发
+#define testexception1      3
+#define testexception2      4
+#define testexception3      5
 //............
+
+
+static inline const char *exception_description(int expno)
+{
+    if(expno >= MAX_EXCEPTION) return "unknow exception";
+    if(exceptions[expno] == NULL) return "unknow exception";
+    return exceptions[expno];
+}
+
 
 #endif

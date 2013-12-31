@@ -20,9 +20,9 @@ typedef struct per_thread_que
 			uint8_t     flag;//0,正常;1,阻止heart_beat操作,2,设置了冲刷标记
 		}write_que;
 		struct read_que{
-            struct dnode bnode; //用于链入msg_que->blocks或msg_que->notify_que
+            struct dnode bnode; //用于链入msg_que->blocks或msg_que->can_interrupt
 			condition_t cond;
-            notify_fn  notify_function;
+			interrupt_function  notify_function;
 			void*     ud;
 		}read_que;
 	};
@@ -232,17 +232,17 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer destroyer)
 }
 
 
-void   msgque_put_in_notify(msgque_t que,void *ud,notify_fn fn)
+void   msgque_putinterrupt(msgque_t que,void *ud,interrupt_function callback)
 {
 	mutex_lock(que->mtx);
 	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
 	ptq->read_que.ud = ud;
-    ptq->read_que.notify_function = fn;
-    dlist_push(&que->notify_que,&ptq->read_que.bnode);
+	ptq->read_que.notify_function = callback;
+    dlist_push(&que->can_interrupt,&ptq->read_que.bnode);
 	mutex_unlock(que->mtx);
 }
 
-void   msgque_remove_notify(msgque_t que)
+void   msgque_removeinterrupt(msgque_t que)
 {
 	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
 	if(ptq->read_que.bnode.next || ptq->read_que.bnode.pre){
@@ -273,9 +273,9 @@ static inline void msgque_sync_push(ptq_t ptq)
 		}
 	}
 	//对所有在can_interrupt中的元素调用回调
-    while(!dlist_empty(&que->notify_que))
+    while(!dlist_empty(&que->can_interrupt))
 	{
-        ptq_t ptq = (ptq_t)dlist_pop(&que->notify_que);
+        ptq_t ptq = (ptq_t)dlist_pop(&que->can_interrupt);
 		ptq->read_que.notify_function(ptq->read_que.ud);
 	}
 	mutex_unlock(que->mtx);

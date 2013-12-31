@@ -2,9 +2,6 @@
 #define _REFBASE_H
 
 #include <stdint.h>
-#include <stdlib.h>
-#include <time.h>
-#include <sys/time.h>
 #include "atomic.h"
 
 extern atomic_32_t global_counter;
@@ -26,26 +23,16 @@ static inline atomic_32_t ref_increase(struct refbase *r)
 
 static inline atomic_32_t ref_decrease(struct refbase *r)
 {
-    atomic_32_t count;
-    if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
+	atomic_32_t new_count = ATOMIC_DECREASE(&r->refcount);
+    if(new_count <= 0 && r->destroyer){
 		r->identity = 0;
 		_FENCE;
-        int32_t c = 0;
-        for(;;){
-            if(COMPARE_AND_SWAP(&r->flag,0,1))
-                break;
-            if(c < 4000){
-                ++c;
-                __asm__("pause");
-            }else{
-                struct timespec ts = { 0, 500000 };
-                nanosleep(&ts, NULL);
-            }
-        }
+		while(!COMPARE_AND_SWAP(&r->flag,0,1));
 		r->destroyer(r);
 	}
-    return count;
+	return new_count;
 }
+
 
 typedef struct ident
 {
@@ -61,26 +48,26 @@ static inline ident make_ident(struct refbase *ptr)
 
 static inline ident make_empty_ident()
 {
-    ident _ident = {0,NULL};
+    ident _ident = {0,0};
 	return _ident;
 }
 
 static inline struct refbase *cast_2_refbase(ident _ident)
 {
-    while(_ident.identity == _ident.ptr->identity)
+	while(_ident.identity == _ident.ptr->identity)
 	{
 		if(COMPARE_AND_SWAP(&_ident.ptr->flag,0,1))
 		{
-            struct refbase *ptr = NULL;
-            if(_ident.identity == _ident.ptr->identity &&
-               ref_increase(_ident.ptr) > 0)
-                    ptr = _ident.ptr;
-            _FENCE;
-            _ident.ptr->flag = 0;
-            return ptr;
+			if(_ident.identity == _ident.ptr->identity){
+				ref_increase(_ident.ptr);
+				_FENCE;
+				_ident.ptr->flag = 0;
+				return _ident.ptr;
+			}else
+				return 0;
 		}
 	}
-    return NULL;
+	return 0;
 }
 
 static inline int32_t is_vaild_ident(ident _ident)

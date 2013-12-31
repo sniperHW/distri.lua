@@ -314,9 +314,9 @@ static void *mainloop(void *arg)
 		}
 		if(is_empty){
 			//注册中断器，如果阻塞在loop里时mq_in收到消息会调用唤醒函数唤醒loop
-            msgque_put_in_notify(n->mq_in,(void*)n->netpoller,notify_function);
+			msgque_putinterrupt(n->mq_in,(void*)n->netpoller,notify_function);
 			n->netpoller->loop(n->netpoller,100);
-            msgque_remove_notify(n->mq_in);
+			msgque_removeinterrupt(n->mq_in);
 		}
 		else
 			n->netpoller->loop(n->netpoller,0);
@@ -413,8 +413,6 @@ int32_t asynsock_close(sock_ident s)
     asynsock_t d = cast_2_asynsock(s);
 	if(d)
 	{
-        if(ATOMIC_SET(&d->isclose,1) == 1)
-            return 0;
 		int32_t ret = 0;
 		if(!d->sndque){
 			active_close(d->c);
