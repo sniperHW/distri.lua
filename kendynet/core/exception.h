@@ -24,9 +24,9 @@
 extern const char* exceptions[MAX_EXCEPTION];
 #define except_alloc_failed     1   //内存分配失败
 #define except_list_empty       2   //list_pop操作,当list为空触发
-#define segmentation_fault      3
-#define testexception1          4
-#define testexception2          5
+#define except_segv_fault       3
+#define except_sigbus           4
+#define except_arith            5
 #define testexception3          6
 //............
 

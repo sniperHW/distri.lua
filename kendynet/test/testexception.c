@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "core/except.h"
 #include "core/exception.h"
+#include "core/thread.h"
 
 /*
 #if defined(REG_RIP)
@@ -75,21 +76,13 @@ void func1()
 {
     int *ptr = NULL;
     *ptr = 10;
-    //THROW(testexception1);
-    return ;
 }
 
-void func2()
-{
-    return;
-}
-
-void entry()
+void entry1()
 {
     TRY{
         func1();
-        func2();
-    }CATCH(segmentation_fault)
+    }CATCH(except_segv_fault)
     {
         printf("catch:%s stack below\n",exception_description(EXPNO));
         PRINT_CALL_STACK;
@@ -101,9 +94,53 @@ void entry()
     return;
 }
 
+void func2()
+{
+    int a = 10;
+    a = a/0;
+}
+
+void entry2()
+{
+    TRY{
+        func2();
+    }CATCH(except_arith)
+    {
+        printf("catch:%s stack below\n",exception_description(EXPNO));
+        PRINT_CALL_STACK;
+    }CATCH_ALL
+    {
+        printf("catch all: %s\n",exception_description(EXPNO));
+    }
+    ENDTRY;
+    return;
+}
+
+void func3()
+{
+    THROW(testexception3);
+}
+
+void *Routine1(void *arg)
+{
+    TRY{
+        func3();
+    }CATCH_ALL
+    {
+        printf("catch all: %s\n",exception_description(EXPNO));
+        PRINT_CALL_STACK;
+    }
+    ENDTRY;
+    return NULL;
+}
+
 int main()
 {
-    entry();
+    entry1();
+    entry2();
+    thread_t t1 = create_thread(0);
+    thread_start_run(t1,Routine1,NULL);
+    getchar();
     printf("main end\n");
     return 0;
 }

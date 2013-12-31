@@ -19,7 +19,7 @@ static void delete_thd_exstack(void  *arg)
 }
 
 static void signal_segv(int signum,siginfo_t* info, void*ptr){
-    THROW(segmentation_fault);
+    THROW(except_segv_fault);
     return;
 }
 
@@ -35,8 +35,44 @@ int setup_sigsegv(){
     return 1;
 }
 
+static void signal_sigbus(int signum,siginfo_t* info, void*ptr){
+    THROW(except_sigbus);
+    return;
+}
+
+int setup_sigbus(){
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_sigaction = signal_sigbus;
+    action.sa_flags = SA_SIGINFO;
+    if(sigaction(SIGBUS, &action, NULL) < 0) {
+        perror("sigaction");
+        return 0;
+    }
+    return 1;
+}
+
+static void signal_sigfpe(int signum,siginfo_t* info, void*ptr){
+    THROW(except_arith);
+    return;
+}
+
+int setup_sigfpe(){
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_sigaction = signal_sigfpe;
+    action.sa_flags = SA_SIGINFO;
+    if(sigaction(SIGFPE, &action, NULL) < 0) {
+        perror("sigaction");
+        return 0;
+    }
+    return 1;
+}
+
 void exception_once_routine(){
     setup_sigsegv();
+    setup_sigbus();
+    setup_sigfpe();
     pthread_key_create(&g_exception_key,delete_thd_exstack);
 }
 
@@ -56,7 +92,9 @@ void exception_throw(int32_t code,const char *file,const char *func,int32_t line
         strings = backtrace_symbols(bt, sz);
         for(i = 0; i < sz; ++i){
             if(strstr(strings[i],"exception_throw+")){
-                if(code == segmentation_fault) i+=2;
+                if(code == except_segv_fault ||
+                   code == except_sigbus     ||
+                   code == except_arith) i+=2;
                 continue;
             }
             struct callstack_frame *call_frame = calloc(1,sizeof(*call_frame));
@@ -78,9 +116,9 @@ const char* exceptions[MAX_EXCEPTION] = {
     "invaile_excepton_no",
     "except_alloc_failed",
     "except_list_empty",
-    "segmentation_fault",
-    "testexception1",
-    "testexception2",
+    "except_segv_fault",
+    "except_sigbus",
+    "except_arith",
     "testexception3",
     NULL,
 };
