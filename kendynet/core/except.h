@@ -98,9 +98,9 @@ static inline struct llist *GetCurrentThdExceptionStack()
 static inline void expstack_push(struct exception_frame *frame)
 {
     struct llist *expstack = GetCurrentThdExceptionStack();
- #ifdef _DEBUG
-	printf("push %s,%s\n",frame->file,frame->func);
- #endif   
+// #ifdef _DEBUG
+//	printf("push %s,%s\n",frame->file,frame->func);
+// #endif
 	LLIST_PUSH_FRONT(expstack,(lnode*)frame);
 }
 
@@ -108,9 +108,9 @@ static inline struct exception_frame* expstack_pop()
 {
     struct llist *expstack = GetCurrentThdExceptionStack();
     struct exception_frame *frame = LLIST_POP(struct exception_frame*,expstack);
-#ifdef _DEBUG	
-    if(frame) printf("pop %s,%s\n",frame->file,frame->func);
-#endif
+//#ifdef _DEBUG
+//    if(frame) printf("pop %s,%s\n",frame->file,frame->func);
+//#endif
     return frame;
 }
 

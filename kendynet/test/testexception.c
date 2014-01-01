@@ -96,8 +96,11 @@ void entry1()
 
 void func2()
 {
+    printf("func2\n");
     int a = 10;
     a = a/0;
+    printf("%d\n",a);
+    printf("func2 end\n");
 }
 
 void entry2()

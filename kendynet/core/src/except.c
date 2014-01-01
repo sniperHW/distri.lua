@@ -80,7 +80,7 @@ void exception_once_routine(){
 }
 
 
-static inline struct callstack_frame * get_csf(llist *pool)
+static inline struct callstack_frame * get_csf(struct llist *pool)
 {
 	if(LLIST_IS_EMPTY(pool))
 	{
@@ -121,7 +121,10 @@ void exception_throw(int32_t code,const char *file,const char *func,int32_t line
             if(strstr(strings[i],"main+"))
                 break;
         }
-		for(i = 0; i < sz; ++i) free(strings[i]);
+        //for(i = 0; i < sz; ++i){
+        //    free(bt[i]);
+           // free(strings[i]);
+        //}
         longjmp(frame->jumpbuffer,code);
     }
 	else
