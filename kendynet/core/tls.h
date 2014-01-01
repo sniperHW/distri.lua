@@ -13,5 +13,6 @@ int32_t tls_create(uint16_t key,void*,TLS_DESTROY_FN);
 
 void*    tls_get(uint32_t key);
 
+int32_t  tls_set(uint32_t key,void*);
 
 #endif

@@ -17,7 +17,7 @@ static void tls_destroy_fn(void *ud)
     uint16_t i = 0;
     for(; i < MAX_TLS_SIZE;++i)
     {
-        if(all_tls[i].destroy_fn)
+        if(all_tls[i] && all_tls[i].destroy_fn)
         {
             all_tls[i].destroy_fn(all_tls[i].tls_val);
         }
@@ -56,6 +56,19 @@ void* tls_get(uint32_t key)
     }
     return all_tls[key].tls_val;
 }
+
+int32_t  tls_set(uint32_t key,void *ud);
+{
+    if(key >= MAX_TLS_SIZE) return -1;
+    pthread_once(&g_tls_key_once,tls_once_routine);
+    struct tls_st *all_tls = (struct tls_st *)pthread_getspecific(g_tls_key);
+    if(!all_tls) return -1;
+	if(all_tls[key] && all_tls[key].destroy_fn)
+		all_tls[key].destroy_fn(all_tls[key].tls_val);
+	all_tls[key].tls_val = ud;
+	return 0;	
+}
+
 
 
 
