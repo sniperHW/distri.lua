@@ -15,6 +15,9 @@ pthread_once_t g_exception_key_once = PTHREAD_ONCE_INIT;
 
 static void delete_thd_exstack(void  *arg)
 {
+	struct exception_perthd_st *epst = (struct exception_perthd_st*)arg;
+	while(!LLIST_IS_EMPTY(&epst->csf_pool))
+        free(LLIST_POP(void*,&epst->csf_pool));
     free(arg);
 }
 
@@ -76,6 +79,20 @@ void exception_once_routine(){
     pthread_key_create(&g_exception_key,delete_thd_exstack);
 }
 
+
+static inline struct callstack_frame * get_csf(llist *pool)
+{
+	if(LLIST_IS_EMPTY(pool))
+	{
+		int32_t i = 0;
+		for( ; i < 256; ++i){
+			struct callstack_frame *call_frame = calloc(1,sizeof(*call_frame));
+			LLIST_PUSH_FRONT(pool,(lnode*)call_frame);
+		}
+	}
+	return LLIST_POP(struct callstack_frame*,pool);
+}
+
 void exception_throw(int32_t code,const char *file,const char *func,int32_t line)
 {
     struct exception_frame *frame = expstack_top();
@@ -90,15 +107,16 @@ void exception_throw(int32_t code,const char *file,const char *func,int32_t line
         int i;
         sz = backtrace(bt, 20);
         strings = backtrace_symbols(bt, sz);
-        for(i = 0; i < sz; ++i){
+        struct exception_perthd_st *epst = (struct exception_perthd_st *)pthread_getspecific(g_exception_key);
+		for(i = 0; i < sz; ++i){
             if(strstr(strings[i],"exception_throw+")){
                 if(code == except_segv_fault ||
                    code == except_sigbus     ||
                    code == except_arith) i+=2;
                 continue;
             }
-            struct callstack_frame *call_frame = calloc(1,sizeof(*call_frame));
-            snprintf(call_frame->info,4096,"%s\n",strings[i]);
+            struct callstack_frame *call_frame = get_csf(&epst->csf_pool);
+            snprintf(call_frame->info,256,"%s\n",strings[i]);
             LLIST_PUSH_BACK(&frame->call_stack,call_frame);
             if(strstr(strings[i],"main+"))
                 break;
