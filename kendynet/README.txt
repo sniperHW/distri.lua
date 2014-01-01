@@ -1,5 +1,7 @@
 【kendylib的网络模块】
 
+计划支持epoll,iocp,kqueue,poll
+
 将kendylib中的网络模块单独分离出来，重新提炼了接口,调整实现，将原来单独实现的Acceptor和Connector
 统一进Engine中，通过Engine提供的接口即可实现异步的accpet和connect.
 
