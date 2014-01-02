@@ -17,7 +17,7 @@ function listen_fun(l)
 	while true do
 		local s,err = l.accept()
 		if s then
-			swpan(doio,s)
+			swpan(doio,s) --spwan a light process to do io
 		elseif err == "stop" then
 			return
 		end
@@ -26,12 +26,12 @@ end
 
 
 function main()
-	local l_asynnet = asynnet:new()			
-	local l,err = l_asynnet.listen("127.0.0.1",8010)
+	asynnet_init() --should be call first			
+	local l,err = listen("127.0.0.1",8010)
 	if l then
-		spwan(listen_fun,l)
+		spwan(listen_fun,l) --spwan a light process to do accept
 	end
-	asynnet.run()
+	loop()
 end
 
 main()
