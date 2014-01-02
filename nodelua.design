@@ -1,5 +1,5 @@
-设计方向 node.lua使用方式
-
+--设计方向 node.lua使用方式
+--echoserver范例
 
 function doio(s)
 	while true do
