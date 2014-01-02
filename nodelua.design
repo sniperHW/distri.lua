@@ -17,7 +17,7 @@ function listen_fun(l)
 	while true do
 		local s,err = l.accept()
 		if s then
-			swpan(doio,s) --spwan a light process to do io
+			node_spwan(doio,s) --spwan a light process to do io
 		elseif err == "stop" then
 			return
 		end
@@ -26,12 +26,12 @@ end
 
 
 function main()
-	asynnet_init() --should be call first			
-	local l,err = listen("127.0.0.1",8010)
+	node_init() --should be call first			
+	local l,err = node_listen("127.0.0.1",8010)
 	if l then
-		spwan(listen_fun,l) --spwan a light process to do accept
+		node_spwan(listen_fun,l) --spwan a light process to do accept
 	end
-	loop()
+	node_loop()
 end
 
 main()
