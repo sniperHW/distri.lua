@@ -121,10 +121,7 @@ void exception_throw(int32_t code,const char *file,const char *func,int32_t line
             if(strstr(strings[i],"main+"))
                 break;
         }
-        //for(i = 0; i < sz; ++i){
-        //    free(bt[i]);
-           // free(strings[i]);
-        //}
+        free(strings);
         longjmp(frame->jumpbuffer,code);
     }
 	else
