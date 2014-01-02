@@ -86,6 +86,7 @@ static void heart_beat_once_routine(){
 	sigusr1.sa_flags = 0;
 	sigusr1.sa_handler = heart_beat_signal_handler;
 	sigemptyset(&sigusr1.sa_mask);
+        sigaddset(&sigusr1,SIGUSR1);
 	int status = sigaction(SIGUSR1,&sigusr1,NULL);
 	if(status == -1)
 	{
@@ -386,7 +387,7 @@ void msgque_flush()
 #ifdef MQ_HEART_BEAT
 void heart_beat_signal_handler(int sig)
 {
-	block_sigusr1();
+	//block_sigusr1();
 	pts_t pts = (pts_t)pthread_getspecific(g_msg_que_key);
 	if(pts){
         struct dnode *dln = dlist_first(&pts->per_thread_que);
@@ -400,7 +401,7 @@ void heart_beat_signal_handler(int sig)
 			dln = dln->next;
 		}
 	}
-	unblock_sigusr1();
+	//unblock_sigusr1();
 }
 
 void   block_sigusr1()
