@@ -1,0 +1,37 @@
+设计方向 node.lua使用方式
+
+
+function doio(s)
+	while true do
+		local data,err = s.recv()
+		if err == "disconnect" then
+			return
+		else
+			s.send(data)
+		end
+	end
+end
+
+
+function listen_fun(l)
+	while true do
+		local s,err = l.accept()
+		if s then
+			swpan(doio,s)
+		elseif err == "stop" then
+			return
+		end
+	end
+end
+
+
+function main()
+	local l_asynnet = asynnet:new()			
+	local l,err = l_asynnet.listen("127.0.0.1",8010)
+	if l then
+		spwan(listen_fun,l)
+	end
+	asynnet.run()
+end
+
+main()
