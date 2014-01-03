@@ -86,7 +86,7 @@ static void heart_beat_once_routine(){
 	sigusr1.sa_flags = 0;
 	sigusr1.sa_handler = heart_beat_signal_handler;
 	sigemptyset(&sigusr1.sa_mask);
-        sigaddset(&sigusr1,SIGUSR1);
+        sigaddset(&sigusr1.sa_mask,SIGUSR1);
 	int status = sigaction(SIGUSR1,&sigusr1,NULL);
 	if(status == -1)
 	{
