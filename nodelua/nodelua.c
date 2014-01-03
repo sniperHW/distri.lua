@@ -20,7 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "core/netservice.h"
+#include "lsock.h"
+#include "core/asynnet.h"
 
 static int luaGetSysTick(lua_State *L){
     lua_pushnumber(L,GetSystemMs());
@@ -57,16 +58,16 @@ struct msg_connection
 
 static void luasock_disconnect(struct connection *c,uint32_t reason)
 {
-    asynsock_t d = (asynsock_t)c->usr_ptr;
+    _lsock_t d = (_lsock_t)c->usr_ptr;
     struct msg_connection *msg = calloc(1,sizeof(*msg));
     msg->base._ident = TO_IDENT(d->sident);
     msg->base.type = MSG_DISCONNECTED;
     msg->reason = reason;
-    get_addr_remote(d->sident,msg->ip,32);
-    get_port_remote(d->sident,&msg->port);
-    if(0 != msgque_put_immeda(d->que,(lnode*)msg))
+    //get_addr_remote(d->sident,msg->ip,32);
+    //get_port_remote(d->sident,&msg->port);
+    if(0 != msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg))
         free(msg);
-    asynsock_release(d);
+    luasock_release(d);
 }
 
 static void luasock_io_timeout(struct connection *c)
@@ -86,16 +87,16 @@ static int8_t lua_process_packet(struct connection *c,rpacket_t r)
 static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
     struct connection *c = new_conn(sock,1);
-    c->cb_disconnect = luasock__disconnect;
+    //c->cb_disconnect = luasock_disconnect;
     _lsock_t ls = luasock_new(c);
     struct msg_connection *msg = calloc(1,sizeof(*msg));
-    msg->base._ident = TO_IDENT(d->sident);
+    msg->base._ident = TO_IDENT(ls->sident);
     msg->base.type = MSG_CONNECT;
     msg->listener = ((_lsock_t)ud)->sident;
-    get_addr_remote(d->sident,msg->ip,32);
-    get_port_remote(d->sident,&msg->port);
+    //get_addr_remote(d->sident,msg->ip,32);
+    //get_port_remote(d->sident,&msg->port);
     msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg);
-    g_nodelua->netpoller->bind(g_nodelua->netpoller,c,asyncb_process_packet,lua_process_packet,
+    g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
                        30,luasock_io_timeout,30,luasock_io_timeout);
 
 }
@@ -121,7 +122,7 @@ static int luaListen(lua_State *L)
     {
         luasock_release(lsock);
         lua_pushnil(L);
-        lua_pushstring("listen error\n");
+        lua_pushstring(L,"listen error\n");
     }else
     {
         lsock->s = s;
@@ -150,7 +151,7 @@ static int luaSendPacket(lua_State *L)
     _lsock_t lsock = lua_poplsock(L,1);
     if(lsock){
         wpacket_t wpk = luaGetluaWPacket(L,2);
-        wpk->usr_ptr = lsock;
+        ((struct packet*)wpk)->usr_ptr = lsock;
         msgque_put(g_nodelua->mq_in,(lnode*)wpk);
         lua_pushnil(L);
     }else
@@ -166,7 +167,7 @@ static int lua_active_close(lua_State *L)
         msg_t msg = calloc(1,sizeof(*msg));
         msg->_ident = TO_IDENT(lsock->sident);
         msg->type = MSG_ACTIVE_CLOSE;
-        msgque_put_immeda(d->sndque,(lnode*)msg);
+        msgque_put_immeda(g_nodelua->mq_in,(lnode*)msg);
         luasock_release(lsock);
         lua_pushnil(L);
     }else
@@ -214,11 +215,11 @@ static void process_msg(msg_t msg)
 
 static inline void process_send(wpacket_t wpk)
 {
-    asynsock_t d = cast_2_asynsock(CAST_2_SOCK(wpk->base._ident));
+    _lsock_t d = cast_2_luasock(CAST_2_LUASOCK(wpk->base._ident));
     if(d)
     {
         send_packet(d->c,wpk);
-        asynsock_release(d);
+        luasock_release(d);
     }else
     {
         //连接已失效丢弃wpk
@@ -240,11 +241,11 @@ static void *node_mainloop(void *arg)
             msgque_get(g_nodelua->mq_in,&node,0);
             if(node)
             {
-                msg_t msg = (msg_t)node;
-                if(msg->type == MSG_WPACKET)
-                    process_send((wpacket_t)msg);
-                }else
-                    process_msg(msg);
+                msg_t _msg = (msg_t)node;
+                if(_msg->type == MSG_WPACKET)
+                    process_send((wpacket_t)_msg);
+                else
+                    process_msg(_msg);
             }
             else{
                 is_empty = 1;
@@ -282,10 +283,10 @@ void lua_pushmsg(lua_State *L,msg_t msg){
 int lua_node_peekmsg(lua_State *L)
 {
     int ms = (int)lua_tonumber(L,1);
-    list_node *n;
+    lnode *n;
     if(0 != msgque_get(g_nodelua->mq_in,&n,ms)){
         lua_pushnil(L);
-        lua_pushstring("peek error");
+        lua_pushstring(L,"peek error");
     }
     else{
         if(n){
@@ -293,10 +294,26 @@ int lua_node_peekmsg(lua_State *L)
             lua_pushnil(L);
         }else{
             lua_pushnil(L);
-            lua_pushstring("timeout");
+            lua_pushstring(L,"timeout");
         }
     }
     return 2;
+}
+
+static void mq_item_destroyer(void *ptr)
+{
+    msg_t _msg = (msg_t)ptr;
+    if(_msg->type == MSG_RPACKET)
+        rpk_destroy((rpacket_t*)&_msg);
+    else if(_msg->type == MSG_WPACKET)
+        wpk_destroy((wpacket_t*)&_msg);
+    else
+    {
+        if(_msg->msg_destroy_function)
+            _msg->msg_destroy_function(ptr);
+        else
+            free(ptr);
+    }
 }
 
 void RegisterNet(lua_State *L){
@@ -313,7 +330,7 @@ void RegisterNet(lua_State *L){
     g_main_thd = create_thread(THREAD_JOINABLE);
     g_nodelua->mq_in = new_msgque(1024,mq_item_destroyer);
     g_nodelua->mq_out = new_msgque(1024,mq_item_destroyer);
-    g->netpoller = new_service();
+    g_nodelua->netpoller = new_service();
     thread_start_run(g_main_thd,node_mainloop,NULL);
     //signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);

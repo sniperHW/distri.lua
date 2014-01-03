@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt /usr/lib/libtcmalloc.so.4
+LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -I../kendynet -I../kendynet/core -I..
