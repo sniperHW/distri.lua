@@ -173,7 +173,7 @@ static void asyncb_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,in
 static int8_t asyncb_process_packet(struct connection *c,rpacket_t r)
 {
     asynsock_t d = (asynsock_t)c->usr_ptr;
-    r->base._ident = TO_IDENT(d->sident);
+    MSG_IDENT(r) = TO_IDENT(d->sident);
     if(0 != msgque_put(d->que,(lnode*)r))
         return 1;
     return 0;
@@ -257,14 +257,14 @@ static void process_msg(struct poller_st *n,msg_t msg)
             asynsock_release(d);
 		}
 	}
-	if(msg->msg_destroy_function) msg->msg_destroy_function((void*)msg);
+    if(MSG_FN_DESTROY(msg)) MSG_FN_DESTROY(msg)((void*)msg);
 	else free(msg);
 }
 
 
 static inline void process_send(struct poller_st *e,wpacket_t wpk)
 {
-    asynsock_t d = cast_2_asynsock(CAST_2_SOCK(wpk->base._ident));
+    asynsock_t d = cast_2_asynsock(CAST_2_SOCK(MSG_IDENT(wpk)));
 	if(d)
 	{
 		send_packet(d->c,wpk);
@@ -333,8 +333,8 @@ static void mq_item_destroyer(void *ptr)
 		wpk_destroy((wpacket_t*)&_msg);
 	else
 	{
-		if(_msg->msg_destroy_function)
-			_msg->msg_destroy_function(ptr);
+        if(MSG_FN_DESTROY(_msg))
+            MSG_FN_DESTROY(_msg)(ptr);
 		else
 			free(ptr);
 	}
@@ -441,7 +441,7 @@ static void dispatch_msg(asynnet_t c,msg_t msg)
 	if(msg->type == MSG_RPACKET)
 	{
 		rpacket_t rpk = (rpacket_t)msg;
-		sock_ident sock = CAST_2_SOCK(rpk->base._ident);
+        sock_ident sock = CAST_2_SOCK(MSG_IDENT(rpk));
         if(c->process_packet(c,sock,rpk))
 			rpk_destroy(&rpk);
 	}else{

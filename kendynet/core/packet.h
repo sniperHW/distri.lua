@@ -23,20 +23,41 @@
 #include "allocator.h"
 #include <assert.h>
 
-//base of wpacket and rpacket
+typedef struct msg
+{
+    lnode   node;
+    uint8_t type;
+    union{
+        uint64_t  usr_data;
+        void*     usr_ptr;
+        ident     _ident;
+    };
+    void (*fn_destroy)();
+}*msg_t;
+
+/*
+* packet is a type of msg
+* base of wpacket and rpacket
+*/
 struct packet
 {
-    lnode     next;
-	uint8_t   type;        //packet type see common_define.h
-	buffer_t  buf;
+   struct msg base;
+    buffer_t  buf;
 	uint8_t   raw;
-	union{
-        uint64_t  usr_data;
-        void     *usr_ptr;
-		ident     _ident;
-	};
 	uint32_t  begin_pos;
 	uint32_t  tstamp;
 };
+
+#define MSG_TYPE(MSG) ((msg_t)MSG)->type
+#define MSG_NEXT(MSG) ((msg_t)MSG)->node.next
+#define MSG_USRDATA(MSG) ((msg_t)MSG)->usr_data
+#define MSG_USRPTR(MSG)  ((msg_t)MSG)->usr_ptr
+#define MSG_IDENT(MSG)   ((msg_t)MSG)->_ident
+#define MSG_FN_DESTROY(MSG) ((msg_t)MSG)->fn_destroy
+
+#define PACKET_BUF(PACKET) ((struct packet*)PACKET)->buf
+#define PACKET_RAW(PACKET) ((struct packet*)PACKET)->raw
+#define PACKET_BEGINPOS(PACKET) ((struct packet*)PACKET)->begin_pos
+#define PACKET_TSTAMP(PACKET) ((struct packet*)PACKET)->tstamp
 
 #endif

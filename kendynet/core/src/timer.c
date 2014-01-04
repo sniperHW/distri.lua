@@ -105,7 +105,7 @@ void unregister_timer(struct timer_item *item)
 
 struct wheel* new_wheel(uint32_t size)
 {
-    struct wheel *wheel = calloc(1,sizeof(*wheel) + size*sizeof(struct dnode));
+    struct wheel *wheel = calloc(1,sizeof(*wheel) + size*sizeof(struct dlist));
 	wheel->size = size;
 	wheel->cur_idx = 0;
 	int32_t i = 0;

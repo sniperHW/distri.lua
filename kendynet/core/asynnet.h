@@ -16,18 +16,6 @@ typedef struct sock_ident{
 
 #define CAST_2_SOCK(IDENT) (*(sock_ident*)&IDENT)
 
-typedef struct msg
-{
-    lnode next;
-	uint8_t   type;
-	union{
-		uint64_t  usr_data;
-		void*     usr_ptr;
-		ident     _ident;
-	};
-	void (*msg_destroy_function)();
-}*msg_t;
-
 typedef struct asynnet* asynnet_t;
 
 #define MAX_NETPOLLER 64         //最大POLLER数量

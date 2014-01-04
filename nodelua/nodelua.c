@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include "lsock.h"
-#include "core/asynnet.h"
+#include "core/packet.h"
 
 static int luaGetSysTick(lua_State *L){
     lua_pushnumber(L,GetSystemMs());

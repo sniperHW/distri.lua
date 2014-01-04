@@ -123,7 +123,7 @@ static inline st_io *prepare_send(struct connection *c)
 			b = b->next;
 			pos = 0;
 		}
-        if(send_size_remain > 0) w = (wpacket_t)w->base.next.next;
+        if(send_size_remain > 0) w = (wpacket_t)MSG_NEXT(w);//(wpacket_t)w->base.next.next;
 	}
 	if(i){
 		c->send_overlap.m_super.iovec_count = i;
