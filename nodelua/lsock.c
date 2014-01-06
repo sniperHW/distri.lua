@@ -1,4 +1,5 @@
 #include "lsock.h"
+#include "core/lua_util.h"
 
 void luasock_destroy(void *ptr)
 {
@@ -7,6 +8,8 @@ void luasock_destroy(void *ptr)
         release_conn(sock->c);
     else if(sock->s != INVALID_SOCK)
         CloseSocket(sock->s);
+    if(sock->luasocket)
+        release_luaObj(sock->luasocket);
     free(sock);
 }
 

@@ -73,7 +73,7 @@ end
 
 --暂时释放执行权
 function scheduler:Yield()
-        self:Sleep(0)
+    self:Sleep(0)
 end
 
 
@@ -92,7 +92,7 @@ function scheduler:Schedule()
         coroutine.resume(v.croutine,v.ud)
         self.current_lp = nil
         if v.status == "yield" then
-                self:Add2Active(v)
+            self:Add2Active(v)
         end
     end
     runlist = {}
@@ -141,15 +141,16 @@ function node_spwan(ud,mainfun)
 end
 
 function node_process_msg(msg)
-	local recver = msg[0]
-	local type = msg[1]
-	if type == "packet" then
-		recver:pushmsg({"packet",msg[3],nil})
-	elseif type == "newconnection" then
-		recver:pushmsg({"newconnection",msg[3]})
-	elseif
-		recver:pushmsg({"disconnected",nil,msg[3]})
-	end
+    local recver = msg[0]
+    local type = msg[1]
+    if type == "packet" then
+        recver:pushmsg({"packet",msg[3],nil})
+    elseif type == "newconnection" then
+        recver:pushmsg({"newconnection",msg[3]})
+    elseif
+        recver.csocket = nil
+        recver:pushmsg({"disconnected",nil,msg[3]})
+    end
 end
 
 function node_loop()

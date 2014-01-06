@@ -22,7 +22,7 @@
 #include <signal.h>
 #include "lsock.h"
 #include "core/packet.h"
-#include "lua_util.h"
+#include "core/lua_util.h"
 
 static int luaGetSysTick(lua_State *L){
     lua_pushnumber(L,GetSystemMs());
@@ -49,7 +49,7 @@ struct msg_connection
     char        ip[32];
     int32_t     port;
     uint32_t    reason;
-    luaObject_t listener;
+    luaObject_t sockobj;
 };
 
 
@@ -58,11 +58,11 @@ static void luasock_disconnect(struct connection *c,uint32_t reason)
     _lsock_t d = (_lsock_t)c->usr_ptr;
     struct msg_connection *msg = calloc(1,sizeof(*msg));
     MSG_TYPE(msg) = MSG_DISCONNECTED;
-    MSG_USRPTR(msg) = d->luasocket;
+    MSG_USRPTR(msg) = d;
+    msg->sockobj = d->luasocket;
     msg->reason = reason;
     if(0 != msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg))
         free(msg);
-    luasock_release(d);
 }
 
 
@@ -89,7 +89,7 @@ static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void
     }
     ls->luasocket = create_luaObj(g_luaState);
     MSG_USRPTR(msg) = ls->luasocket;
-    msg->listener = ((_lsock_t)ud)->luasocket;
+    msg->sockobj = ((_lsock_t)ud)->luasocket;
     msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg);
     g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
                        0,NULL,0,NULL);
@@ -152,6 +152,7 @@ static int luaSendPacket(lua_State *L)
 {
     _lsock_t lsock = lua_poplsock(L,1);
     if(lsock){
+        luasock_acquire(lsock);
         wpacket_t wpk = luaGetluaWPacket(L,2);
 		MSG_USRPTR(wpk)	= lsock;
         msgque_put(g_nodelua->mq_in,(lnode*)wpk);
@@ -188,24 +189,21 @@ static void process_msg(msg_t msg)
     if(msg->type == MSG_ACTIVE_CLOSE)
     {
         _lsock_t ls = MSG_USRPTR(msg);
-        if(ls){
-            active_close(ls->c);
-            luasock_release(ls);
-        }
+        if(ls) active_close(ls->c);
     }
-    if(MSG_FN_DESTROY(msg))MSG_FN_DESTROY(msg)((void*)msg);
-    else free(msg);
+    if(MSG_FN_DESTROY(msg))
+        MSG_FN_DESTROY(msg)((void*)msg);
+    else
+        free(msg);
 }
 
 
 static inline void process_send(wpacket_t wpk)
 {
     _lsock_t d = (_lsock_t)MSG_USRPTR(wpk);
-    if(d)
-    {
+    if(d && luasock_release(d) > 0)
         send_packet(d->c,wpk);
-        luasock_release(d);
-    }else
+    else
     {
         //连接已失效丢弃wpk
         wpk_destroy(&wpk);
@@ -268,17 +266,17 @@ void lua_pushmsg(lua_State *L,msg_t msg){
         {
             struct msg_connection *_msg = (struct msg_connection*)msg;
             luaObject_t lo = (luaObject_t)MSG_USRPTR(_msg);
-            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,(_msg->listener)),
+            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,_msg->sockobj),
                           PUSH_STRING(L,"newconnection"),
                           PUSH_LUAOBJECT(L,lo)
                         );
         }else if(MSG_TYPE(msg) == MSG_DISCONNECTED)
         {
             struct msg_connection *_msg = (struct msg_connection*)msg;
-            luaObject_t lo = (luaObject_t)MSG_USRPTR(_msg);
-            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,lo),
+            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,_msg->sockobj),
                           PUSH_STRING(L,"disconnected"),
                           PUSH_NUMBER(L,_msg->reason));
+            luasock_release((_lsock_t)MSG_USRPTR(_msg));
         }
         else
             PUSH_NIL(L);

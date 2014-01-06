@@ -9,7 +9,10 @@ socket = {
 }
 
 function socket:accept()
-    if self.type == "data"
+
+    if ~self.csocket then
+        return nil,"disconnected"
+    elseif self.type == "data"
         return nil,"accept error"
     else
         if self.msgque:is_empty() then
@@ -19,18 +22,20 @@ function socket:accept()
             --block
             Block()
         end
-		local msg = self.msgque:pop()
-		if msg[1] ~= "newconnection" then 
-			print("error")
-		else
-			return msg[2]
-		end
+        local msg = self.msgque:pop()
+        if msg[1] ~= "newconnection" then
+                print("error")
+        else
+                return msg[2]
+        end
     end
 end
 
 
 function socket:recv(timeout)
-    if self.type ~= "data" then
+    if ~self.csocket then
+        return nil,"disconnected"
+    elseif self.type == "data" then
         if self.msgque:is_empty() then
             if ~self.lprocess then
                 self.lprocess = GetCurrentLightProcess()
@@ -38,12 +43,12 @@ function socket:recv(timeout)
             --block
             Block(timeout)
         end
-		local msg = self.msgque:pop()
-		if msg[1] ~= "packet" or msg[1] ~= "disconnected" then
-			print("error")
-		else
-			return msg[2],msg[3]
-		end
+        local msg = self.msgque:pop()
+        if msg[1] ~= "packet" or msg[1] ~= "disconnected" then
+                print("error")
+        else
+                return msg[2],msg[3]
+        end
 		
     else
         return nil,"not data socket"
@@ -51,7 +56,9 @@ function socket:recv(timeout)
 end
 
 function socket:send(data)
-    if self.type ~= "data" then
+    if ~self.csocket then
+        return nil,"disconnected"
+    elseif self.type == "data" then
         SendPacket(self.csocket,data)
     else
         return nil,"not data socket"
@@ -69,6 +76,14 @@ function socket:finalize()
 
 end
 
+function socket:close()
+    if ~self.csocket then
+        return "disconnected"
+    end
+    Close(self.csocket)
+    self.csocket = nil
+end
+
 function socket:new()
     local o = {}
     self.__gc = socket.finalize
@@ -80,7 +95,7 @@ end
 
 --for c function to call
 function create_socket(csocket)
-	local n = socket:new()
-	n.csocket = csocket
-	return n
+    local n = socket:new()
+    n.csocket = csocket
+    return n
 end

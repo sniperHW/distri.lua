@@ -19,9 +19,14 @@ typedef struct _lsock
 
 _lsock_t luasock_new(struct connection *c);
 
-static inline void luasock_release(_lsock_t sock)
+static inline atomic_32_t luasock_release(_lsock_t sock)
 {
-    ref_decrease((struct refbase*)sock);
+    return ref_decrease((struct refbase*)sock);
+}
+
+static inline atomic_32_t luasock_acquire(_lsock_t sock)
+{
+    return ref_increase((struct refbase*)sock);
 }
 
 
