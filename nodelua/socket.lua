@@ -2,9 +2,9 @@ dofile("queue.lua")
 dofile("light_process.lua")
 
 socket = {
-        type = nil,   -- data or listen
+        type = nil,     -- data or listen
         msgque = nil,
-        sock = nil,
+        csocket = nil,
         lprocess = nil,
 }
 
@@ -18,9 +18,13 @@ function socket:accept()
             end
             --block
             Block()
-        else
-
         end
+		local msg = self.msgque:pop()
+		if msg[1] ~= "newconnection" then 
+			print("error")
+		else
+			return msg[2]
+		end
     end
 end
 
@@ -33,9 +37,14 @@ function socket:recv(timeout)
             end
             --block
             Block(timeout)
-        else
-
         end
+		local msg = self.msgque:pop()
+		if msg[1] ~= "packet" or msg[1] ~= "disconnected" then
+			print("error")
+		else
+			return msg[2],msg[3]
+		end
+		
     else
         return nil,"not data socket"
     end
@@ -43,7 +52,7 @@ end
 
 function socket:send(data)
     if self.type ~= "data" then
-        SendPacket(self.sock,data)
+        SendPacket(self.csocket,data)
     else
         return nil,"not data socket"
     end
@@ -67,4 +76,11 @@ function socket:new()
     setmetatable(o, self)
     o.msgque = queue:new()
     return o
+end
+
+--for c function to call
+function create_socket(csocket)
+	local n = socket:new()
+	n.csocket = csocket
+	return n
 end

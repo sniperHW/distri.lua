@@ -1,8 +1,8 @@
 CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt -ltcmalloc
+LDFLAGS = -lpthread -lrt
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -I../kendynet -I../kendynet/core -I..
+INCLUDE = -I../kendynet -I../kendynet/core -I.. -I../../lua-5.2.3/src
 DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
 TESTDIR = ../kendynet/test
 

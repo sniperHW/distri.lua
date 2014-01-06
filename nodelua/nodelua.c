@@ -22,6 +22,7 @@
 #include <signal.h>
 #include "lsock.h"
 #include "core/packet.h"
+#include "lua_util.h"
 
 static int luaGetSysTick(lua_State *L){
     lua_pushnumber(L,GetSystemMs());
@@ -39,11 +40,7 @@ typedef struct nodelua
 
 static nodelua_t g_nodelua;
 static thread_t  g_main_thd;
-
-void lua_pushlsock(lua_State *L,_lsock_t ls)
-{
-
-}
+lua_State *      g_luaState;
 
 
 struct msg_connection
@@ -52,7 +49,7 @@ struct msg_connection
     char        ip[32];
     int32_t     port;
     uint32_t    reason;
-    luasock     listener;
+    luaObject_t listener;
 };
 
 
@@ -60,25 +57,19 @@ static void luasock_disconnect(struct connection *c,uint32_t reason)
 {
     _lsock_t d = (_lsock_t)c->usr_ptr;
     struct msg_connection *msg = calloc(1,sizeof(*msg));
-    msg->base._ident = TO_IDENT(d->sident);
-    msg->base.type = MSG_DISCONNECTED;
+    MSG_TYPE(msg) = MSG_DISCONNECTED;
+    MSG_USRPTR(msg) = d->luasocket;
     msg->reason = reason;
-    //get_addr_remote(d->sident,msg->ip,32);
-    //get_port_remote(d->sident,&msg->port);
     if(0 != msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg))
         free(msg);
     luasock_release(d);
 }
 
-static void luasock_io_timeout(struct connection *c)
-{
-    active_close(c);
-}
 
 static int8_t lua_process_packet(struct connection *c,rpacket_t r)
 {
     _lsock_t ls = (_lsock_t)c->usr_ptr;
-    r->base._ident = TO_IDENT(ls->sident);
+    MSG_USRPTR(r) = ls;
     if(0 != msgque_put(g_nodelua->mq_out,(lnode*)r))
         return 1;
     return 0;
@@ -87,17 +78,21 @@ static int8_t lua_process_packet(struct connection *c,rpacket_t r)
 static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
     struct connection *c = new_conn(sock,1);
-    //c->cb_disconnect = luasock_disconnect;
     _lsock_t ls = luasock_new(c);
     struct msg_connection *msg = calloc(1,sizeof(*msg));
-    msg->base._ident = TO_IDENT(ls->sident);
-    msg->base.type = MSG_CONNECT;
-    msg->listener = ((_lsock_t)ud)->sident;
-    //get_addr_remote(d->sident,msg->ip,32);
-    //get_port_remote(d->sident,&msg->port);
+    MSG_TYPE(msg) = MSG_CONNECT;
+    if(0 != CALL_LUA_FUNC1(g_luaState,"create_socket",1,PUSH_LUSRDATA(g_luaState,ls)))
+    {
+        const char * error = lua_tostring(g_luaState, -1);
+        lua_pop(g_luaState,1);
+        printf("%s\n",error);
+    }
+    ls->luasocket = create_luaObj(g_luaState);
+    MSG_USRPTR(msg) = ls->luasocket;
+    msg->listener = ((_lsock_t)ud)->luasocket;
     msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg);
     g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
-                       30,luasock_io_timeout,30,luasock_io_timeout);
+                       0,NULL,0,NULL);
 
 }
 
@@ -126,7 +121,15 @@ static int luaListen(lua_State *L)
     }else
     {
         lsock->s = s;
-        lua_pushlsock(L,lsock);
+        if(0 != CALL_LUA_FUNC1(L,"create_socket",1,PUSH_LUSRDATA(L,lsock)))
+        {
+            const char * error = lua_tostring(L, -1);
+            lua_pop(L,1);
+            printf("%s\n",error);
+            return 0;
+        }
+        lsock->luasocket = create_luaObj(L);
+        PUSH_LUAOBJECT(L,lsock->luasocket);
         lua_pushnil(L);
     }
     return 2;
@@ -134,8 +137,7 @@ static int luaListen(lua_State *L)
 
 _lsock_t   lua_poplsock(lua_State *L,int idx)
 {
-    luasock lsock;
-    return cast_2_luasock(lsock);
+    return (_lsock_t)lua_touserdata(L,idx);
 }
 
 
@@ -151,7 +153,7 @@ static int luaSendPacket(lua_State *L)
     _lsock_t lsock = lua_poplsock(L,1);
     if(lsock){
         wpacket_t wpk = luaGetluaWPacket(L,2);
-        ((struct packet*)wpk)->usr_ptr = lsock;
+		MSG_USRPTR(wpk)	= lsock;
         msgque_put(g_nodelua->mq_in,(lnode*)wpk);
         lua_pushnil(L);
     }else
@@ -165,10 +167,9 @@ static int lua_active_close(lua_State *L)
     if(lsock)
     {
         msg_t msg = calloc(1,sizeof(*msg));
-        msg->_ident = TO_IDENT(lsock->sident);
-        msg->type = MSG_ACTIVE_CLOSE;
+        MSG_TYPE(msg) = MSG_ACTIVE_CLOSE;
+        MSG_USRPTR(msg) = lsock;
         msgque_put_immeda(g_nodelua->mq_in,(lnode*)msg);
-        luasock_release(lsock);
         lua_pushnil(L);
     }else
         lua_pushstring(L,"close error");
@@ -184,38 +185,22 @@ static void notify_function(void *arg)
 
 static void process_msg(msg_t msg)
 {
-    /*if(msg->type == MSG_CONNECT)
-    {
-        struct msg_connect *_msg = (struct msg_connect*)msg;
-        if(0 != n->netpoller->connect(n->netpoller,_msg->ip,_msg->port,(void*)n->_coronet->mq_out,asyncb_connect,_msg->timeout))
-        {
-            //connect失败
-            struct msg_connection *tmsg = calloc(1,sizeof(*tmsg));
-            tmsg->base.type = MSG_CONNECT_FAIL;
-            tmsg->reason = errno;
-            strcpy(tmsg->ip,_msg->ip);
-            tmsg->port = _msg->port;
-            if(0 != msgque_put_immeda(n->_coronet->mq_out,(lnode*)tmsg)){
-                free(tmsg);
-            }
-        }
-    }else*/
     if(msg->type == MSG_ACTIVE_CLOSE)
     {
-        _lsock_t ls = cast_2_luasock(CAST_2_LUASOCK(msg->_ident));
+        _lsock_t ls = MSG_USRPTR(msg);
         if(ls){
             active_close(ls->c);
             luasock_release(ls);
         }
     }
-    if(msg->msg_destroy_function) msg->msg_destroy_function((void*)msg);
+    if(MSG_FN_DESTROY(msg))MSG_FN_DESTROY(msg)((void*)msg);
     else free(msg);
 }
 
 
 static inline void process_send(wpacket_t wpk)
 {
-    _lsock_t d = cast_2_luasock(CAST_2_LUASOCK(wpk->base._ident));
+    _lsock_t d = (_lsock_t)MSG_USRPTR(wpk);
     if(d)
     {
         send_packet(d->c,wpk);
@@ -242,7 +227,7 @@ static void *node_mainloop(void *arg)
             if(node)
             {
                 msg_t _msg = (msg_t)node;
-                if(_msg->type == MSG_WPACKET)
+                if(MSG_TYPE(_msg) == MSG_WPACKET)
                     process_send((wpacket_t)_msg);
                 else
                     process_msg(_msg);
@@ -267,14 +252,36 @@ static void *node_mainloop(void *arg)
 
 
 void lua_pushmsg(lua_State *L,msg_t msg){
-    if(msg->type == MSG_RPACKET)
+    if(MSG_TYPE(msg) == MSG_RPACKET)
     {
-
-
+        rpacket_t rpk = (rpacket_t)msg;
+        _lsock_t ls = (_lsock_t)MSG_USRPTR(msg);
+        PUSH_TABLE3(L,PUSH_LUAOBJECT(L,ls->luasocket),
+                      PUSH_STRING(L,"packet"),
+                      PUSH_STRING(L,rpk_read_string(rpk))
+                    );
 
         rpk_destroy((rpacket_t*)&msg);
     }else
     {
+        if(MSG_TYPE(msg) == MSG_CONNECT)
+        {
+            struct msg_connection *_msg = (struct msg_connection*)msg;
+            luaObject_t lo = (luaObject_t)MSG_USRPTR(_msg);
+            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,(_msg->listener)),
+                          PUSH_STRING(L,"newconnection"),
+                          PUSH_LUAOBJECT(L,lo)
+                        );
+        }else if(MSG_TYPE(msg) == MSG_DISCONNECTED)
+        {
+            struct msg_connection *_msg = (struct msg_connection*)msg;
+            luaObject_t lo = (luaObject_t)MSG_USRPTR(_msg);
+            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,lo),
+                          PUSH_STRING(L,"disconnected"),
+                          PUSH_NUMBER(L,_msg->reason));
+        }
+        else
+            PUSH_NIL(L);
         free(msg);
     }
 }
@@ -303,14 +310,14 @@ int lua_node_peekmsg(lua_State *L)
 static void mq_item_destroyer(void *ptr)
 {
     msg_t _msg = (msg_t)ptr;
-    if(_msg->type == MSG_RPACKET)
+    if(MSG_TYPE(_msg) == MSG_RPACKET)
         rpk_destroy((rpacket_t*)&_msg);
-    else if(_msg->type == MSG_WPACKET)
+    else if(MSG_TYPE(_msg) == MSG_WPACKET)
         wpk_destroy((wpacket_t*)&_msg);
     else
     {
-        if(_msg->msg_destroy_function)
-            _msg->msg_destroy_function(ptr);
+        if(MSG_FN_DESTROY(_msg))
+            MSG_FN_DESTROY(_msg)(ptr);
         else
             free(ptr);
     }
@@ -331,6 +338,7 @@ void RegisterNet(lua_State *L){
     g_nodelua->mq_in = new_msgque(1024,mq_item_destroyer);
     g_nodelua->mq_out = new_msgque(1024,mq_item_destroyer);
     g_nodelua->netpoller = new_service();
+    g_luaState = L;
     thread_start_run(g_main_thd,node_mainloop,NULL);
     //signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);

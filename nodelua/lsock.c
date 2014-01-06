@@ -18,7 +18,5 @@ _lsock_t luasock_new(struct connection *c)
         sock->c = c;
         c->usr_ptr = sock;
     }
-    ident _ident = make_ident(&sock->ref);
-    sock->sident = CAST_2_LUASOCK(_ident);
     return sock;
 }

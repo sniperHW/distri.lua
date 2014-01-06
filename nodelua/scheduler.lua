@@ -141,7 +141,15 @@ function node_spwan(ud,mainfun)
 end
 
 function node_process_msg(msg)
-	
+	local recver = msg[0]
+	local type = msg[1]
+	if type == "packet" then
+		recver:pushmsg({"packet",msg[3],nil})
+	elseif type == "newconnection" then
+		recver:pushmsg({"newconnection",msg[3]})
+	elseif
+		recver:pushmsg({"disconnected",nil,msg[3]})
+	end
 end
 
 function node_loop()
