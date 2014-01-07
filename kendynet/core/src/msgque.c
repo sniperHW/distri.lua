@@ -226,6 +226,7 @@ struct msg_que* new_msgque(uint32_t syn_size,item_destroyer destroyer)
 	que->mtx = mutex_create();
 	que->refbase.destroyer = delete_msgque;
     llist_init(&que->share_que);
+    dlist_init(&que->can_interrupt);
 	que->syn_size = syn_size;
 	que->destroy_function = destroyer;
 	get_per_thread_que(que,MSGQ_NONE);
@@ -286,7 +287,7 @@ static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
 {
 	msgque_t que = ptq->que;
 	mutex_lock(que->mtx);
-	if(timeout < 0){
+    if(timeout > 0){
         if(llist_is_empty(&que->share_que) && timeout){
 			uint32_t end = GetSystemMs() + timeout;
             dlist_push(&que->blocks,&ptq->read_que.bnode);
@@ -302,13 +303,13 @@ static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
             }while(llist_is_empty(&que->share_que));
 		}
 	}
-    else if(llist_is_empty(&que->share_que))
+    /*else if(llist_is_empty(&que->share_que))
 	{
         dlist_push(&que->blocks,&ptq->read_que.bnode);
 		do{	
             condition_wait(ptq->cond,que->mtx);
         }while(llist_is_empty(&que->share_que));
-	}
+    }*/
     if(!llist_is_empty(&que->share_que))
         llist_swap(&ptq->local_que,&que->share_que);
 	mutex_unlock(que->mtx);
