@@ -21,11 +21,11 @@ typedef struct per_thread_que
 		}write_que;
 		struct read_que{
             struct dnode bnode; //用于链入msg_que->blocks或msg_que->can_interrupt
-			condition_t cond;
 			interrupt_function  notify_function;
 			void*     ud;
 		}read_que;
 	};
+    condition_t  cond;
     struct llist local_que;
 	msgque_t que;
 	item_destroyer      destroy_function;
@@ -172,7 +172,7 @@ static inline ptq_t get_per_thread_que(struct msg_que *que,uint8_t mode)
 		ptq->mode = mode;
 		ptq->que = que;
 		ref_increase(&que->refbase);
-		if(mode == MSGQ_READ) ptq->read_que.cond = condition_create();
+        ptq->cond = condition_create();
 		pthread_setspecific(que->t_key,(void*)ptq);
 	}else if(ptq->mode == MSGQ_NONE)
 		ptq->mode = mode;
@@ -194,7 +194,7 @@ void delete_per_thread_que(void *arg)
         while((n = LLIST_POP(lnode*,&ptq->local_que))!=NULL)
 			ptq->destroy_function((void*)n);
 	}
-	if(ptq->mode == MSGQ_READ) condition_destroy(&ptq->read_que.cond);
+    condition_destroy(&ptq->cond);
 	ref_decrease(&ptq->que->refbase);
 	free(ptq);
 #ifdef MQ_HEART_BEAT
@@ -270,7 +270,7 @@ static inline void msgque_sync_push(ptq_t ptq)
 			//if there is a block per_thread_struct wake it up
 			ptq_t block_ptq = (ptq_t)l;
 			mutex_unlock(que->mtx);
-			condition_signal(block_ptq->read_que.cond);
+            condition_signal(block_ptq->cond);
 		}
 	}
 	//对所有在can_interrupt中的元素调用回调
@@ -291,7 +291,7 @@ static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
 			uint32_t end = GetSystemMs() + timeout;
             dlist_push(&que->blocks,&ptq->read_que.bnode);
 			do{
-				if(0 != condition_timedwait(ptq->read_que.cond,que->mtx,timeout)){
+                if(0 != condition_timedwait(ptq->cond,que->mtx,timeout)){
 					//timeout
                     dlist_remove(&ptq->read_que.bnode);
 					break;
@@ -306,7 +306,7 @@ static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
 	{
         dlist_push(&que->blocks,&ptq->read_que.bnode);
 		do{	
-			condition_wait(ptq->read_que.cond,que->mtx);
+            condition_wait(ptq->cond,que->mtx);
         }while(llist_is_empty(&que->share_que));
 	}
     if(!llist_is_empty(&que->share_que))

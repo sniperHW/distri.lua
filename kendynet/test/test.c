@@ -26,10 +26,10 @@ void testObj(lua_State *L)
 void testcall(lua_State *L)
 {
 	if(0 != CALL_LUA_FUNC1(L,"hello",0,
-						     ARG_TABLE2(L,ARG_STRING(L,"haha"),
-										ARG_TABLE2(L,
-												   ARG_NUMBER(L,1),
-												   ARG_NUMBER(L,2)	
+						     PUSH_TABLE2(L,PUSH_STRING(L,"haha"),
+										PUSH_TABLE2(L,
+												   PUSH_NUMBER(L,1),
+												   PUSH_NUMBER(L,2)	
 										))) 
 							)
 	{
@@ -68,5 +68,15 @@ int main()
 	testObj(L);
 	testcall(L);
 	testArray(L);
+	
+	int a;	
+	if(0 != CALL_LUA_FUNC1(L,"create_socket",1,PUSH_LUSRDATA(L,&a)))
+	{
+		const char * error = lua_tostring(L, -1);
+		lua_pop(L,1);
+		printf("create_socket:%s\n",error);
+		return 0;
+	}
+	luaObject_t o = create_luaObj(L);
 	return 0;
 }
