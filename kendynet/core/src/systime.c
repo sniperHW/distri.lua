@@ -12,7 +12,7 @@ void* systick_routine(void *arg){
         clock_gettime(CLOCK_MONOTONIC, &ts);
         g_global_ms =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
 		g_global_sec = time(NULL);
-		sleepms(1);
+		usleep(1000*1);
 	}
 	return NULL;
 }

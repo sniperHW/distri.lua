@@ -68,7 +68,7 @@ static void* heart_beat_routine(void *arg){
 			}
 		}
 		mutex_unlock(g_heart_beat->mtx);
-		sleepms(msgque_flush_time);
+		usleep(msgque_flush_time*1000);
 	}
 	return NULL;
 }
@@ -210,7 +210,7 @@ static void main_exit()
 
 static void msg_que_once_routine(){
 	pthread_key_create(&g_msg_que_key,delete_per_thread_struct);
-	atexit(main_exit);
+	//atexit(main_exit);
 }
 
 void default_item_destroyer(void* item){
