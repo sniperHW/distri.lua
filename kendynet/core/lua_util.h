@@ -248,7 +248,13 @@ void        release_luaObj(luaObject_t);
 			lua_pop(OBJ->L,1);\
 		}while(0);
 
-#define PUSH_LUAOBJECT(LUASTATE,OBJ) lua_rawgeti(OBJ->L,LUA_REGISTRYINDEX,OBJ->rindex)	
+#define PUSH_LUAOBJECT(LUASTATE,OBJ)\
+        do{\
+            lua_rawgeti(OBJ->L,LUA_REGISTRYINDEX,OBJ->rindex);\
+            if(LUASTATE != OBJ->L){\
+                lua_xmove(OBJ->L,LUASTATE,1);\
+            }\
+        }while(0)
 
 
 #endif
