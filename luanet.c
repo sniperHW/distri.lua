@@ -149,7 +149,7 @@ static void lua_on_disconnect(struct connection *c,uint32_t reason)
 	service->call(service->L,service->m_iKeyIndex,"on_disconnect",c,NULL);
 }
 
-static void lua_on_accept(SOCK s,void*ud)
+static void lua_on_accept(SOCK s,struct sockaddr_in *addr_remote,void*ud)
 {
 	struct luaNetService *service = (struct luaNetService *)ud;
 	struct connection *c = new_conn(s,1);
@@ -159,17 +159,19 @@ static void lua_on_accept(SOCK s,void*ud)
 	service->call(service->L,service->m_iKeyIndex,"on_accept",c,NULL);
 }
 
-static void lua_on_connect(SOCK s,connect_request *creq,int err)
+
+//void on_connect(SOCK s,struct sockaddr_in *addr_remote, void *ud,int err)
+static void lua_on_connect(SOCK s,struct sockaddr_in *addr_remote, void *ud,int err)//(SOCK s,connect_request *creq,int err)
 {
 	if(s != INVALID_SOCK){
-		struct luaNetService *service = (struct luaNetService *)creq->usr_ptr;
+		struct luaNetService *service = (struct luaNetService *)ud;
 		struct connection *c = new_conn(s,1);
 		c->usr_ptr = (void*)service;
 		service->net->bind(service->net,c,lua_process_packet,lua_on_disconnect
 							,5000,lua_recv_timeout,5000,lua_send_timeout);
 		service->call(service->L,service->m_iKeyIndex,"on_connect",c,NULL);
 	}
-	free(creq);
+	//free(creq);
 }
 
 static int lua_active_close(lua_State *L)
@@ -204,11 +206,11 @@ static int luaConnect(lua_State *L)
 	const char *ip = lua_tostring(L,2);
 	uint16_t port = (uint16_t)lua_tonumber(L,3);
 	uint32_t timeout = lua_tonumber(L,4);
-	connect_request *creq = calloc(1,sizeof(*creq));
-	creq->port = port;
-	strcpy(creq->ip,ip);
-	creq->usr_ptr = (void*)engine;
-	engine->net->connect(engine->net,creq,lua_on_connect,timeout);
+	//connect_request *creq = calloc(1,sizeof(*creq));
+	//creq->port = port;
+	//strcpy(creq->ip,ip);
+	//creq->usr_ptr = (void*)engine;
+	engine->net->connect(engine->net,ip,port,(void*)engine,lua_on_connect,timeout);
 	return 0;
 }
 
