@@ -154,7 +154,7 @@ typedef struct luaObject
 	int 		   rindex;
 }*luaObject_t;
 
-luaObject_t create_luaObj(lua_State *L);
+luaObject_t create_luaObj(lua_State *L,int idx);
 void        release_luaObj(luaObject_t);
 
 
