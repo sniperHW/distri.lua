@@ -73,6 +73,8 @@ int8_t msgque_put_immeda(msgque_t,lnode *msg);
 */
 int8_t msgque_get(msgque_t,lnode **msg,int32_t timeout);
 
+int32_t msgque_len(msgque_t,int32_t timeout);
+
 
 typedef void (*interrupt_function)(void*);
 void   msgque_putinterrupt(msgque_t,void *ud,interrupt_function);

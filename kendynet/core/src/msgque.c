@@ -364,6 +364,17 @@ int8_t msgque_get(msgque_t que,lnode **msg,int32_t timeout)
 	return 0;
 }
 
+int32_t msgque_len(msgque_t que,int32_t timeout)
+{
+	ptq_t ptq = get_per_thread_que(que,MSGQ_READ);
+	assert(ptq->mode == MSGQ_READ);
+	if(ptq->mode != MSGQ_READ)return -1;
+	if(!llist_is_empty(&ptq->local_que))
+		timeout = 0;
+	msgque_sync_pop(ptq,timeout);
+	return llist_size(&ptq->local_que);
+}
+
 static inline void _flush_local(ptq_t ptq)
 {
 	assert(ptq->mode == MSGQ_WRITE);
