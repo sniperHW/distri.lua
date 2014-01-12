@@ -46,20 +46,12 @@ typedef int32_t (*ASYNCB_PROCESS_PACKET)(asynnet_t,sock_ident,rpacket_t);
 
 typedef void (*ASYNCN_CONNECT_FAILED)(asynnet_t,const char *ip,int32_t port,uint32_t reason);
 
-/*
-*  listen的回调，如果成功返回一个合法的sock_ident
-*  否则reason说明失败原因
-*/
-typedef void (*ASYNCB_LISTEN)(asynnet_t,sock_ident,const char *ip,int32_t port,uint32_t reason);
-
 asynnet_t asynnet_new(uint8_t  pollercount,
                       ASYNCB_CONNECT,
                       ASYNCB_CONNECTED,
                       ASYNCB_DISCNT,
                       ASYNCB_PROCESS_PACKET,
-                      ASYNCN_CONNECT_FAILED,
-                      ASYNCB_LISTEN);
-
+                      ASYNCN_CONNECT_FAILED);
 
 void      asynnet_stop(asynnet_t);
 
@@ -67,11 +59,11 @@ void      asynnet_coronet(asynnet_t);
 
 int32_t   asynnet_bind(asynnet_t,sock_ident sock,void *ud,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout);
 
-int32_t   asynnet_listen(asynnet_t,const char *ip,int32_t port);
+sock_ident asynnet_listen(asynnet_t,const char *ip,int32_t port,int32_t *reason);
 
 int32_t   asynnet_connect(asynnet_t,const char *ip,int32_t port,uint32_t timeout);
 
-void      peek_msg(asynnet_t,uint32_t timeout);
+void      asynnet_loop(asynnet_t,uint32_t timeout);
 
 int32_t   asynsock_close(sock_ident);
 

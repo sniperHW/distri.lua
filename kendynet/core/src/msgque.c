@@ -203,10 +203,10 @@ void delete_per_thread_que(void *arg)
 	printf("delete_per_thread_que\n");
 }
 
-static void main_exit()
+/*static void main_exit()
 {
 	pthread_exit(NULL);//强制主线程退出时执行正确的清理工作
-}
+}*/
 
 static void msg_que_once_routine(){
 	pthread_key_create(&g_msg_que_key,delete_per_thread_struct);
