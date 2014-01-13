@@ -5,18 +5,33 @@
 
 static void asyncb_disconnect(struct connection *c,uint32_t reason)
 {
-    asynsock_t d = (asynsock_t)c->usr_ptr;
-	if(d->que){
-		struct msg_connection *msg = calloc(1,sizeof(*msg));
-		msg->base._ident = TO_IDENT(d->sident);
-		msg->base.type = MSG_DISCONNECTED;
-		msg->reason = reason;
-		get_addr_remote(d->sident,msg->ip,32);
-		get_port_remote(d->sident,&msg->port);
-        if(0 != msgque_put_immeda(d->que,(lnode*)msg))
-			free(msg);
-	}
-    asynsock_release(d);
+    asynsock_t asysock = (asynsock_t)c->usr_ptr;
+    if(asysock){
+        if(asysock->c){
+            release_conn(asysock->c);
+            asysock->c = NULL;
+        }
+        else if(asysock->s != INVALID_SOCK){
+            CloseSocket(asysock->s);
+            asysock = INVALID_SOCK;
+        }
+        if(asysock->que){
+
+            struct msg_connection *msg = calloc(1,sizeof(*msg));
+            msg->base._ident = TO_IDENT(asysock->sident);
+            msg->base.type = MSG_DISCONNECTED;
+            msg->reason = reason;
+            get_addr_remote(asysock->sident,msg->ip,32);
+            get_port_remote(asysock->sident,&msg->port);
+            if(0 != msgque_put_immeda(asysock->que,(lnode*)msg))
+                free(msg);
+        }
+        asynsock_release(asysock);
+    }else
+    {
+        printf("fatal error\n");
+        exit(0);
+    }
 }
 
 static void asyncb_io_timeout(struct connection *c)
