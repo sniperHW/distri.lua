@@ -70,6 +70,7 @@ int32_t  epoll_unregister_recv(poller_t e,socket_t s)
     assert(e);assert(s);
     struct epoll_event ev;int32_t ret;
     if(s->socket_type == DATA){
+		ev.data.ptr = s;
         ev.events = EV_OUT | EV_ET | EPOLLRDHUP;
         TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_MOD,s->fd,&ev));
     }
@@ -88,6 +89,7 @@ int32_t  epoll_unregister_send(poller_t e,socket_t s)
     assert(e);assert(s);
     struct epoll_event ev;int32_t ret;
     if(s->socket_type == DATA){
+		ev.data.ptr = s;
         ev.events = EV_IN | EV_ET | EPOLLRDHUP;
         TEMP_FAILURE_RETRY(ret = epoll_ctl(e->poller_fd,EPOLL_CTL_MOD,s->fd,&ev));
     }else

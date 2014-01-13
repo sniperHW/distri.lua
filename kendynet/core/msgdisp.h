@@ -49,7 +49,7 @@ typedef struct msgdisp{
     ASYNCB_DISCNT          on_disconnect;
     ASYNCB_PROCESS_PACKET  process_packet;
     ASYNCN_CONNECT_FAILED  connect_failed;
-    int32_t    (*bind)(msgdisp_t,sock_ident,int8_t,uint32_t,uint32_t);
+    int32_t    (*bind)(msgdisp_t,sock_ident,int8_t,uint32_t recvtimeout,uint32_t sendtimeout);
     sock_ident (*listen)(msgdisp_t,const char*,int32_t,int32_t*);
     int32_t    (*connect)(msgdisp_t,const char*,int32_t,uint32_t);
 

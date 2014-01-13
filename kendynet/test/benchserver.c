@@ -9,6 +9,7 @@ uint32_t recvcount = 0;
 
 int8_t on_process_packet(struct connection *c,rpacket_t r)
 {
+	printf("pksize %d\n",rpk_len(r));
     recvsize += rpk_len(r);
     recvcount++;
     send_packet(c,wpk_create_by_other((struct packet*)r));
@@ -30,7 +31,7 @@ void client_go(struct connection *c,uint32_t reason)
 
 void accept_client(SOCK s,struct sockaddr_in *addr_remote,void*ud)
 {
-	struct connection *c = new_conn(s,1);
+	struct connection *c = new_conn(s,0);
 	client_come(c);
 	struct netservice *tcpserver = (struct netservice *)ud;
 	tcpserver->bind(tcpserver,c,on_process_packet,client_go,0,NULL,0,NULL);

@@ -18,7 +18,7 @@ void destroy_socket_wrapper(void *arg)
 	clear_pending_send(sw);
 	clear_pending_recv(sw);
 	free(sw);
-	printf("destroy_socket_wrapper\n");
+	//printf("destroy_socket_wrapper\n");
 }
 
 SOCK new_socket_wrapper()

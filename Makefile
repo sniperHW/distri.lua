@@ -1,9 +1,9 @@
-CFLAGS = -g -Wall 
+CFLAGS = -O2 -g -Wall 
 LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -Ikendynet -Ikendynet/core -I.. -I/usr/local/include/luajit-2.0
-DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
+DEFINE = -D_DEBUG -D_LINUX
 TESTDIR = kendynet/test
 
 kendynet.a: \
@@ -27,6 +27,7 @@ kendynet.a: \
 		   kendynet/core/src/refbase.c \
 		   kendynet/core/src/asynnet.c \
 		   kendynet/core/src/asynsock.c \
+		   kendynet/core/src/msgdisp.c \
 		   kendynet/core/src/atomic_st.c \
 		   kendynet/core/src/tls.c \
 		   kendynet/core/src/lua_util.c\
@@ -40,6 +41,8 @@ luanet:luanet.c kendynet.a
 	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
 	
+asynserver:kendynet.a $(TESTDIR)/asynserver.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o asynserver $(TESTDIR)/asynserver.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 tcpserver:kendynet.a $(TESTDIR)/benchserver.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 tcpclient:kendynet.a $(TESTDIR)/benchclient.c $(TESTDIR)/testcommon.h

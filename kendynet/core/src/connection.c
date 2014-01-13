@@ -6,7 +6,6 @@
 
 #define BUFFER_SIZE 65536
 
-
 //接收相关函数
 static inline void update_next_recv_pos(struct connection *c,int32_t _bytestransfer)
 {
@@ -231,7 +230,7 @@ void RecvFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 		if(bytestransfer == 0)
 			return;
 		else if(bytestransfer < 0 && err_code != EAGAIN){
-			printf("recv close\n");
+			//printf("recv close\n");
             if(c->status != SCLOSE){
                 c->status = SCLOSE;
                 CloseSocket(c->socket);
@@ -288,7 +287,7 @@ void SendFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 		if(bytestransfer == 0)
 		    return;
 		else if(bytestransfer < 0 && err_code != EAGAIN){
-			printf("send close\n");
+			//printf("send close\n");
             if(c->status & SESTABLISH)
             {
 				ShutDownSend(c->socket);
@@ -345,7 +344,7 @@ void connection_destroy(void *arg)
     buffer_release(&c->unpack_buf);
     buffer_release(&c->next_recv_buf);
     free(c);
-    printf("connection_destroy\n");
+    //printf("connection_destroy\n");
 }
 
 struct connection *new_conn(SOCK s,uint8_t is_raw)

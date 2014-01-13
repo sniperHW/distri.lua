@@ -5,12 +5,13 @@
 
 uint32_t recvsize = 0;
 uint32_t recvcount = 0;
+extern int disconnect_count;
 
 ///int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,void *ud,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
 void asynconnect(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
 {
     printf("asynconnect\n");
-    disp->bind(disp,sock,1,0,30*1000);
+    disp->bind(disp,sock,0,30,0);
 }
 
 void asynconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
@@ -62,7 +63,7 @@ int main(int argc,char **argv)
         {
             uint32_t elapse = now-tick;
             recvsize = (recvsize/elapse)/1000;
-            printf("client_count:%d,recvsize:%d,recvcount:%d\n",client_count,recvsize,recvcount);
+            printf("client_count:%d,recvsize:%d,recvcount:%d,discount:%d\n",client_count,recvsize,recvcount,disconnect_count);
             tick = now;
             packet_send_count = 0;
             recvcount = 0;

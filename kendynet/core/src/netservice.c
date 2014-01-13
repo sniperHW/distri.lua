@@ -6,13 +6,17 @@ void check_timeout(struct timer* t,struct timer_item *wit,void *ud)
     uint32_t now = GetSystemMs();
     struct connection *c = wheelitem2con(wit);
     acquire_conn(c);
-    if(test_recvable(c->status) && c->cb_recv_timeout && now > c->last_recv + c->recv_timeout)
+    if(test_recvable(c->status) && c->cb_recv_timeout && now > c->last_recv + c->recv_timeout){
+		printf("recv timeout\n");
         c->cb_recv_timeout(c);
+	}
     if(test_sendable(c->status) && c->cb_send_timeout)
     {
         wpacket_t wpk = (wpacket_t)llist_head(&c->send_list);
-        if(wpk && now > wpk->base.tstamp + c->send_timeout)
+        if(wpk && now > wpk->base.tstamp + c->send_timeout){
+			printf("send timeout\n");
             c->cb_send_timeout(c);
+		}
     }
     if(c->status != SCLOSE) register_timer(t,wit,1);
     release_conn(c);

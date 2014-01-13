@@ -3,8 +3,12 @@
 #include "asynsock.h"
 #include "systime.h"
 
+
+int disconnect_count = 0;
+
 static void asyncb_disconnect(struct connection *c,uint32_t reason)
 {
+	++disconnect_count;
     asynsock_t asysock = (asynsock_t)c->usr_ptr;
     if(asysock){
         if(asysock->c){
@@ -16,7 +20,6 @@ static void asyncb_disconnect(struct connection *c,uint32_t reason)
             asysock = INVALID_SOCK;
         }
         if(asysock->que){
-
             struct msg_connection *msg = calloc(1,sizeof(*msg));
             msg->base._ident = TO_IDENT(asysock->sident);
             msg->base.type = MSG_DISCONNECTED;
@@ -101,8 +104,10 @@ static void process_msg(struct poller_st *n,msg_t msg)
 				struct msg_bind *_msgbind = (struct msg_bind*)msg;
 				c->raw = _msgbind->raw;
                 if(0 != n->netpoller->bind(n->netpoller,c,asyncb_process_packet,asyncb_disconnect,
-                                   _msgbind->recv_timeout,asyncb_io_timeout,
-                                   _msgbind->send_timeout,asyncb_io_timeout))
+                                   _msgbind->recv_timeout,
+                                   _msgbind->recv_timeout ? asyncb_io_timeout:NULL,
+                                   _msgbind->send_timeout,
+                                   _msgbind->send_timeout ? asyncb_io_timeout:NULL))
 				{
 					//绑定出错，直接关闭连接
                     asyncb_disconnect(c,0);

@@ -20,7 +20,7 @@ int32_t asynnet_connect(msgdisp_t disp,const char *ip,int32_t port,uint32_t time
     return 0;
 }
 
-int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
+int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,int8_t raw,uint32_t recv_timeout,uint32_t send_timeout)
 {
     asynsock_t asysock = cast_2_asynsock(sock);
     if(!asysock) return -1;
