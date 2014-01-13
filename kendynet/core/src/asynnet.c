@@ -3,88 +3,6 @@
 #include "asynsock.h"
 #include "systime.h"
 
-struct asynnet;
-struct poller_st
-{
-    msgque_t         mq_in;          //用于接收从逻辑层过来的消息
-    netservice*      netpoller;      //底层的poller
-    thread_t         poller_thd;
-    struct asynnet*  _asynnet;
-    atomic_32_t      flag;
-};
-
-struct asynnet
-{
-    uint32_t  poller_count;
-    msgque_t  mq_out;                                 //用于向逻辑层发送消息
-    struct poller_st      netpollers[MAX_NETPOLLER];
-    ASYNCB_CONNECT        on_connect;
-    ASYNCB_CONNECTED      on_connected;
-    ASYNCB_DISCNT         on_disconnect;
-    ASYNCB_PROCESS_PACKET process_packet;
-    ASYNCN_CONNECT_FAILED connect_failed;
-    atomic_32_t           flag;
-};
-
-struct msg_connect
-{
-	struct msg base;
-	char       ip[32];
-	int32_t    port;
-	uint32_t   timeout;
-};
-
-int32_t asynnet_connect(asynnet_t asynet,const char *ip,int32_t port,uint32_t timeout)
-{
-    if(asynet->flag == 1)return -1;
-	struct msg_connect *msg = calloc(1,sizeof(*msg));
-	msg->base.type = MSG_CONNECT;
-	strcpy(msg->ip,ip);
-	msg->port = port;
-	msg->timeout = timeout;
-    if(0 != msgque_put_immeda(asynet->netpollers[0].mq_in,(lnode*)msg)){
-		free(msg);
-		return -1;
-	}
-	return 0;
-}
-
-struct msg_bind
-{
-	struct msg base;
-	void   *ud;
-	uint32_t send_timeout;
-	uint32_t recv_timeout;
-	int8_t raw;
-};
-
-int32_t asynnet_bind(asynnet_t asynet,sock_ident sock,void *ud,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
-{
-    if(asynet->flag == 1)return -1;
-	struct msg_bind *msg = calloc(1,sizeof(*msg));
-	msg->base.type = MSG_BIND;
-    msg->base._ident = TO_IDENT(sock);
-	msg->recv_timeout = recv_timeout;
-	msg->send_timeout = send_timeout;
-	msg->raw = raw;
-	msg->ud =  ud;
-    int32_t idx = 0;//当poller_count>1时,netpollers[0]只用于监听和connect
-    if(asynet->poller_count > 1) idx = rand()%(asynet->poller_count-1) + 1;
-    if(0 != msgque_put_immeda(asynet->netpollers[idx].mq_in,(lnode*)msg)){
-		free(msg);
-		return -1;
-	}
-	return 0;
-}
-
-struct msg_connection
-{
-	struct msg  base;
-	char        ip[32];
-	int32_t     port;
-	uint32_t    reason;
-};
-
 static void asyncb_disconnect(struct connection *c,uint32_t reason)
 {
     asynsock_t d = (asynsock_t)c->usr_ptr;
@@ -106,7 +24,7 @@ static void asyncb_io_timeout(struct connection *c)
 	active_close(c);
 }
 
-static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
+void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
 	struct connection *c = new_conn(sock,1);
     c->cb_disconnect = asyncb_disconnect;
@@ -122,25 +40,6 @@ static inline void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void
         asynsock_release(d);
 		free(msg);
 	}
-}
-
-
-sock_ident asynnet_listen(asynnet_t asynet,const char *ip,int32_t port,int32_t *reason)
-{
-    sock_ident ret = {make_empty_ident()};
-    if(asynet->flag == 1) return ret;
-    netservice *netpoller = asynet->netpollers[0].netpoller;
-    SOCK s = netpoller->listen(netpoller,ip,port,asynet->mq_out,new_connection);
-    if(s != INVALID_SOCK)
-    {
-        asynsock_t d = asynsock_new(NULL,s);
-        d->sndque = asynet->netpollers[0].mq_in;
-        return d->sident;
-    }else
-    {
-        *reason = errno;
-        return ret;
-    }
 }
 
 
@@ -188,7 +87,6 @@ static void process_msg(struct poller_st *n,msg_t msg)
                                    _msgbind->recv_timeout,asyncb_io_timeout,
                                    _msgbind->send_timeout,asyncb_io_timeout))
 				{
-                    d->que = n->_asynnet->mq_out;
 					//绑定出错，直接关闭连接
                     asyncb_disconnect(c,0);
 				}else{
@@ -199,7 +97,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 					tmsg->base.type = MSG_ONCONNECTED;
 					get_addr_remote(d->sident,tmsg->ip,32);
 					get_port_remote(d->sident,&tmsg->port);
-                    if(0 != msgque_put_immeda(n->_asynnet->mq_out,(lnode*)tmsg))
+                    if(0 != msgque_put_immeda(d->que,(lnode*)tmsg))
 						free(tmsg);
 				}
 			}
@@ -208,7 +106,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 	}else if(msg->type == MSG_CONNECT)
 	{
 		struct msg_connect *_msg = (struct msg_connect*)msg;
-        if(0 != n->netpoller->connect(n->netpoller,_msg->ip,_msg->port,(void*)n->_asynnet->mq_out,asyncb_connect,_msg->timeout))
+        if(0 != n->netpoller->connect(n->netpoller,_msg->ip,_msg->port,MSG_USRPTR(_msg),asyncb_connect,_msg->timeout))
 		{
 			//connect失败
 			struct msg_connection *tmsg = calloc(1,sizeof(*tmsg));
@@ -216,7 +114,8 @@ static void process_msg(struct poller_st *n,msg_t msg)
 			tmsg->reason = errno;
 			strcpy(tmsg->ip,_msg->ip);
 			tmsg->port = _msg->port;
-            if(0 != msgque_put_immeda(n->_asynnet->mq_out,(lnode*)tmsg)){
+            msgque_t que = (msgque_t)MSG_USRPTR(_msg);
+            if(0 != msgque_put_immeda(que,(lnode*)tmsg)){
 				free(tmsg);
 			}
 		}
@@ -291,7 +190,7 @@ static void *mainloop(void *arg)
 	return NULL;
 }
 
-static void mq_item_destroyer(void *ptr)
+void mq_item_destroyer(void *ptr)
 {
     msg_t msg = (msg_t)ptr;
     if(msg->type == MSG_RPACKET)
@@ -308,27 +207,14 @@ static void mq_item_destroyer(void *ptr)
 }
 
 
-asynnet_t asynnet_new(uint8_t  pollercount,
-                      ASYNCB_CONNECT        on_connect,
-                      ASYNCB_CONNECTED      on_connected,
-                      ASYNCB_DISCNT         on_disconnect,
-                      ASYNCB_PROCESS_PACKET process_packet,
-                      ASYNCN_CONNECT_FAILED connect_failed)
+asynnet_t asynnet_new(uint8_t  pollercount)
 {
 	if(pollercount == 0)return NULL;
-    if(!on_connect || !on_connected || !on_disconnect || !process_packet)
-		return NULL;
 	if(pollercount > MAX_NETPOLLER)
 		pollercount = MAX_NETPOLLER;
     asynnet_t asynet = calloc(1,sizeof(*asynet));
     if(!asynet) return NULL;
     asynet->poller_count = pollercount;
-    asynet->mq_out = new_msgque(64,mq_item_destroyer);
-    asynet->on_connect = on_connect;
-    asynet->on_connected = on_connected;
-    asynet->on_disconnect = on_disconnect;
-    asynet->process_packet = process_packet;
-    asynet->connect_failed = connect_failed;
 	//创建线程池
 	int32_t i = 0;
 	for(; i < pollercount;++i)
@@ -336,7 +222,6 @@ asynnet_t asynnet_new(uint8_t  pollercount,
         asynet->netpollers[i].poller_thd = create_thread(THREAD_JOINABLE);
         asynet->netpollers[i].mq_in = new_msgque(64,mq_item_destroyer);
         asynet->netpollers[i].netpoller = new_service();
-        asynet->netpollers[i]._asynnet = asynet;
         thread_start_run(asynet->netpollers[i].poller_thd,mainloop,(void*)&asynet->netpollers[i]);
 	}
     return asynet;
@@ -391,50 +276,4 @@ int32_t asynsock_close(sock_ident s)
 		return ret;
 	}
 	return -1;
-}
-
-
-static void dispatch_msg(asynnet_t asynet,msg_t msg)
-{
-	if(msg->type == MSG_RPACKET)
-	{
-		rpacket_t rpk = (rpacket_t)msg;
-        sock_ident sock = CAST_2_SOCK(MSG_IDENT(rpk));
-        if(asynet->process_packet(asynet,sock,rpk))
-			rpk_destroy(&rpk);
-	}else{
-		struct msg_connection *tmsg = (struct msg_connection*)msg;
-		sock_ident sock = CAST_2_SOCK(tmsg->base._ident);
-		if(msg->type == MSG_ONCONNECT){
-            if(asynet->on_connect)
-                asynet->on_connect(asynet,sock,tmsg->ip,tmsg->port);
-			else
-                asynsock_close(sock);
-		}
-		else if(msg->type == MSG_ONCONNECTED){
-            if(asynet->on_connected)
-                asynet->on_connected(asynet,sock,tmsg->ip,tmsg->port);
-			else
-                asynsock_close(sock);
-		}
-        else if(msg->type == MSG_DISCONNECTED && asynet->on_disconnect){
-                asynet->on_disconnect(asynet,sock,tmsg->ip,tmsg->port,tmsg->reason);
-		}
-        else if(msg->type == MSG_CONNECT_FAIL && asynet->connect_failed)
-            asynet->connect_failed(asynet,tmsg->ip,tmsg->port,tmsg->reason);
-		free(msg);
-	}
-}
-
-void asynnet_loop(asynnet_t asynet,uint32_t ms)
-{
-	uint32_t nowtick = GetSystemMs();
-	uint32_t timeout = nowtick+ms;
-	do{
-		msg_t _msg = NULL;
-		uint32_t sleeptime = timeout - nowtick;
-        msgque_get(asynet->mq_out,(lnode**)&_msg,sleeptime);
-        if(_msg) dispatch_msg(asynet,_msg);
-		nowtick = GetSystemMs();
-    }while(asynet->flag == 0 && nowtick < timeout);
 }

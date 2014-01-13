@@ -35,4 +35,34 @@ static inline void asynsock_release(asynsock_t sock)
 	ref_decrease((struct refbase*)sock);
 }
 
+
+struct msg_connection
+{
+    struct msg  base;
+    char        ip[32];
+    int32_t     port;
+    uint32_t    reason;
+};
+
+struct msg_connect
+{
+    struct msg base;
+    char       ip[32];
+    int32_t    port;
+    uint32_t   timeout;
+};
+
+struct msg_bind
+{
+    struct msg base;
+    void   *ud;
+    uint32_t send_timeout;
+    uint32_t recv_timeout;
+    int8_t raw;
+};
+
+
+
+
+
 #endif
