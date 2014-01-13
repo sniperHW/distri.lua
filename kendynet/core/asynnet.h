@@ -34,13 +34,16 @@ typedef struct asynnet
 }*asynnet_t;
 
 
-asynnet_t asynnet_new(uint8_t  pollercount);
+asynnet_t  asynnet_new(uint8_t  pollercount);
 
 void       asynnet_stop(asynnet_t);
 
 void       asynnet_coronet(asynnet_t);
 
 int32_t    asynsock_close(sock_ident);
+
+
+int32_t    asyn_send(sock_ident,wpacket_t);
 
 int32_t    get_addr_local(sock_ident,char *buf,uint32_t buflen);
 int32_t    get_addr_remote(sock_ident,char *buf,uint32_t buflen);

@@ -21,6 +21,7 @@ static void asyncb_disconnect(struct connection *c,uint32_t reason)
 
 static void asyncb_io_timeout(struct connection *c)
 {
+    printf("asyncb_io_timeout\n");
 	active_close(c);
 }
 
@@ -32,7 +33,7 @@ void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 	msgque_t mq =  (msgque_t)ud;
 	struct msg_connection *msg = calloc(1,sizeof(*msg));
 	msg->base._ident = TO_IDENT(d->sident);
-	msg->base.type = MSG_CONNECT;
+    msg->base.type = MSG_ONCONNECT;
 	get_addr_remote(d->sident,msg->ip,32);
 	get_port_remote(d->sident,&msg->port);
 
@@ -63,6 +64,7 @@ static void asyncb_connect(SOCK sock,struct sockaddr_in *addr_remote,void *ud,in
 
 static int8_t asyncb_process_packet(struct connection *c,rpacket_t r)
 {
+    //printf("asyncb_process_packet\n");
     asynsock_t d = (asynsock_t)c->usr_ptr;
     MSG_IDENT(r) = TO_IDENT(d->sident);
     if(0 != msgque_put(d->que,(lnode*)r))
@@ -75,6 +77,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 {
 	if(msg->type == MSG_BIND)
 	{
+        //printf("MSG_BIND\n");
         asynsock_t d = cast_2_asynsock(CAST_2_SOCK(msg->_ident));
 		if(d){
 			struct connection *c = d->c;
@@ -82,7 +85,6 @@ static void process_msg(struct poller_st *n,msg_t msg)
 			if(!s->engine){
 				struct msg_bind *_msgbind = (struct msg_bind*)msg;
 				c->raw = _msgbind->raw;
-				d->usr_ptr = _msgbind->ud;
                 if(0 != n->netpoller->bind(n->netpoller,c,asyncb_process_packet,asyncb_disconnect,
                                    _msgbind->recv_timeout,asyncb_io_timeout,
                                    _msgbind->send_timeout,asyncb_io_timeout))
@@ -220,7 +222,7 @@ asynnet_t asynnet_new(uint8_t  pollercount)
 	for(; i < pollercount;++i)
 	{
         asynet->netpollers[i].poller_thd = create_thread(THREAD_JOINABLE);
-        asynet->netpollers[i].mq_in = new_msgque(64,mq_item_destroyer);
+        asynet->netpollers[i].mq_in = new_msgque(32,mq_item_destroyer);
         asynet->netpollers[i].netpoller = new_service();
         thread_start_run(asynet->netpollers[i].poller_thd,mainloop,(void*)&asynet->netpollers[i]);
 	}
@@ -276,4 +278,40 @@ int32_t asynsock_close(sock_ident s)
 		return ret;
 	}
 	return -1;
+}
+
+int32_t asyn_send(sock_ident sock,wpacket_t wpk)
+{
+    int32_t ret = 0;
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(asynsock)
+    {
+        MSG_IDENT(wpk) = TO_IDENT(sock);
+        ret = msgque_put_immeda(asynsock->sndque,(lnode*)wpk);
+        asynsock_release(asynsock);
+        return ret;
+    }
+    return -1;
+}
+
+
+
+int32_t    get_addr_local(sock_ident sock,char *buf,uint32_t buflen)
+{
+    return 0;
+}
+
+int32_t    get_addr_remote(sock_ident sock,char *buf,uint32_t buflen)
+{
+    return 0;
+}
+
+int32_t    get_port_local(sock_ident sock,int32_t *port)
+{
+    return 0;
+}
+
+int32_t    get_port_remote(sock_ident sock,int32_t *port)
+{
+    return 0;
 }

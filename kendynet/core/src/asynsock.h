@@ -13,7 +13,6 @@ typedef struct asynsock
     struct dnode            dn;
 	struct connection       *c;
 	SOCK                     s;
-	void    *usr_ptr;
     sock_ident              sident;
 	msgque_t                sndque;//用于跟poller通信的消息队列
     msgque_t                que;   //用于跟应用层通信的消息队列
@@ -55,7 +54,6 @@ struct msg_connect
 struct msg_bind
 {
     struct msg base;
-    void   *ud;
     uint32_t send_timeout;
     uint32_t recv_timeout;
     int8_t raw;

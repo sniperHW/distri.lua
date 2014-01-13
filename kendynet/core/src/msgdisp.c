@@ -20,7 +20,7 @@ int32_t asynnet_connect(msgdisp_t disp,const char *ip,int32_t port,uint32_t time
     return 0;
 }
 
-int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,void *ud,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
+int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,int8_t raw,uint32_t send_timeout,uint32_t recv_timeout)
 {
     asynsock_t asysock = cast_2_asynsock(sock);
     if(!asysock) return -1;
@@ -30,7 +30,6 @@ int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,void *ud,int8_t raw,uint32_t
     msg->recv_timeout = recv_timeout;
     msg->send_timeout = send_timeout;
     msg->raw = raw;
-    msg->ud =  ud;
     asysock->que = disp->mq;
     asynnet_t asynet = disp->asynet;
     int32_t idx = 0;//当poller_count>1时,netpollers[0]只用于监听和connect
@@ -50,7 +49,7 @@ sock_ident asynnet_listen(msgdisp_t disp,const char *ip,int32_t port,int32_t *re
     sock_ident ret = {make_empty_ident()};
     asynnet_t asynet = disp->asynet;
     netservice *netpoller = asynet->netpollers[0].netpoller;
-    SOCK s = netpoller->listen(netpoller,ip,port,disp,new_connection);
+    SOCK s = netpoller->listen(netpoller,ip,port,(void*)disp->mq,new_connection);
     if(s != INVALID_SOCK)
     {
         asynsock_t asysock = asynsock_new(NULL,s);
@@ -77,18 +76,22 @@ msgdisp_t  new_msgdisp(asynnet_t asynet,
         return NULL;
     msgdisp_t disp = calloc(1,sizeof(*disp));
     disp->asynet = asynet;
-    disp->mq = new_msgque(64,mq_item_destroyer);
+    disp->mq = new_msgque(32,mq_item_destroyer);
     disp->on_connect = on_connect;
     disp->on_connected = on_connected;
     disp->on_disconnect = on_disconnect;
     disp->process_packet = process_packet;
     disp->connect_failed = connect_failed;
+    disp->bind = asynnet_bind;
+    disp->connect = asynnet_connect;
+    disp->listen = asynnet_listen;
     return disp;
 }
 
 
 static void dispatch_msg(msgdisp_t disp,msg_t msg)
 {
+    //printf("dispatch_msg\n");
     if(msg->type == MSG_RPACKET)
     {
         rpacket_t rpk = (rpacket_t)msg;
@@ -96,15 +99,20 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
         if(disp->process_packet(disp,sock,rpk))
             rpk_destroy(&rpk);
     }else{
+
+
         struct msg_connection *tmsg = (struct msg_connection*)msg;
+        //printf("dispatch_msg %d\n",msg->type);
         sock_ident sock = CAST_2_SOCK(tmsg->base._ident);
         if(msg->type == MSG_ONCONNECT){
+            //printf("MSG_ONCONNECT\n");
             if(disp->on_connect)
                 disp->on_connect(disp,sock,tmsg->ip,tmsg->port);
             else
                 asynsock_close(sock);
         }
         else if(msg->type == MSG_ONCONNECTED){
+             //printf("MSG_ONCONNECTED\n");
             if(disp->on_connected)
                 disp->on_connected(disp,sock,tmsg->ip,tmsg->port);
             else
