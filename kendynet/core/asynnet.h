@@ -57,4 +57,18 @@ static inline int8_t eq_sockident(sock_ident a,sock_ident b)
     return a._ident.identity == b._ident.identity && a._ident.ptr == b._ident.ptr;
 }
 
+static inline sock_ident read_from_rpacket(rpacket_t rpk)
+{
+    sock_ident sock;
+    sock._ident.identity = rpk_read_uint64(rpk);
+    sock._ident.ptr = (void*)rpk_read_uint32(rpk);
+    return sock;
+}
+
+static inline void write_to_wpacket(wpacket_t wpk,sock_ident sock)
+{
+    wpk_write_uint64(wpk,sock._ident.identity);
+    wpk_write_uint32(wpk,(uint32_t)sock._ident.ptr);
+}
+
 #endif

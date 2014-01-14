@@ -27,9 +27,7 @@ int32_t to_client_process(msgdisp_t disp,sock_ident sock,rpacket_t rpk)
     }else
     {
         //from server,send to client
-        sock_ident client;
-        client._ident.identity = rpk_read_uint64(rpk);
-        client._ident.ptr = (void*)rpk_read_uint32(rpk);
+        sock_ident client = read_from_rpacket(rpk);
         asyn_send(client,wpk_create_by_other((struct packet*)rpk));
     }
     return 1;
