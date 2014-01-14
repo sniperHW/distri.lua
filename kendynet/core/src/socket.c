@@ -87,9 +87,11 @@ void process_accept(socket_t s)
         if (client == INVALID_SOCK)
             break;
         else{
-            len = sizeof(s->addr_local);
-            getsockname(s->fd,(struct sockaddr*)&s->addr_local,&len);
-            s->on_accept(client,&s->addr_remote,s->ud);
+            socket_t _client = (socket_t)client;
+            len = sizeof(_client->addr_local);
+            getpeername(_client->fd,(struct sockaddr*)&_client->addr_remote,&len);
+            getsockname(_client->fd,(struct sockaddr*)&_client->addr_local,&len);
+            s->on_accept(client,&_client->addr_remote,s->ud);
         }
     }
 }

@@ -46,14 +46,20 @@ static inline time_t GetSystemSec()
 #endif
 }
 
+#ifdef MQ_HEART_BEAT
 void   block_sigusr1();
 void   unblock_sigusr1();
+#endif
 
 static inline void sleepms(uint32_t ms)
 {
+#ifdef MQ_HEART_BEAT
 	block_sigusr1();
 	usleep(ms*1000);
 	unblock_sigusr1();
+#else
+    usleep(ms*1000);
+#endif
 }
 
 static inline char *GetCurrentTimeStr(char *buf)
