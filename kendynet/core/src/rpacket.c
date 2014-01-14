@@ -43,7 +43,7 @@ static inline rpacket_t rpk_create_by_rpacket(rpacket_t other)
     PACKET_BUF(r) = buffer_acquire(NULL,PACKET_BUF(other));
 	r->readbuf = buffer_acquire(NULL,other->readbuf);
 	r->len = other->len;
-	r->data_remain = other->len;
+    r->data_remain = other->data_remain;
     PACKET_BEGINPOS(r) = PACKET_BEGINPOS(other);
     MSG_NEXT(r) = NULL;
     MSG_TYPE(r) = MSG_RPACKET;

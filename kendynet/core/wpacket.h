@@ -39,6 +39,7 @@ typedef struct
 
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw);
 wpacket_t wpk_create_by_other(struct packet*);//通过packet构造
+wpacket_t wpk_create_by_buffer(buffer_t,uint32_t begpos,uint32_t len,uint32_t is_raw);
 void      wpk_destroy(wpacket_t*);
 
 //创建一个非原始包(单线程)
@@ -46,6 +47,7 @@ void      wpk_destroy(wpacket_t*);
 
 //创建一个原始包(单线程)
 #define NEW_WPK_RAW(__SIZE) wpk_create(__SIZE,1)
+
 
 static inline write_pos wpk_get_writepos(wpacket_t w)
 {
@@ -113,7 +115,7 @@ static inline void wpk_expand(wpacket_t w)
 static inline void wpk_copy(wpacket_t w,buffer_t buf)
 {
 	int8_t *ptr = buf->buf;
-	buffer_t tmp_buf = w->base.buf;
+    buffer_t tmp_buf = PACKET_BUF(w);
 	uint32_t copy_size;
 	while(tmp_buf)
 	{
@@ -130,17 +132,17 @@ static inline void do_write_copy(wpacket_t w)
 	/*wpacket是由rpacket构造的，这里执行写时拷贝，
 	* 执行完后wpacket和构造时传入的rpacket不再共享buffer
 	*/
-	w->factor = size_of_pow2(*w->len);
+    w->factor = size_of_pow2(w->data_size);
 	buffer_t tmp = buffer_create_and_acquire(NULL,w->factor);
 	wpk_copy(w,tmp);
-	w->base.begin_pos = 0;
-	if(!w->base.raw)
+    PACKET_BEGINPOS(w) = 0;
+    if(!PACKET_RAW(w))
 	{
 		w->len = (uint32_t*)tmp->buf;
 		w->wpos = sizeof(*w->len);
 	}
-	w->base.buf = buffer_acquire(w->base.buf,tmp);
-	w->writebuf = buffer_acquire(w->writebuf,w->base.buf);
+    PACKET_BUF(w) = buffer_acquire(PACKET_BUF(w),tmp);
+    w->writebuf = buffer_acquire(w->writebuf,PACKET_BUF(w));
 }
 
 static inline void wpk_write(wpacket_t w,int8_t *addr,uint32_t size)
@@ -173,33 +175,38 @@ static inline void wpk_write(wpacket_t w,int8_t *addr,uint32_t size)
 
 static inline void wpk_write_uint8(wpacket_t w,uint8_t value)
 {
+    if(PACKET_RAW(w))return;
 	wpk_write(w,(int8_t*)&value,sizeof(value));
 }
 
 static inline void wpk_write_uint16(wpacket_t w,uint16_t value)
 {
+    if(PACKET_RAW(w))return;
 	wpk_write(w,(int8_t*)&value,sizeof(value));
 }
 
 static inline void wpk_write_uint32(wpacket_t w,uint32_t value)
 {
+    if(PACKET_RAW(w))return;
 	wpk_write(w,(int8_t*)&value,sizeof(value));
 }
 
 static inline void wpk_write_uint64(wpacket_t w,uint64_t value)
 {
+    if(PACKET_RAW(w))return;
 	wpk_write(w,(int8_t*)&value,sizeof(value));
 }
 
 static inline void wpk_write_double(wpacket_t w ,double value)
 {
+    if(PACKET_RAW(w))return;
 	wpk_write(w,(int8_t*)&value,sizeof(value));
 }
 
 static inline void wpk_write_binary(wpacket_t w,const void *value,uint32_t size)
 {
 	assert(value);
-	if(!w->base.raw)
+    if(!PACKET_RAW(w))
 		wpk_write_uint32(w,size);
 	wpk_write(w,(int8_t*)value,size);
 }
@@ -208,5 +215,6 @@ static inline void wpk_write_string(wpacket_t w ,const char *value)
 {
     wpk_write_binary(w,value,strlen(value)+1);
 }
+
 
 #endif

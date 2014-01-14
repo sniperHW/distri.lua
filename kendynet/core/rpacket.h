@@ -43,6 +43,16 @@ void      rpk_destroy(rpacket_t*);
 //创建一个原始包
 #define NEW_RPK_RAW(__BUF,__POS,__LEN) rpk_create(__BUF,__POS,__LEN,1)
 
+static inline buffer_t  rpk_readbuf(rpacket_t r)
+{
+    return r->readbuf;
+}
+
+static inline uint32_t  rpk_rpos(rpacket_t r)
+{
+    return r->rpos;
+}
+
 //数据读取接口
 static inline uint32_t  rpk_len(rpacket_t r){
 	return r->len;
