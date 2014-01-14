@@ -51,4 +51,10 @@ int32_t    get_addr_remote(sock_ident,char *buf,uint32_t buflen);
 int32_t    get_port_local(sock_ident,int32_t *port);
 int32_t    get_port_remote(sock_ident,int32_t *port);
 
+
+static inline int8_t eq_sockident(sock_ident a,sock_ident b)
+{
+    return a._ident.identity == b._ident.identity && a._ident.ptr == b._ident.ptr;
+}
+
 #endif

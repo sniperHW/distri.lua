@@ -79,7 +79,7 @@ msgdisp_t  new_msgdisp(asynnet_t asynet,
                        ASYNCN_CONNECT_FAILED connect_failed)
 {
 
-    if(!asynet || !on_connect || !on_connected || !on_disconnect || !process_packet)
+    if(!asynet)
         return NULL;
     msgdisp_t disp = calloc(1,sizeof(*disp));
     disp->asynet = asynet;
@@ -145,5 +145,13 @@ void msg_loop(msgdisp_t disp,uint32_t ms)
         if(_msg) dispatch_msg(disp,_msg);
         nowtick = GetSystemMs();
     }while(nowtick < timeout);
+}
+
+int32_t push_msg(msgdisp_t disp,msg_t msg)
+{
+    int32_t ret = msgque_put(disp->mq,(lnode*)msg);
+    if(ret != 0)
+        mq_item_destroyer((void*)msg);
+    return ret;
 }
 

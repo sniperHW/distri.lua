@@ -68,6 +68,9 @@ msgdisp_t  new_msgdisp(asynnet_t,ASYNCB_CONNECT,
 
 void       msg_loop(msgdisp_t,uint32_t timeout);
 
+//直接往msgdisp_t的消息队列中投递消息
+int32_t    push_msg(msgdisp_t,msg_t);
+
 
 
 #endif
