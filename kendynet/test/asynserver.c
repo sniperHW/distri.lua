@@ -11,7 +11,7 @@ extern int disconnect_count;
 void asynconnect(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
 {
     printf("asynconnect\n");
-    disp->bind(disp,sock,0,30,0);
+    disp->bind(disp,0,sock,0,30,0);//由系统选择poller
 }
 
 void asynconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)

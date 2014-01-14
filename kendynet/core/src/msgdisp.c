@@ -20,7 +20,7 @@ int32_t asynnet_connect(msgdisp_t disp,const char *ip,int32_t port,uint32_t time
     return 0;
 }
 
-int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,int8_t raw,uint32_t recv_timeout,uint32_t send_timeout)
+int32_t asynnet_bind(msgdisp_t disp,int32_t pollerid,sock_ident sock,int8_t raw,uint32_t recv_timeout,uint32_t send_timeout)
 {
     asynsock_t asysock = cast_2_asynsock(sock);
     if(!asysock) return -1;
@@ -33,7 +33,14 @@ int32_t asynnet_bind(msgdisp_t disp,sock_ident sock,int8_t raw,uint32_t recv_tim
     asysock->que = disp->mq;
     asynnet_t asynet = disp->asynet;
     int32_t idx = 0;//当poller_count>1时,netpollers[0]只用于监听和connect
-    if(asynet->poller_count > 1) idx = rand()%(asynet->poller_count-1) + 1;
+    if(pollerid == 0){
+        if(asynet->poller_count > 1) idx = rand()%(asynet->poller_count-1) + 1;
+    }else
+    {
+        if(pollerid > asynet->poller_count)
+            return -2;
+        idx = pollerid-1;
+    }
     if(0 != msgque_put_immeda(asynet->netpollers[idx].mq_in,(lnode*)msg)){
         free(msg);
         asynsock_release(asysock);
