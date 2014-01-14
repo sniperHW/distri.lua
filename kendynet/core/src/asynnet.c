@@ -315,23 +315,72 @@ int32_t asyn_send(sock_ident sock,wpacket_t wpk)
 }
 
 
+static inline socket_t _get_sw(asynsock_t asynsock)
+{
+    socket_t s = NULL;
+    struct connection *c = asynsock->c;
+    if(c) s = c->socket;
+    else s = asynsock->s;
+    return s;
+}
+
 
 int32_t    get_addr_local(sock_ident sock,char *buf,uint32_t buflen)
 {
-    return 0;
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(!asynsock)
+        return -1;
+    socket_t s;
+    int32_t ret = -1;
+    if((s = _get_sw(asynsock)) != NULL)
+        if(inet_ntop(INET,&s->addr_local.sin_addr,buf,buflen))
+            ret = 0;
+    asynsock_release(asynsock);
+    return ret;
 }
 
 int32_t    get_addr_remote(sock_ident sock,char *buf,uint32_t buflen)
 {
-    return 0;
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(!asynsock)
+        return -1;
+    socket_t s;
+    int32_t ret = -1;
+    if((s = _get_sw(asynsock)) != NULL)
+        if(inet_ntop(INET,&s->addr_remote.sin_addr,buf,buflen))
+            ret = 0;
+    asynsock_release(asynsock);
+    return ret;
 }
 
 int32_t    get_port_local(sock_ident sock,int32_t *port)
 {
-    return 0;
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(!asynsock)
+        return -1;
+    socket_t s;
+    int32_t ret = -1;
+    if((s = _get_sw(asynsock)) != NULL)
+    {
+        *port = ntohs(s->addr_local.sin_port);
+        ret = 0;
+    }
+    asynsock_release(asynsock);
+    return ret;
 }
 
 int32_t    get_port_remote(sock_ident sock,int32_t *port)
 {
-    return 0;
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(!asynsock)
+        return -1;
+    socket_t s;
+    int32_t ret = -1;
+    if((s = _get_sw(asynsock)) != NULL)
+    {
+        *port = ntohs(s->addr_remote.sin_port);
+        ret = 0;
+    }
+    asynsock_release(asynsock);
+    return ret;
 }
