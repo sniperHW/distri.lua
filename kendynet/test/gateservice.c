@@ -136,7 +136,52 @@ int main(int argc,char **argv)
     return 0;
 }
 
+/*
+    广播包示例,场景服务器中的代码
+    void BroadCast(wpacket_t wpk,sock_ident gate,sock_ident *client,uint16_t client_size)
+    {
+        int i = 0;
+        wpacket_t broadcast_wpk = wpk_create(4096,0);
+        wpk_write_uint16(client_size);
+        for(; i < client_size; ++i)
+            write_to_wpacket(broadcast_wpk,client[i]);
+        broadcast_wpk->writebuf->next = buffer_acquire(NULL,PACKET_BUF(wpk));
+        broadcast_wpk->data_size += wpk->data_size;
+        (*broadcast_wpk->len) += wpk->data_size;
+        asyn_send(gate,broadcast_wpk);
+        wpacket_destroy(wpk);
+    }
+*/
 
+/*
+   网关中的代码
+   uint16_t size = rpk_read_uint16(rpk);//这个包需要发给多少个客户端
+   int i = 0;
+
+    //下面代码提取出原始要发送的包
+   buffer_t buffer = rpk_readbuf(rpk);
+   uint32_t index  = rpk_rpos(rpk);
+   uint32_t skip_size = sizeof(sock_ident)*size;
+   while(skip_size>0)
+    {
+        uint32_t move = buffer->size - index;
+        if(move > skip_size) move = skip_size;
+        index += move;
+        skip_size -= move;
+        if(index == buffer->size){
+            buffer = buffer->next;
+            index = 0;
+        }
+        assert(buffer);
+    }
+    wpacket_t wpk = wpk_create_by_buffer(buffer,index,rpk_data_remain(rpk)-sizeof(sock_ident)*size,0);
+    //发送给所有需要接收的客户端
+    for( ; i < size; ++i)
+    {
+        sock_ident client = read_from_rpacket(rpk);
+        asyn_send(client,wpk);
+    }
+*/
 
 
 
