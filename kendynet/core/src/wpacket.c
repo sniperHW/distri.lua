@@ -39,6 +39,7 @@ wpacket_t wpk_create(uint32_t size,uint8_t is_raw)
 	return w;
 }
 
+
 wpacket_t wpk_create_by_buffer(buffer_t buffer,uint32_t begpos,uint32_t len,uint32_t is_raw)
 {
     wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
@@ -76,7 +77,7 @@ wpacket_t wpk_create_by_wpacket(struct wpacket *_w)
 
 wpacket_t wpk_create_by_rpacket(struct rpacket *r,uint32_t dropsize)
 {
-    if(dropsize){
+    if(!dropsize){
         wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
         PACKET_RAW(w) = PACKET_RAW(r);
         w->factor = 0;

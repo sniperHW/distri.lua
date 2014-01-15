@@ -89,6 +89,11 @@ static inline int32_t is_vaild_ident(ident _ident)
         return 1;
 }
 
+static inline int8_t eq_ident(ident a,ident b)
+{
+    return a.identity == b.identity && a.ptr == b.ptr;
+}
+
 #define TO_IDENT(OTHER_IDENT) (*(ident*)&OTHER_IDENT)
 
 #endif

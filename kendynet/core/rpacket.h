@@ -34,7 +34,9 @@ typedef struct rpacket
 struct wpacket;
 
 rpacket_t rpk_create(buffer_t,uint32_t pos,uint32_t pk_len,uint8_t is_raw);
+
 rpacket_t rpk_create_by_other(struct packet*);
+
 void      rpk_destroy(rpacket_t*);
 
 //创建一个非原始包

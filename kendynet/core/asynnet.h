@@ -38,23 +38,26 @@ int32_t    get_port_local(sock_ident,int32_t *port);
 int32_t    get_port_remote(sock_ident,int32_t *port);
 
 
-static inline int8_t eq_sockident(sock_ident a,sock_ident b)
+static inline ident rpk_read_ident(rpacket_t rpk)
 {
-    return a._ident.identity == b._ident.identity && a._ident.ptr == b._ident.ptr;
+    ident _ident;
+    _ident.identity = rpk_read_uint64(rpk);
+#ifdef _X64
+        _ident.ptr = (void*)rpk_read_uint64(rpk);
+#else
+        _ident.ptr = (void*)rpk_read_uint32(rpk);
+#endif
+    return _ident;
 }
 
-static inline sock_ident rpk_read_sock(rpacket_t rpk)
+static inline void wpk_write_ident(wpacket_t wpk,ident _ident)
 {
-    sock_ident sock;
-    sock._ident.identity = rpk_read_uint64(rpk);
-    sock._ident.ptr = (void*)rpk_read_uint32(rpk);
-    return sock;
-}
-
-static inline void wpk_write_sock(wpacket_t wpk,sock_ident sock)
-{
-    wpk_write_uint64(wpk,sock._ident.identity);
-    wpk_write_uint32(wpk,(uint32_t)sock._ident.ptr);
+    wpk_write_uint64(wpk,_ident.identity);
+#ifdef _X64
+        wpk_write_uint64(wpk,(uint64_t)_ident.ptr);
+#else
+        wpk_write_uint32(wpk,(uint32_t)_ident.ptr);
+#endif
 }
 
 #endif

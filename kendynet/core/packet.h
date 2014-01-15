@@ -32,7 +32,7 @@ typedef struct msg
         void*     usr_ptr;
         ident     _ident;
     };
-    void (*fn_destroy)();
+    void (*fn_destroy)(void*);
 }*msg_t;
 
 /*
@@ -41,7 +41,7 @@ typedef struct msg
 */
 struct packet
 {
-   struct msg base;
+    struct msg base;
     buffer_t  buf;
 	uint8_t   raw;
 	uint32_t  begin_pos;

@@ -19,16 +19,16 @@ void to_server_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t p
 }
 
 
-int32_t to_client_process(msgdisp_t disp,sock_ident sock,rpacket_t rpk)
+int32_t to_client_process(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 {
-    if(!eq_sockident(sock,to_server)){
+    if(!eq_ident(TO_IDENT(sender),TO_IDENT(to_server))){
         //from cliet,send to server
-        push_msg(disp_to_server,(msg_t)rpk);
+        push_msg(disp,disp_to_server,(struct packet*)rpk);
     }else
     {
         //from server,send to client
-        sock_ident client = rpk_read_sock(rpk);
-        asyn_send(client,wpk_create_by_rpacket(rpk,0));
+        ident client = rpk_read_ident(rpk);
+        asyn_send(CAST_2_SOCK(client),wpk_create_by_rpacket(rpk,0));
     }
     return 1;
 }
@@ -40,14 +40,14 @@ void to_client_connect(msgdisp_t disp,sock_ident sock,const char *ip,int32_t por
 }
 
 
-int32_t to_server_process(msgdisp_t disp,sock_ident sock,rpacket_t rpk)
+int32_t to_server_process(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 {
-    if(!eq_sockident(sock,to_server)){
-        //from cliet,send to server
+    if(!eq_ident(TO_IDENT(sender),TO_IDENT(to_server))){
+        //from cliet,send to server        
         asyn_send(to_server,wpk_create_by_rpacket(rpk,0));
     }else{
         //from server,send to client
-        push_msg(disp_to_client,(msg_t)rpk);
+        push_msg(disp,disp_to_client,(struct packet*)rpk);
     }
     return 1;
 }

@@ -14,6 +14,36 @@
 
 typedef struct msgdisp* msgdisp_t;
 
+
+/*
+ * 用于标识一个rpacket到底是来自外部网络连接还是进程内部的其它msgdisp_t
+ * 如果来自套接口msgsender就是一个sock_ident,否则标识了来源msgdisp_t
+*/
+typedef struct msgsender{
+    ident _ident;
+}msgsender;
+
+
+
+static inline msgsender make_by_ident(ident _ident)
+{
+    return *((msgsender*)&_ident);
+}
+
+static inline msgsender make_by_msgdisp(msgdisp_t disp)
+{
+    msgsender _sender;
+    _sender._ident.identity = 0xABCDDCBA12344321;
+    _sender._ident.ptr = (void*)disp;
+    return _sender;
+}
+
+static inline int8_t is_msgdisp(msgsender _sender)
+{
+    return _sender._ident.identity == 0xABCDDCBA12344321;
+}
+
+
 /* 连接成功后回调，此时连接还未绑定到通信poller,不可收发消息
 *  用户可以选择直接关闭传进来的连接，或者将连接绑定到通信poller
 */
@@ -35,7 +65,7 @@ typedef void (*ASYNCB_DISCNT)(msgdisp_t,sock_ident,const char *ip,int32_t port,u
 *   返回1：coro_process_packet调用后rpacket_t自动销毁
 *   否则,将由使用者自己销毁
 */
-typedef int32_t (*ASYNCB_PROCESS_PACKET)(msgdisp_t,sock_ident,rpacket_t);
+typedef int32_t (*ASYNCB_PROCESS_PACKET)(msgdisp_t,msgsender,rpacket_t);
 
 
 typedef void (*ASYNCN_CONNECT_FAILED)(msgdisp_t,const char *ip,int32_t port,uint32_t reason);
@@ -63,16 +93,17 @@ typedef struct msgdisp{
 
 }*msgdisp_t;
 
-msgdisp_t  new_msgdisp(asynnet_t,ASYNCB_CONNECT,
-                                 ASYNCB_CONNECTED,
-                                 ASYNCB_DISCNT,
-                                 ASYNCB_PROCESS_PACKET,
-                                 ASYNCN_CONNECT_FAILED);
+msgdisp_t  new_msgdisp(asynnet_t,
+                       ASYNCB_CONNECT,
+                       ASYNCB_CONNECTED,
+                       ASYNCB_DISCNT,
+                       ASYNCB_PROCESS_PACKET,
+                       ASYNCN_CONNECT_FAILED);
 
 void       msg_loop(msgdisp_t,uint32_t timeout);
 
 //直接往msgdisp_t的消息队列中投递消息
-int32_t    push_msg(msgdisp_t,msg_t);
+int32_t    push_msg(msgdisp_t self,msgdisp_t target,struct packet*);
 
 
 

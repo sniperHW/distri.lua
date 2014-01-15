@@ -40,6 +40,7 @@ typedef struct
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw);
 
 wpacket_t wpk_create_by_wpacket(struct wpacket *_w);
+//通过rpacket构造,丢弃尾部dropsize的数据
 wpacket_t wpk_create_by_rpacket(struct rpacket *r,uint32_t dropsize);
 wpacket_t wpk_create_by_buffer(buffer_t,uint32_t begpos,uint32_t len,uint32_t is_raw);
 void      wpk_destroy(wpacket_t*);
@@ -147,17 +148,6 @@ static inline void do_write_copy(wpacket_t w)
         w->wpos = w->data_size;
     PACKET_BUF(w) = buffer_acquire(PACKET_BUF(w),tmp);
     w->writebuf = buffer_acquire(w->writebuf,PACKET_BUF(w));
-}
-
-//将other添加到w尾部
-static inline void wpk_write_wpk(wpacket_t w,wpacket_t other)
-{
-    if(!w->writebuf){
-        do_write_copy(w);
-    }
-    w->writebuf->next = buffer_acquire(NULL,PACKET_BUF(other));
-    w->data_size += other->data_size;
-    if(w->len) (*w->len) += other->data_size;
 }
 
 static inline void wpk_write(wpacket_t w,int8_t *addr,uint32_t size)
