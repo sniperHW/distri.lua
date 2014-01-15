@@ -39,17 +39,7 @@ extern uint32_t msgque_flush_time;//默认心跳冲刷时间是50ms,用户可自
 //用于销毁队列中残留的消息
 typedef void (*item_destroyer)(void*);
 
-typedef struct msg_que
-{
-        struct refbase      refbase;
-        struct llist        share_que;
-        uint32_t            syn_size;
-        pthread_key_t       t_key;
-        mutex_t             mtx;
-        struct dlist        blocks;
-        struct dlist        can_interrupt;
-        item_destroyer      destroy_function;
-}*msgque_t;
+typedef struct msg_que* msgque_t;
 
 //默认销毁函数对残留元素执行free
 void default_item_destroyer(void* item);

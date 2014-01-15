@@ -38,7 +38,9 @@ typedef struct
 }write_pos;
 
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw);
-wpacket_t wpk_create_by_other(struct packet*);//通过packet构造
+
+wpacket_t wpk_create_by_wpacket(struct wpacket *_w);
+wpacket_t wpk_create_by_rpacket(struct rpacket *r,uint32_t dropsize);
 wpacket_t wpk_create_by_buffer(buffer_t,uint32_t begpos,uint32_t len,uint32_t is_raw);
 void      wpk_destroy(wpacket_t*);
 
@@ -133,6 +135,7 @@ static inline void do_write_copy(wpacket_t w)
 	* 执行完后wpacket和构造时传入的rpacket不再共享buffer
 	*/
     w->factor = size_of_pow2(w->data_size);
+    if(!w->factor) w->factor = 64;
 	buffer_t tmp = buffer_create_and_acquire(NULL,w->factor);
 	wpk_copy(w,tmp);
     PACKET_BEGINPOS(w) = 0;
@@ -140,9 +143,21 @@ static inline void do_write_copy(wpacket_t w)
 	{
 		w->len = (uint32_t*)tmp->buf;
 		w->wpos = sizeof(*w->len);
-	}
+    }else
+        w->wpos = w->data_size;
     PACKET_BUF(w) = buffer_acquire(PACKET_BUF(w),tmp);
     w->writebuf = buffer_acquire(w->writebuf,PACKET_BUF(w));
+}
+
+//将other添加到w尾部
+static inline void wpk_write_wpk(wpacket_t w,wpacket_t other)
+{
+    if(!w->writebuf){
+        do_write_copy(w);
+    }
+    w->writebuf->next = buffer_acquire(NULL,PACKET_BUF(other));
+    w->data_size += other->data_size;
+    if(w->len) (*w->len) += other->data_size;
 }
 
 static inline void wpk_write(wpacket_t w,int8_t *addr,uint32_t size)

@@ -5,7 +5,6 @@
 
 uint32_t recvsize = 0;
 uint32_t recvcount = 0;
-extern int disconnect_count;
 
 void asynconnect(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
 {
@@ -29,7 +28,7 @@ int32_t asynprocesspacket(msgdisp_t disp,sock_ident sock,rpacket_t rpk)
 {
     recvsize += rpk_len(rpk);
     recvcount++;
-    asyn_send(sock,wpk_create_by_other((struct packet*)rpk));
+    asyn_send(sock,wpk_create_by_rpacket(rpk,0));
     return 1;
 }
 
@@ -48,7 +47,7 @@ static void *service_main(void *ud){
     printf("echo service port:%d\n",port);
     msgdisp_t disp = (msgdisp_t)ud;
     int32_t err = 0;
-    disp->listen(disp,ip,port++,&err);
+    disp->listen(disp,0,ip,port++,&err);
     while(!stop){
         msg_loop(disp,50);
     }
@@ -97,7 +96,7 @@ int main(int argc,char **argv)
         {
             uint32_t elapse = now-tick;
             recvsize = (recvsize/elapse)/1000;
-            printf("client_count:%d,recvsize:%d,recvcount:%d,discount:%d\n",client_count,recvsize,recvcount,disconnect_count);
+            printf("client_count:%d,recvsize:%d,recvcount:%d\n",client_count,recvsize,recvcount);
             tick = now;
             packet_send_count = 0;
             recvcount = 0;

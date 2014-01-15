@@ -12,7 +12,7 @@ int8_t on_process_packet(struct connection *c,rpacket_t r)
 	printf("pksize %d\n",rpk_len(r));
     recvsize += rpk_len(r);
     recvcount++;
-    send_packet(c,wpk_create_by_other((struct packet*)r));
+    send_packet(c,wpk_create_by_rpacket(r,0));
 	//active_close(c);
 	//send2_all_client(r);
     return 1;

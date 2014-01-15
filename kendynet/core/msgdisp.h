@@ -51,12 +51,15 @@ typedef struct msgdisp{
     ASYNCN_CONNECT_FAILED  connect_failed;
 
     /*
-    *    param:pollerid,如果填0则由系统来选择poller,否则使用用户传入的pollerid,pollerid<=asynnet创建时创建的pollercount
+    *    param:pollerid,如果填<=0则由系统来选择poller,否则使用用户传入的pollerid,pollerid<=asynnet创建时创建的pollercount
     */
     int32_t    (*bind)(msgdisp_t,int32_t pollerid,sock_ident,int8_t israw,uint32_t recvtimeout,uint32_t sendtimeout);
-    sock_ident (*listen)(msgdisp_t,const char*,int32_t,int32_t*);
-    int32_t    (*connect)(msgdisp_t,const char*,int32_t,uint32_t);
 
+    /*
+    *   param:pollerid,如果填<=0默认用第1个poller
+    */
+    sock_ident (*listen)(msgdisp_t,int32_t pollerid,const char*,int32_t,int32_t*);
+    int32_t    (*connect)(msgdisp_t,int32_t pollerid,const char*,int32_t,uint32_t);
 
 }*msgdisp_t;
 

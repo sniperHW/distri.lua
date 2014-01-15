@@ -13,7 +13,7 @@ static msgdisp_t  disp_to_client;
 sock_ident        to_server;
 
 
-void to_server_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port,uint32_t err)
+void to_server_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
 {
     to_server = sock;
 }
@@ -27,8 +27,8 @@ int32_t to_client_process(msgdisp_t disp,sock_ident sock,rpacket_t rpk)
     }else
     {
         //from server,send to client
-        sock_ident client = read_from_rpacket(rpk);
-        asyn_send(client,wpk_create_by_other((struct packet*)rpk));
+        sock_ident client = rpk_read_sock(rpk);
+        asyn_send(client,wpk_create_by_rpacket(rpk,0));
     }
     return 1;
 }
@@ -44,7 +44,7 @@ int32_t to_server_process(msgdisp_t disp,sock_ident sock,rpacket_t rpk)
 {
     if(!eq_sockident(sock,to_server)){
         //from cliet,send to server
-        asyn_send(to_server,wpk_create_by_other((struct packet*)rpk));
+        asyn_send(to_server,wpk_create_by_rpacket(rpk,0));
     }else{
         //from server,send to client
         push_msg(disp_to_client,(msg_t)rpk);
@@ -72,7 +72,8 @@ static int32_t to_server_port;
 static void *service_toclient(void *ud){
     msgdisp_t disp = (msgdisp_t)ud;
     int32_t err = 0;
-    disp->listen(disp,to_client_ip,to_client_port,&err);
+    //用户的连接比较频繁,用一个单独的poller来处理监听
+    disp->listen(disp,1,to_client_ip,to_client_port,&err);
     while(!stop){
         msg_loop(disp,50);
     }
@@ -82,7 +83,7 @@ static void *service_toclient(void *ud){
 static void *service_toserver(void *ud){
     msgdisp_t disp = (msgdisp_t)ud;
     int32_t err = 0;
-    disp->listen(disp,to_server_ip,to_server_port,&err);
+    disp->listen(disp,2,to_server_ip,to_server_port,&err);
     while(!stop){
         msg_loop(disp,50);
     }
@@ -97,6 +98,7 @@ int main(int argc,char **argv)
     InitNetSystem();
 
     asynnet_t asynet = asynnet_new(3);//3个poller,1个用于监听,1个用于处理客户端连接，1个用于处理服务器连接
+
     msgdisp_t  disp_to_server = new_msgdisp(asynet,
                                   to_server_connect,
                                   to_server_connected,
@@ -144,41 +146,23 @@ int main(int argc,char **argv)
         wpacket_t broadcast_wpk = wpk_create(4096,0);
         wpk_write_uint16(client_size);
         for(; i < client_size; ++i)
-            write_to_wpacket(broadcast_wpk,client[i]);
-        broadcast_wpk->writebuf->next = buffer_acquire(NULL,PACKET_BUF(wpk));
-        broadcast_wpk->data_size += wpk->data_size;
-        (*broadcast_wpk->len) += wpk->data_size;
+            wpk_write_sock(broadcast_wpk,client[i]);
+        //将真正需要发送的包
+        wpk_write_wpk(broadcast_wpk,wpk);
         asyn_send(gate,broadcast_wpk);
         wpacket_destroy(wpk);
     }
 */
 
 /*
-   网关中的代码
-   uint16_t size = rpk_read_uint16(rpk);//这个包需要发给多少个客户端
-   int i = 0;
-
-    //下面代码提取出原始要发送的包
-   buffer_t buffer = rpk_readbuf(rpk);
-   uint32_t index  = rpk_rpos(rpk);
-   uint32_t skip_size = sizeof(sock_ident)*size;
-   while(skip_size>0)
-    {
-        uint32_t move = buffer->size - index;
-        if(move > skip_size) move = skip_size;
-        index += move;
-        skip_size -= move;
-        if(index == buffer->size){
-            buffer = buffer->next;
-            index = 0;
-        }
-        assert(buffer);
-    }
-    wpacket_t wpk = wpk_create_by_buffer(buffer,index,rpk_data_remain(rpk)-sizeof(sock_ident)*size,0);
+    网关中的代码
+    uint16_t size = rpk_read_uint16(rpk);//这个包需要发给多少个客户端
+    int i = 0;
+    wpacket_t wpk = wpk_create_by_rpacket(rpk,size*sizeof(sock_ident),PACKET_RAW(rpk));
     //发送给所有需要接收的客户端
     for( ; i < size; ++i)
     {
-        sock_ident client = read_from_rpacket(rpk);
+        sock_ident client = rpk_read_sock(rpk);
         asyn_send(client,wpk);
     }
 */

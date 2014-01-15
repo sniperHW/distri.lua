@@ -11,6 +11,7 @@ allocator_t wpacket_allocator = NULL;
 
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw)
 {
+    if(!size)size = 64;
 	size = size_of_pow2(size);
 	wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
 	w->factor = size;
@@ -42,19 +43,23 @@ wpacket_t wpk_create_by_buffer(buffer_t buffer,uint32_t begpos,uint32_t len,uint
 {
     wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
     w->factor = 0;
-    w->writebuf = NULL;
-    w->len = NULL;
     w->data_size = len;
     MSG_NEXT(w) = NULL;
     MSG_TYPE(w) = MSG_WPACKET;
     PACKET_BEGINPOS(w) = begpos;
     PACKET_BUF(w) = buffer_acquire(NULL,buffer);
     PACKET_RAW(w) = is_raw;
+    if(is_raw)
+        w->len = NULL;
+    else
+        w->len = (uint32_t*)&buffer->buf[begpos];
+    w->writebuf = NULL;
+    w->len = NULL;
     return w;
 }
 
 
-static wpacket_t wpk_create_by_wpacket(struct wpacket *_w)
+wpacket_t wpk_create_by_wpacket(struct wpacket *_w)
 {
 	wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
     PACKET_RAW(w) = PACKET_RAW(_w);
@@ -69,35 +74,45 @@ static wpacket_t wpk_create_by_wpacket(struct wpacket *_w)
 	return w;
 }
 
-static inline wpacket_t wpk_create_by_rpacket(struct rpacket *r)
+wpacket_t wpk_create_by_rpacket(struct rpacket *r,uint32_t dropsize)
 {
-	wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
-    PACKET_RAW(w) = PACKET_RAW(r);
-	w->factor = 0;
-    w->writebuf = NULL;
-    PACKET_BEGINPOS(w) = PACKET_BEGINPOS(r);
-    PACKET_BUF(w) = buffer_acquire(NULL,PACKET_BUF(r));
-    w->len = NULL;//触发拷贝之前len没有作用
-    w->wpos = 0;
-    MSG_NEXT(w) = NULL;
-    MSG_TYPE(w) = MSG_WPACKET;
-    if(PACKET_RAW(w))
-		w->data_size = r->len;
-	else
-		w->data_size = r->len + sizeof(r->len);
-    return w;
-}
+    if(dropsize){
+        wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
+        PACKET_RAW(w) = PACKET_RAW(r);
+        w->factor = 0;
+        w->writebuf = NULL;
+        w->len = NULL;//触发拷贝之前len没有作用
+        w->wpos = 0;
+        MSG_NEXT(w) = NULL;
+        MSG_TYPE(w) = MSG_WPACKET;
 
-wpacket_t wpk_create_by_other(struct packet *other)
-{
-    if(MSG_TYPE(other) == MSG_RPACKET)
-		return wpk_create_by_rpacket((struct rpacket*)other);
-    else if(MSG_TYPE(other) == MSG_WPACKET)
-        return wpk_create_by_wpacket((struct wpacket*)other);
-    else
-		return NULL;
+        PACKET_BEGINPOS(w) = PACKET_BEGINPOS(r);
+        PACKET_BUF(w) = buffer_acquire(NULL,PACKET_BUF(r));
+        if(PACKET_RAW(w))
+            w->data_size = r->len;
+        else
+            w->data_size = r->len + sizeof(r->len);
+        return w;
+    }else
+    {
+        uint32_t _dropsize = dropsize;
+        buffer_t buffer = rpk_readbuf(r);
+        uint32_t index  = rpk_rpos(r);
+        while(_dropsize>0)
+        {
+             uint32_t move = buffer->size - index;
+             if(move > _dropsize) move = _dropsize;
+             index += move;
+             _dropsize -= move;
+             if(index == buffer->size){
+                 buffer = buffer->next;
+                 index = 0;
+             }
+             assert(buffer);
+         }
+         return wpk_create_by_buffer(buffer,index,rpk_data_remain(r)-dropsize,PACKET_RAW(r));
+    }
 }
-
 
 void wpk_destroy(wpacket_t *w)
 {

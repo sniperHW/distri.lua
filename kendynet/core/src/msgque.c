@@ -11,6 +11,19 @@ enum{
 
 uint32_t msgque_flush_time = 50;
 
+struct msg_que
+{
+        struct refbase      refbase;
+        struct llist        share_que;
+        uint32_t            syn_size;
+        pthread_key_t       t_key;
+        mutex_t             mtx;
+        struct dlist        blocks;
+        struct dlist        can_interrupt;
+        item_destroyer      destroy_function;
+};
+
+
 //每个线程都有一个per_thread_que与que关联
 typedef struct per_thread_que
 {

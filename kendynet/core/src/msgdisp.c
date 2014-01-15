@@ -1,10 +1,10 @@
 #include "msgdisp.h"
 #include "asynsock.h"
-
+#include "asynnet_define.h"
 
 void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud);
 
-int32_t asynnet_connect(msgdisp_t disp,const char *ip,int32_t port,uint32_t timeout)
+int32_t asynnet_connect(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t port,uint32_t timeout)
 {
     asynnet_t asynet = disp->asynet;
     struct msg_connect *msg = calloc(1,sizeof(*msg));
@@ -13,7 +13,13 @@ int32_t asynnet_connect(msgdisp_t disp,const char *ip,int32_t port,uint32_t time
     msg->port = port;
     msg->timeout = timeout;
     MSG_USRPTR(msg) = (void*)disp->mq;
-    if(0 != msgque_put_immeda(asynet->netpollers[0].mq_in,(lnode*)msg)){
+
+    if(pollerid <= 0 || pollerid > asynet->poller_count)
+        pollerid = 0;
+    else
+        pollerid -= 1;
+
+    if(0 != msgque_put_immeda(asynet->netpollers[pollerid].mq_in,(lnode*)msg)){
         free(msg);
         return -1;
     }
@@ -33,14 +39,10 @@ int32_t asynnet_bind(msgdisp_t disp,int32_t pollerid,sock_ident sock,int8_t raw,
     asysock->que = disp->mq;
     asynnet_t asynet = disp->asynet;
     int32_t idx = 0;//当poller_count>1时,netpollers[0]只用于监听和connect
-    if(pollerid == 0){
+    if(pollerid <= 0 || pollerid > asynet->poller_count){
         if(asynet->poller_count > 1) idx = rand()%(asynet->poller_count-1) + 1;
     }else
-    {
-        if(pollerid > asynet->poller_count)
-            return -2;
         idx = pollerid-1;
-    }
     if(0 != msgque_put_immeda(asynet->netpollers[idx].mq_in,(lnode*)msg)){
         free(msg);
         asynsock_release(asysock);
@@ -51,16 +53,22 @@ int32_t asynnet_bind(msgdisp_t disp,int32_t pollerid,sock_ident sock,int8_t raw,
 }
 
 
-sock_ident asynnet_listen(msgdisp_t disp,const char *ip,int32_t port,int32_t *reason)
+sock_ident asynnet_listen(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t port,int32_t *reason)
 {
     sock_ident ret = {make_empty_ident()};
     asynnet_t asynet = disp->asynet;
-    netservice *netpoller = asynet->netpollers[0].netpoller;
+
+    if(pollerid <= 0 || pollerid > asynet->poller_count)
+        pollerid = 0;
+    else
+        pollerid -= 1;
+
+    netservice *netpoller = asynet->netpollers[pollerid].netpoller;
     SOCK s = netpoller->listen(netpoller,ip,port,(void*)disp->mq,new_connection);
     if(s != INVALID_SOCK)
     {
         asynsock_t asysock = asynsock_new(NULL,s);
-        asysock->sndque = asynet->netpollers[0].mq_in;
+        asysock->sndque = asynet->netpollers[pollerid].mq_in;
         return asysock->sident;
     }else
     {

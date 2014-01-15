@@ -30,7 +30,7 @@ void send2_all_client(rpacket_t r)
 	uint32_t i = 0;
 	for(; i < MAX_CLIENT; ++i){
 		if(clients[i]){
-            send_packet(clients[i],wpk_create_by_other((struct packet*)r));
+            send_packet(clients[i],wpk_create_by_rpacket(r,0));
 			++packet_send_count;
 		}
 	}

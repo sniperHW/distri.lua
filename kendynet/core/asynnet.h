@@ -14,24 +14,10 @@ typedef struct sock_ident{
 	ident _ident;
 }sock_ident;
 
+
 #define CAST_2_SOCK(IDENT) (*(sock_ident*)&IDENT)
 
-#define MAX_NETPOLLER 64         //最大POLLER数量
-
-struct poller_st
-{
-    msgque_t         mq_in;          //用于接收从逻辑层过来的消息
-    netservice*      netpoller;      //底层的poller
-    thread_t         poller_thd;
-    atomic_32_t      flag;
-};
-
-typedef struct asynnet
-{
-    uint32_t  poller_count;
-    struct poller_st      netpollers[MAX_NETPOLLER];
-    atomic_32_t           flag;
-}*asynnet_t;
+typedef struct asynnet* asynnet_t;
 
 
 asynnet_t  asynnet_new(uint8_t  pollercount);
@@ -57,7 +43,7 @@ static inline int8_t eq_sockident(sock_ident a,sock_ident b)
     return a._ident.identity == b._ident.identity && a._ident.ptr == b._ident.ptr;
 }
 
-static inline sock_ident read_from_rpacket(rpacket_t rpk)
+static inline sock_ident rpk_read_sock(rpacket_t rpk)
 {
     sock_ident sock;
     sock._ident.identity = rpk_read_uint64(rpk);
@@ -65,7 +51,7 @@ static inline sock_ident read_from_rpacket(rpacket_t rpk)
     return sock;
 }
 
-static inline void write_to_wpacket(wpacket_t wpk,sock_ident sock)
+static inline void wpk_write_sock(wpacket_t wpk,sock_ident sock)
 {
     wpk_write_uint64(wpk,sock._ident.identity);
     wpk_write_uint32(wpk,(uint32_t)sock._ident.ptr);

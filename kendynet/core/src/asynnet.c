@@ -2,13 +2,10 @@
 #include "socket.h"
 #include "asynsock.h"
 #include "systime.h"
-
-
-int disconnect_count = 0;
+#include "asynnet_define.h"
 
 static void asyncb_disconnect(struct connection *c,uint32_t reason)
 {
-	++disconnect_count;
     asynsock_t asysock = (asynsock_t)c->usr_ptr;
     if(asysock){
         if(asysock->c){

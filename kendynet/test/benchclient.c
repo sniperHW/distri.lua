@@ -12,7 +12,7 @@ int8_t on_process_packet(struct connection *c,rpacket_t r)
     //wpacket_t l_wpk = NEW_WPK(send_size);
     //wpk_write_binary(l_wpk,(void*)msg,send_size);
     //send_packet(c,l_wpk,NULL);
-    send_packet(c,wpk_create_by_other((struct packet*)r));
+    send_packet(c,wpk_create_by_rpacket(r,0));
     return 1;
 }
 
