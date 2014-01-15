@@ -40,7 +40,9 @@ luanet:luanet.c kendynet.a
 	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) $(DEFINE) 
 	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
-	
+
+gateservice:kendynet.a $(TESTDIR)/gateservice.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o gateservice $(TESTDIR)/gateservice.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 asynserver:kendynet.a $(TESTDIR)/asynserver.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o asynserver $(TESTDIR)/asynserver.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 tcpserver:kendynet.a $(TESTDIR)/benchserver.c $(TESTDIR)/testcommon.h

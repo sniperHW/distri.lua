@@ -74,6 +74,25 @@ static inline int buffer_read(buffer_t b,uint32_t pos,int8_t *out,uint32_t size)
 	return 0;
 }
 
+static inline int buffer_write(buffer_t b,uint32_t pos,int8_t *in,uint32_t size)
+{
+    uint32_t copy_size;
+    while(size){
+        if(!b) return -1;
+        copy_size = b->size - pos;
+        copy_size = copy_size > size ? size : copy_size;
+        memcpy(b->buf + pos,in,copy_size);
+        size -= copy_size;
+        pos += copy_size;
+        in += copy_size;
+        if(pos >= b->size){
+            pos = 0;
+            b = b->next;
+        }
+    }
+    return 0;
+}
+
 static inline int32_t is_pow2(uint32_t size)
 {
 	return !(size&(size-1));

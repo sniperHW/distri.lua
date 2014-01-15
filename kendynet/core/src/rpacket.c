@@ -38,7 +38,7 @@ rpacket_t rpk_create(buffer_t b,
 static inline rpacket_t rpk_create_by_rpacket(rpacket_t other)
 {
 	rpacket_t r = (rpacket_t)ALLOC(rpacket_allocator,sizeof(*r));
-	r->binbuf = NULL;
+    r->binbuf = NULL;
 	r->binbufpos = 0;
     PACKET_BUF(r) = buffer_acquire(NULL,PACKET_BUF(other));
 	r->readbuf = buffer_acquire(NULL,other->readbuf);
@@ -90,15 +90,62 @@ rpacket_t rpk_create_by_other(struct packet *p)
 	return NULL;
 }
 
+void rpk_dropback(rpacket_t r,uint32_t dropsize)
+{
+    if(!r || PACKET_RAW(r) || r->len < dropsize)
+        return;
+    r->len -= dropsize;
+    if(r->data_remain > dropsize)
+        r->data_remain -= dropsize;
+    else
+        r->data_remain = 0;
+    buffer_write(PACKET_BUF(r),PACKET_BEGINPOS(r),(int8_t*)&r->len,sizeof(r->len));
+}
 
 
-void      rpk_destroy(rpacket_t *r)
+//在栈上通过另一个rpacket拷贝构造一个rpacket_t,丢弃前skipsize个字节
+rpacket_t rpk_stack_create(rpacket_t other,uint32_t skipsize)
+{
+    if(!other || PACKET_RAW(other) || other->len <= skipsize)
+        return NULL;
+    rpacket_t r = (rpacket_t)alloca(sizeof(*r));
+    r->stack_create = 1;
+    PACKET_RAW(r) = 0;
+    //首先要到正确的读位置
+    uint32_t move_size = skipsize;
+    buffer_t buf = PACKET_BUF(r);
+    uint32_t pos = PACKET_BEGINPOS(r);
+    while(move_size){
+        uint32_t s = buf->size - pos;
+        if(s > move_size) s = move_size;
+        move_size -= s;
+        pos += s;
+        if(pos >= buf->size){
+            buf = buf->next;
+            pos = 0;
+        }
+    }
+
+    r->binbuf = NULL;
+    r->binbufpos = 0;
+    PACKET_BUF(r) = buffer_acquire(NULL,buf);
+    r->readbuf = buffer_acquire(NULL,buf);
+    r->len = other->len-skipsize;
+    r->data_remain = r->len;
+    r->rpos = PACKET_BEGINPOS(r) = pos;
+    MSG_NEXT(r) = NULL;
+    MSG_TYPE(r) = MSG_RPACKET;
+    return r;
+}
+
+void rpk_destroy(rpacket_t *r)
 {
 	//释放所有对buffer_t的引用
     buffer_release(&PACKET_BUF(*r));//(*r)->base.buf);
 	buffer_release(&(*r)->readbuf);
 	buffer_release(&(*r)->binbuf);
-	FREE(rpacket_allocator,*r);
+    if(!(*r)->stack_create)
+        FREE(rpacket_allocator,*r);
 	*r = 0;
 }
 

@@ -29,6 +29,7 @@ typedef struct rpacket
 	uint32_t binbufpos;
 	buffer_t binbuf;       //用于存放跨越buffer_t边界数据的buffer_t
 	buffer_t readbuf;      //当前rpos所在的buffer_t
+    uint8_t  stack_create; //是否是在栈上创建的
 }*rpacket_t;
 
 struct wpacket;
@@ -38,6 +39,12 @@ rpacket_t rpk_create(buffer_t,uint32_t pos,uint32_t pk_len,uint8_t is_raw);
 rpacket_t rpk_create_by_other(struct packet*);
 
 void      rpk_destroy(rpacket_t*);
+
+//丢弃r最后dropsize字节的内容
+void      rpk_dropback(rpacket_t r,uint32_t dropsize);
+
+//在栈上通过另一个rpacket拷贝构造一个rpacket_t,丢弃前skipsize个字节
+rpacket_t rpk_stack_create(rpacket_t other,uint32_t skipsize);
 
 //创建一个非原始包
 #define NEW_RPK(__BUF,__POS,__LEN) rpk_create(__BUF,__POS,__LEN,0)
@@ -125,5 +132,78 @@ static inline double rpk_read_double(rpacket_t r)
 
 const char*    rpk_read_string(rpacket_t);
 const void*    rpk_read_binary(rpacket_t,uint32_t *len);
+
+//以下函数可以读取包最尾部的数据
+static inline int reverse_read(rpacket_t r,int8_t *out,uint32_t size)
+{
+    if(PACKET_RAW(r))return -1;
+    if(r->len < size)return -1;
+    //首先要到正确的读位置
+    uint32_t move_size = r->len - size + sizeof(r->len);
+
+    buffer_t buf = PACKET_BUF(r);
+    uint32_t pos = PACKET_BEGINPOS(r);
+    while(move_size){
+        uint32_t s = buf->size - pos;
+        if(s > move_size) s = move_size;
+        move_size -= s;
+        pos += s;
+        if(pos >= buf->size){
+            buf = buf->next;
+            pos = 0;
+        }
+    }
+
+    while(size>0)
+    {
+        uint32_t copy_size = buf->size - pos;
+        copy_size = copy_size >= size ? size:copy_size;
+        memcpy(out,buf->buf + pos,copy_size);
+        size -= copy_size;
+        out += copy_size;
+        if(pos >= buf->size && size)
+        {
+            //当前buffer数据已经被读完,切换到下一个buffer
+            pos = 0;
+            buf = buf->next;
+        }
+    }
+    return 0;
+}
+
+static inline uint8_t reverse_read_uint8(rpacket_t r)
+{
+    uint8_t value = 0;
+    reverse_read(r,(int8_t*)&value,sizeof(value));
+    return value;
+}
+
+static inline uint16_t reverse_read_uint16(rpacket_t r)
+{
+    uint16_t value = 0;
+    reverse_read(r,(int8_t*)&value,sizeof(value));
+    return value;
+}
+
+static inline uint32_t reverse_read_uint32(rpacket_t r)
+{
+    uint32_t value = 0;
+    reverse_read(r,(int8_t*)&value,sizeof(value));
+    return value;
+}
+
+static inline uint64_t reverse_read_uint64(rpacket_t r)
+{
+    uint64_t value = 0;
+    reverse_read(r,(int8_t*)&value,sizeof(value));
+    return value;
+}
+
+static inline double reverse_read_double(rpacket_t r)
+{
+    double value = 0;
+    reverse_read(r,(int8_t*)&value,sizeof(value));
+    return value;
+}
 
 #endif

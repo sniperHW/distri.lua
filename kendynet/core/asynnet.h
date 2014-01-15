@@ -15,7 +15,9 @@ typedef struct sock_ident{
 }sock_ident;
 
 
-#define CAST_2_SOCK(IDENT) (*(sock_ident*)&IDENT)
+#define CAST_2_SOCK(IDENT)\
+             ({ sock_ident *__result = (sock_ident *)&IDENT;\
+                *__result;})
 
 typedef struct asynnet* asynnet_t;
 

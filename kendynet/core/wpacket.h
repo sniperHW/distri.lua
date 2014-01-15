@@ -23,14 +23,12 @@ typedef struct wpacket
 {
 	struct packet base;
 	uint32_t *len;      //包长字段(去除包长度字段以外实际数据的长度)在buf中的地址
-	buffer_t writebuf;       //wpos所在的buf
+    buffer_t writebuf;  //wpos所在的buf
 	uint32_t wpos;
-	uint32_t factor;
 	uint32_t data_size;//实际数据大小,包含包长度
 }*wpacket_t;
+
 struct rpacket;
-
-
 typedef struct
 {
 	buffer_t buf;
@@ -40,9 +38,10 @@ typedef struct
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw);
 
 wpacket_t wpk_create_by_wpacket(struct wpacket *_w);
-//通过rpacket构造,丢弃尾部dropsize的数据
-wpacket_t wpk_create_by_rpacket(struct rpacket *r,uint32_t dropsize);
-wpacket_t wpk_create_by_buffer(buffer_t,uint32_t begpos,uint32_t len,uint32_t is_raw);
+
+wpacket_t wpk_create_by_rpacket(struct rpacket *r);//,uint32_t dropsize);
+
+//wpacket_t wpk_create_by_buffer(buffer_t,uint32_t begpos,uint32_t len,uint32_t is_raw);
 void      wpk_destroy(wpacket_t*);
 
 //创建一个非原始包(单线程)
@@ -54,7 +53,12 @@ void      wpk_destroy(wpacket_t*);
 
 static inline write_pos wpk_get_writepos(wpacket_t w)
 {
-	write_pos wp = {w->writebuf,w->wpos};
+    write_pos wp = {NULL,0};
+    if(!PACKET_RAW(w))
+    {
+      wp.buf =  w->writebuf;
+      wp.wpos = w->wpos;
+    }
 	return wp;
 }
 
@@ -106,9 +110,7 @@ static inline void wpk_rewrite_double(write_pos *wp,double value)
 
 static inline void wpk_expand(wpacket_t w)
 {
-	uint32_t size;
-	w->factor <<= 1;
-	size = w->factor;
+    uint32_t size = size_of_pow2(w->data_size)*2;
 	w->writebuf->next = buffer_create_and_acquire(NULL,size);
 	w->writebuf = buffer_acquire(w->writebuf,w->writebuf->next);
 	w->wpos = 0;
@@ -135,9 +137,9 @@ static inline void do_write_copy(wpacket_t w)
 	/*wpacket是由rpacket构造的，这里执行写时拷贝，
 	* 执行完后wpacket和构造时传入的rpacket不再共享buffer
 	*/
-    w->factor = size_of_pow2(w->data_size);
-    if(!w->factor) w->factor = 64;
-	buffer_t tmp = buffer_create_and_acquire(NULL,w->factor);
+    uint32_t size = size_of_pow2(w->data_size);
+    if(!size) size = 64;
+    buffer_t tmp = buffer_create_and_acquire(NULL,size);
 	wpk_copy(w,tmp);
     PACKET_BEGINPOS(w) = 0;
     if(!PACKET_RAW(w))
@@ -220,6 +222,5 @@ static inline void wpk_write_string(wpacket_t w ,const char *value)
 {
     wpk_write_binary(w,value,strlen(value)+1);
 }
-
 
 #endif
