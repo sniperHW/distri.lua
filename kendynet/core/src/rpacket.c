@@ -191,9 +191,8 @@ static const void* rpk_raw_read_binary(rpacket_t r,uint32_t *len)
 
 const char* rpk_read_string(rpacket_t r)
 {
+    if(PACKET_RAW(r))return NULL;
 	uint32_t len = 0;
-    if(PACKET_RAW(r))//raw类型的rpacket不支持读取字符串
-		return rpk_raw_read_binary(r,&len);
 	return (const char *)rpk_read_binary(r,&len);
 }
 

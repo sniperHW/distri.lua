@@ -12,7 +12,7 @@ allocator_t wpacket_allocator = NULL;
 wpacket_t wpk_create(uint32_t size,uint8_t is_raw)
 {
 	size = size_of_pow2(size);
-    if(!size)size = 64;
+    if(size < 64) size = 64;
     wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
     PACKET_RAW(w) = is_raw;
     PACKET_BUF(w) = buffer_create_and_acquire(NULL,size);

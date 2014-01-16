@@ -108,10 +108,11 @@ static inline void wpk_rewrite_double(write_pos *wp,double value)
 	wpk_rewrite(wp,(int8_t*)&value,sizeof(value));
 }
 
-static inline void wpk_expand(wpacket_t w)
+static inline void wpk_expand(wpacket_t w,uint32_t size)
 {
-    uint32_t size = size_of_pow2(w->data_size)*2;
-	w->writebuf->next = buffer_create_and_acquire(NULL,size);
+    size = size_of_pow2(size);
+    if(size < 64) size = 64;
+    w->writebuf->next = buffer_create_and_acquire(NULL,size);
 	w->writebuf = buffer_acquire(w->writebuf,w->writebuf->next);
 	w->wpos = 0;
 }
@@ -138,7 +139,7 @@ static inline void do_write_copy(wpacket_t w)
 	* 执行完后wpacket和构造时传入的rpacket不再共享buffer
 	*/
     uint32_t size = size_of_pow2(w->data_size);
-    if(!size) size = 64;
+    if(size < 64) size = 64;
     buffer_t tmp = buffer_create_and_acquire(NULL,size);
 	wpk_copy(w,tmp);
     PACKET_BEGINPOS(w) = 0;
@@ -164,7 +165,7 @@ static inline void wpk_write(wpacket_t w,int8_t *addr,uint32_t size)
 		copy_size = w->writebuf->capacity - w->wpos;
 		if(copy_size == 0)
 		{
-			wpk_expand(w);//空间不足,扩展
+            wpk_expand(w,size);//空间不足,扩展
 			copy_size = w->writebuf->capacity - w->wpos;
 		}
 		copy_size = copy_size > size ? size:copy_size;
