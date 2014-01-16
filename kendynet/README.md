@@ -26,7 +26,7 @@ kendynet的网络处理模式模仿了iocp,与传统的send,recv调用不同，k
 	/*IO请求和完成队列使用的结构*/
 	typedef struct
 	{
-    		lnode      next;
+    	lnode      next;
 		struct     iovec *iovec;
 		int32_t    iovec_count;
 	}st_io;
