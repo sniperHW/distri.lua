@@ -5,7 +5,7 @@ wpacket和rpacket和支持两种类型的封包处理，raw模式和非raw模式
 ###raw模式
 
 raw模式就是原始的字节流模式，包中的所有数据被当作一整个无模式的二进制数据块处理.
-对于raw模式的rpacket,只能用'rpk_read_binary'函数将包中的数据作为一个二进制块读取出来.
+对于raw模式的rpacket,只能用`rpk_read_binary`函数将包中的数据作为一个二进制块读取出来.
 
 ###非raw模式
 非raw模式的数据包，在包头中包含一32位的长度字段，用于表示去除包头以外数据的长度.
@@ -49,4 +49,38 @@ wpacket和rpacket的底层使用buffer list来存储数据,这种存储方式可
 
 
 因为wpakcet可以共享rpacket的buffer list，所以省掉了100次的内存拷贝.
+
+##reverse_read系列函数
+
+reverse_read系列函数用于从包的尾部读取数据,每次读取都会遍历输入rpacket的buffer list以找到正确的读取下标，所以正确的使用方式如下面介绍的.
+
+首先假设一个场景,有一台内部服务器，需要将一个数据包广播给100个其它客户端：
+
+	wpacket_t wpk;//需要发送的数据包
+	uint32_t clients[100];//假设每个元素代表网关服务器中的一个用户索引
+	int i = 0;
+	for(; i < 100; ++i)
+		wpk_write_uint32(wpk,client[i]);//将100个标识写到尾部
+	wpk_write_uint16(wpk,client_size);//写入数量
+	send_packet(gate,wpk);
+
+
+在网关中的代码:
+
+	uint16_t size = reverse_read_uint16(rpk);//这个包需要发给多少个客户端
+	//用rpk尾部的数据创建一个rpacket_t r,用于读取需要接受数据的客户端
+	rpacket_t r = rpk_create_skip(rpk,size*sizeof(uint32_t)+sizeof(size));
+	//将rpk尾巴用于广播的信息丢掉
+	rpk_dropback(rpk,size*sizeof(uint32_t)+sizeof(size));	
+	int i = 0;
+	//用rpk创建一个wpk,用于发送
+	wpacket_t wpk = wpk_create_by_rpacket(rpk);
+	//发送给所有需要接收的客户端
+	for( ; i < size; ++i)	
+	{
+		uint32_t idx = rpk_read_uint32(r);
+		send_packet(clients[idx],wpk);
+	}
+	rpk_destroy(&rpk);
+	rpk_destroy(&r);
 

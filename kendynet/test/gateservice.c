@@ -147,7 +147,6 @@ int main(int argc,char **argv)
             wpk_write_ident(wpk,TO_IDENT(client[i]));
         wpk_write_uint16(wpk,client_size);
         asyn_send(gate,wpk);
-        wpacket_destroy(wpk);
     }
 */
 
