@@ -1,4 +1,4 @@
-wpacket和rpacket是kendynt中使用的封包处理结构.wpacket用于发送,rpacket用于接收.
+wpacket和rpacket是kendynet中使用的封包处理结构.wpacket用于发送,rpacket用于接收.
 
 wpacket和rpacket和支持两种类型的封包处理，raw模式和非raw模式
 
@@ -40,6 +40,7 @@ wpacket和rpacket的底层使用buffer list来存储数据,这种存储方式可
 更进一步，基于buffer list的packet在处理数据包广播的时候可以有效的减少内存拷贝.
 
 例如收到一个rpacket,需要将这个rpacket中的数据转发给100个其他的网络连接,那么可以像下面这样做:
+
 	rpacket_t r;
 	connection* clients[100];
 	int i = 0;
@@ -47,5 +48,5 @@ wpacket和rpacket的底层使用buffer list来存储数据,这种存储方式可
 		send_packet(clients[i],wpk_create_by_rpacket(r));
 
 
-
+因为wpakcet可以共享rpacket的buffer list，所以省掉了100次的内存拷贝.
 
