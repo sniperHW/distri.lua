@@ -1,16 +1,6 @@
-##【kendylib的网络模块】##
+#【kendynet高效的C网络通信框架】#
 
-计划支持epoll,iocp,kqueue,poll
-
-将kendylib中的网络模块单独分离出来，重新提炼了接口,调整实现，将原来单独实现的Acceptor和Connector
-统一进Engine中，通过Engine提供的接口即可实现异步的accpet和connect.
-
-本库致力于向用户提供最简单/基本的网络接口函数，让使用者可以方便的编写简单的异步网络程序，所以向用户
-提供了两层抽象接口，第一层接口向使用者提供了3个类型和一组API,只提供了异步的accpet,connect,recv和send
-等几个功能，不涉及网络封包，定时器的处理等问题.使用者可在其上封装出满足自己需求的上层接口和框架.
-
-第二层抽象封装了第一层的类型和API,引出了connection和wpacket,rpacket等，其中wpacket,rpacket是由buff list
-实现的基于字节流的封包。
+kendynet是一个用C语言打造的跨平台的网络通信框架（目前只实现了对Linux epoll的支持），其设计目标是让使用者能方便快捷的构建自己的网络应用.kendynet目前只支持TCP通信方式，对UDP，SSL的支持将会在后续版本中考虑.
 
 pingpong测试，测试环境为intel 酷睿2.53hz 的双核笔记本，运行ubuntu 12.4系统
 不加任何优化编译,客户端与服务器均为单线程，运行在同一台机器.
@@ -27,27 +17,22 @@ pingpong测试，测试环境为intel 酷睿2.53hz 的双核笔记本，运行ub
 	16k            100      580M
 	16K            1000     570M
 
+kendynet内置了3层接口API，使用者可以根据自己的使用需求选用不同的API,也可以在这些API之上打造自己的框架.
 
+##【第一层API】##
 
-##【抽象层次1】##
+kendynet的网络处理模式模仿了iocp,与传统的send,recv调用不同，kendynet发送和接收接口要提供的不仅仅是一个缓冲区,而是一个叫做st_io的结构:
 
+	/*IO请求和完成队列使用的结构*/
 	typedef struct
 	{
-		LIST_NODE;
+    		lnode      next;
 		struct     iovec *iovec;
 		int32_t    iovec_count;
 	}st_io;
 
-抽象了一个网络IO的发送/接收请求,iovec,iovec_count由用户负责填充，表示用于接收或希望发送出去的缓冲.
-IO请求支持gather recv/send,所以用户可以在一个请求中输入多个缓冲区.
 
-
-ENGINE
-网络引擎，底层实现与平台相关，在linux下是epoll,windows下是iocp.使用者通过驱动ENGINE完成网络的事件循环.
-
-
-SOCK
-套接字的抽象，目前只支持TCP协议.
+这个结构封装了IO请求需要的缓冲区，当对应的请求完成时通过注册的回调函数返回给使用者.
 
 ##【API说明】##
 
@@ -103,224 +88,22 @@ OnIoFinish函数,在传入回调函数的参数中表明了拿个IO请求被完�
 函数.
 
 
-下面代码展示了一个简单的echo服务器：
+##【第二层API】##
 
-	#include <assert.h>
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <stdint.h>
-	#include "core/KendyNet.h"
-	
-	enum{
-	    io_recv = 1,
-	    io_send = 2,
-	};
-	
-	struct _con{
-	    st_io st;
-	    int8_t current_io_type;
-	    SOCK sock;
-	    struct iovec wbuf[1];
-	    char buf[1024];
-	};
-	
-	#define PREPARE_BUFFER(SIZE)\
-	    con->wbuf[0].iov_len = SIZE;\
-		con->wbuf[0].iov_base = con->buf;\
-		con->st.iovec_count = 1;\
-		con->st.iovec = con->wbuf;
-	
-	#define CHECK_CONNECTION\
-	    struct _con *con = (struct _con*)st;\
-	    if(bytes < 0 && err_code != EAGAIN){\
-	        close_con(con);\
-	        return;\
-	    }
-	
-	int32_t client_count = 0;
-	
-	void close_con(struct _con *con)
-	{
-	    CloseSocket(con->sock);
-	    free(con);
-	    printf("client_count:%d\n",--client_count);
-	}
-	
-	void con_recv(struct _con *con)
-	{
-	    PREPARE_BUFFER(1024);
-	    con->current_io_type = io_recv;
-	    Post_Recv(con->sock,(st_io*)con);
-	}
-	
-	void con_send(struct _con *con,int32_t bytes)
-	{
-	    PREPARE_BUFFER(bytes);
-	    con->current_io_type = io_send;
-	    Post_Send(con->sock,(st_io*)con);
-	}
-	
-	void on_io_finish(int32_t bytes,st_io *st,uint32_t err_code)
-	{
-	    CHECK_CONNECTION;
-	    if(con->current_io_type == io_recv)
-	        con_send(con,bytes);
-	    else
-	        con_recv(con);
-	}
-	
-	void accept_client(SOCK s,void*ud)
-	{
-	    struct _con *con = malloc(sizeof(*con));
-	    con->sock = s;
-	    Bind2Engine((ENGINE)ud,s,on_io_finish,NULL);
-	    con_recv(con);
-	    printf("client_count:%d\n",++client_count);
-	}
-	
-	static volatile int8_t stop = 0;
-	
-	static void stop_handler(int signo){
-	    stop = 1;
-	}
-	
-	int main(int argc,char **argv)
-	{
-	    struct sigaction act;
-	    bzero(&act, sizeof(act));
-	    act.sa_handler = stop_handler;
-	    sigaction(SIGINT, &act, NULL);
-	    sigaction(SIGTERM, &act, NULL);
-	    InitNetSystem();
-	    ENGINE engine = CreateEngine();
-	    EListen(engine,argv[1],atoi(argv[2]),(void*)engine,accept_client);
-	    while(!stop){
-	        EngineRun(engine,100);
-	    }
-	    CleanNetSystem();
-	    return 0;
-	}
-
-##【抽象层次2】##
-
-wpacket和rpacket
-
-wpacket和rpacket是kendylib中提供的基于字节流的封包处理结构,底层缓冲由buff list
-管理.最初的设计目的是为了处理网游网关服务器频繁的广播。
-
-例如：从场景服务其中收到一个玩家的移动包，需要广播给网关服务器中另外1000个玩家.
-
-因为各packet可以共享底层的buff list,而有各自的读写指针.所以只需要创建1000个wpacket
-用接收到的rpacket的buff list去初始化这1000个wpacket,有效的减少了缓冲被复制的次数.
+在第一层的基础增加了connection,wpacket,rpacket用于处理连接，网络封包等。wpacket,rpacket
+的底层使用buffer list做为存储结构，通过缓冲区重用有效的减少了内存拷贝的消耗.
 
 
-###示例基于connection的广播服务器###
+##【第三层API】##
 
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include "core/KendyNet.h"
-	#include "core/Connection.h"
-	
-	#define MAX_CLIENT 2000
-	static struct connection *clients[MAX_CLIENT];
-	
-	void init_clients()
-	{
-		uint32_t i = 0;
-		for(; i < MAX_CLIENT;++i)
-			clients[i] = 0;
-	}
-	
-	void add_client(struct connection *c)
-	{
-		uint32_t i = 0;
-		for(; i < MAX_CLIENT; ++i)
-		{
-			if(clients[i] == 0)
-			{
-				clients[i] = c;
-				break;
-			}
-		}
-	}
-	
-	void send2_all_client(rpacket_t r)
-	{
-		uint32_t i = 0;
-		for(; i < MAX_CLIENT; ++i){
-			if(clients[i]){
-				send_packet(clients[i],wpk_create_by_packet(r),NULL);
-			}
-		}
-	}
-	
-	void remove_client(struct connection *c,uint32_t reason)
-	{
-		printf("client disconnect,reason:%u\n",reason);
-		uint32_t i = 0;
-		for(; i < MAX_CLIENT; ++i){
-			if(clients[i] == c){
-				clients[i] = 0;
-				break;
-			}
-		}
-	}
-	
-	void on_process_packet(struct connection *c,rpacket_t r)
-	{
-		send2_all_client(r);
-	}
-	
-	void accept_client(SOCK s,void*ud)
-	{
-		struct connection *c = new_conn(s,0,on_process_packet,remove_client);
-		add_client(c);
-		bind2engine((ENGINE)ud,c);
-	}
-	
-	static volatile int8_t stop = 0;
-	
-	static void stop_handler(int signo){
-	    stop = 1;
-	}
-	
-	int main(int argc,char **argv)
-	{
-	    struct sigaction act;
-	    bzero(&act, sizeof(act));
-	    act.sa_handler = stop_handler;
-	    sigaction(SIGINT, &act, NULL);
-	    sigaction(SIGTERM, &act, NULL);
-		init_clients();
-	    InitNetSystem();
-	    ENGINE engine = CreateEngine();
-	    EListen(engine,argv[1],atoi(argv[2]),(void*)engine,accept_client);
-		while(1){
-			EngineRun(engine,50);
-		}
-	    CleanNetSystem();
-	    return 0;
-	}
+前面两层的接口都是单线程的，使用者只能在单个线程中使用.在第三层中，提供了一个多线程的，网络处理引擎和消息分发器分离的网络服务框架。
+
+通过将网络和消息分发处理器的分离，让使用者可以更加灵活的搭建应用.例如：可以创建一个消息分发器，然后让多个线程
+等待在上面，这就是典型的线程池处理消息的模型.然后，还可以启动多个线程，每个线程运行一个不同的服务，创建自己单独的消息分发器，让只属于本服务的消息路由到正确的处理逻辑中.
 
 
-##【抽象层次3】##
-网络和逻辑分离的全异步网络框架
-
-提供了一个异步网络引擎`asynnet_t`和逻辑层的消息分离器`msgdisp_t`.
-`asynnet_t`提供了多线程的异步网络服务，可根据用户传入的参数创建多个线程运行多个poller.
-网络层与逻辑层之间通过消息队列通信,通过将`msgdisp_t`挂接到`asynnet_t`就可以正常的处理网络消息.
-
-
-`asynnet_t`和`msgdisp_t`的抽象提供了灵活的使用方式:
-
-例如通过创建一个`msgdisp_t`实例，然后启动多个线程在这个实例上调用`msg_loop`方法，就提供了典型
-的线程池处理网络事件的工作模式。多个线程会等待在同一个消息队列上处理来自网络的消息.
-
-另外还可以每个线程创建一个`msgdisp_t`实例,各实例运行不同的服务，监听不同的端口，就提供了一种多
-服务共用网络层的服务器模式.
-
-下面是一个多服务共用网络层的模式，创建了两个`msgdisp_t`实例和两个线程各运行一个echo服务，一个监听
-8010端口，一个监听8011端口:
+下面是一个多服务共用网络层的模式，创建了两个线程各运行一个echo服务，一个监听8010端口，一个监听8011端口，
+客户端连接到不同的端口，将由不同的服务实例为其提供服务.
 
 	#include <stdio.h>
 	#include <stdlib.h>
