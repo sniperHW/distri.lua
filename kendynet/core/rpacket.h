@@ -29,7 +29,6 @@ typedef struct rpacket
 	uint32_t binbufpos;
 	buffer_t binbuf;       //用于存放跨越buffer_t边界数据的buffer_t
 	buffer_t readbuf;      //当前rpos所在的buffer_t
-    uint8_t  stack_create; //是否是在栈上创建的
 }*rpacket_t;
 
 struct wpacket;
@@ -43,8 +42,8 @@ void      rpk_destroy(rpacket_t*);
 //丢弃r最后dropsize字节的内容
 void      rpk_dropback(rpacket_t r,uint32_t dropsize);
 
-//在栈上通过另一个rpacket拷贝构造一个rpacket_t,丢弃前skipsize个字节
-rpacket_t rpk_stack_create(rpacket_t other,uint32_t skipsize);
+//通过另一个rpacket拷贝构造一个rpacket_t,丢弃前skipsize个字节
+rpacket_t rpk_create_skip(rpacket_t other,uint32_t skipsize);
 
 //创建一个非原始包
 #define NEW_RPK(__BUF,__POS,__LEN) rpk_create(__BUF,__POS,__LEN,0)

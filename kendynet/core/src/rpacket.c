@@ -103,18 +103,16 @@ void rpk_dropback(rpacket_t r,uint32_t dropsize)
 }
 
 
-//在栈上通过另一个rpacket拷贝构造一个rpacket_t,丢弃前skipsize个字节
-rpacket_t rpk_stack_create(rpacket_t other,uint32_t skipsize)
+rpacket_t rpk_create_skip(rpacket_t other,uint32_t skipsize)
 {
     if(!other || PACKET_RAW(other) || other->len <= skipsize)
         return NULL;
-    rpacket_t r = (rpacket_t)alloca(sizeof(*r));
-    r->stack_create = 1;
+    rpacket_t r = (rpacket_t)ALLOC(rpacket_allocator,sizeof(*r));
     PACKET_RAW(r) = 0;
     //首先要到正确的读位置
-    uint32_t move_size = skipsize;
-    buffer_t buf = PACKET_BUF(r);
-    uint32_t pos = PACKET_BEGINPOS(r);
+    uint32_t move_size = skipsize+sizeof(r->len);
+    buffer_t buf = PACKET_BUF(other);
+    uint32_t pos = PACKET_BEGINPOS(other);
     while(move_size){
         uint32_t s = buf->size - pos;
         if(s > move_size) s = move_size;
@@ -144,8 +142,7 @@ void rpk_destroy(rpacket_t *r)
     buffer_release(&PACKET_BUF(*r));//(*r)->base.buf);
 	buffer_release(&(*r)->readbuf);
 	buffer_release(&(*r)->binbuf);
-    if(!(*r)->stack_create)
-        FREE(rpacket_allocator,*r);
+    FREE(rpacket_allocator,*r);
 	*r = 0;
 }
 

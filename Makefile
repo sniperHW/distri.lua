@@ -1,5 +1,5 @@
-CFLAGS = -O2 -g -Wall 
-LDFLAGS = -lpthread -lrt -ltcmalloc
+CFLAGS = -g -Wall 
+LDFLAGS = -lpthread -lrt
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -Ikendynet -Ikendynet/core -I.. -I/usr/local/include/luajit-2.0
@@ -41,6 +41,8 @@ luanet:luanet.c kendynet.a
 	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
 
+packet:kendynet.a $(TESTDIR)/testpacket.c
+	$(CC) $(CFLAGS) -o packet $(TESTDIR)/testpacket.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 gateservice:kendynet.a $(TESTDIR)/gateservice.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o gateservice $(TESTDIR)/gateservice.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 asynserver:kendynet.a $(TESTDIR)/asynserver.c $(TESTDIR)/testcommon.h
