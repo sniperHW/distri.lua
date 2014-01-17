@@ -60,7 +60,8 @@ static inline int buffer_read(buffer_t b,uint32_t pos,int8_t *out,uint32_t size)
 	uint32_t copy_size;
 	while(size){
         if(!b) return -1;
-		copy_size = b->size - pos;
+        if(pos >= b->size) return -1;
+        copy_size = b->size - pos;
 		copy_size = copy_size > size ? size : copy_size;
 		memcpy(out,b->buf + pos,copy_size);
 		size -= copy_size;
@@ -79,13 +80,14 @@ static inline int buffer_write(buffer_t b,uint32_t pos,int8_t *in,uint32_t size)
     uint32_t copy_size;
     while(size){
         if(!b) return -1;
-        copy_size = b->size - pos;
+        if(pos >= b->capacity) return -1;
+        copy_size = b->capacity - pos;
         copy_size = copy_size > size ? size : copy_size;
         memcpy(b->buf + pos,in,copy_size);
         size -= copy_size;
         pos += copy_size;
         in += copy_size;
-        if(pos >= b->size){
+        if(pos >= b->capacity){
             pos = 0;
             b = b->next;
         }
