@@ -117,18 +117,22 @@ static inline void wpk_expand(wpacket_t w,uint32_t size)
 	w->wpos = 0;
 }
 
-
+//将w中所有数据拷贝到buf中
 static inline void wpk_copy(wpacket_t w,buffer_t buf)
 {
 	int8_t *ptr = buf->buf;
     buffer_t tmp_buf = PACKET_BUF(w);
 	uint32_t copy_size;
-	while(tmp_buf)
+    uint32_t size = w->data_size;
+    uint32_t pos = PACKET_BEGINPOS(w);
+    while(size)
 	{
-		copy_size = tmp_buf->size - w->wpos;
-		memcpy(ptr,tmp_buf->buf,copy_size);
+        assert(tmp_buf);
+        copy_size = tmp_buf->size - pos;
+        memcpy(ptr,tmp_buf->buf+pos,copy_size);
 		ptr += copy_size;
-		w->wpos = 0;
+        size -= copy_size;
+        pos = 0;
 		tmp_buf = tmp_buf->next;
 	}
 }
@@ -144,11 +148,8 @@ static inline void do_write_copy(wpacket_t w)
 	wpk_copy(w,tmp);
     PACKET_BEGINPOS(w) = 0;
     if(!PACKET_RAW(w))
-	{
 		w->len = (uint32_t*)tmp->buf;
-		w->wpos = sizeof(*w->len);
-    }else
-        w->wpos = w->data_size;
+    w->wpos = w->data_size;
     PACKET_BUF(w) = buffer_acquire(PACKET_BUF(w),tmp);
     w->writebuf = buffer_acquire(w->writebuf,PACKET_BUF(w));
 }
