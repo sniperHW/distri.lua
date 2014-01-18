@@ -55,6 +55,10 @@ static inline buffer_t buffer_acquire(buffer_t b1,buffer_t b2)
 	return b2;
 }
 
+/*
+* 从b的pos开始读取size字节长的数据,如果长度大于b->size-pos,会尝试从b->next中读出剩余部分
+*/
+
 static inline int buffer_read(buffer_t b,uint32_t pos,int8_t *out,uint32_t size)
 {
 	uint32_t copy_size;
@@ -75,6 +79,11 @@ static inline int buffer_read(buffer_t b,uint32_t pos,int8_t *out,uint32_t size)
 	return 0;
 }
 
+
+/*
+*将长度为size字节的数据写入到b的pos开始位置，如果size大于b->capacity-pos,会尝试将剩余部分写入到
+*b->next中
+*/
 static inline int buffer_write(buffer_t b,uint32_t pos,int8_t *in,uint32_t size)
 {
     uint32_t copy_size;
