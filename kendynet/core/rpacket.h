@@ -129,6 +129,15 @@ static inline double rpk_read_double(rpacket_t r)
 	return value;
 }
 
+static inline void* rpk_read_pointer(rpacket_t r)
+{
+#ifdef _X64
+    return (void*)rpk_read_uint64(r);
+#else
+    return (void*)rpk_read_uint32(r);
+#endif
+}
+
 const char*    rpk_read_string(rpacket_t);
 const void*    rpk_read_binary(rpacket_t,uint32_t *len);
 
@@ -203,6 +212,14 @@ static inline double reverse_read_double(rpacket_t r)
     double value = 0;
     reverse_read(r,(int8_t*)&value,sizeof(value));
     return value;
+}
+
+static inline void* reverse_read_pointer(rpacket_t r){
+#ifdef _X64
+    return (void*)reverse_read_uint64(r);
+#else
+    return (void*)reverse_read_uint32(r);
+#endif
 }
 
 #endif

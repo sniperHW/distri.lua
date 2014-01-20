@@ -43,7 +43,7 @@ int32_t asynprocesspacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 		printf("error packet\n");
 	}else
 	{
-		struct db_result *result = (struct db_result*)rpk_read_uint32(rpk);
+		struct db_result *result = (struct db_result*)rpk_read_pointer(rpk);
 		result->callback(result);
 		free_dbresult(result);	
 	}

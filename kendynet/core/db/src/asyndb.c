@@ -1,5 +1,5 @@
 #include "asyndb.h"
-#include "redis/asynredis.h"
+#include "asynredis.h"
 
 int32_t asyndb_sendresult(msgsender sender,db_result_t result)
 {
@@ -9,7 +9,7 @@ int32_t asyndb_sendresult(msgsender sender,db_result_t result)
 		msgdisp_t disp = get_msgdisp(sender);
 		wpacket_t wpk = wpk_create(64,0);
 		wpk_write_uint16(wpk,ASYNDB_RESILT);
-		wpk_write_uint32(wpk,(uint32_t)result);
+		wpk_write_pointer(wpk,(void*)result);
 		push_msg(NULL,disp,rpk_create_by_other((struct packet*)wpk));
 		wpk_destroy(&wpk);
 		return 0;	

@@ -108,6 +108,15 @@ static inline void wpk_rewrite_double(write_pos *wp,double value)
 	wpk_rewrite(wp,(int8_t*)&value,sizeof(value));
 }
 
+static inline void wpk_rewrite_pointer(write_pos *wp,void *ptr)
+{
+#ifdef _X64
+	wpk_rewrite_uint64(wp,(uint64_t)ptr);
+#else
+	wpk_rewrite_uint32(wp,(uint32_t)ptr);
+#endif	
+}
+
 static inline void wpk_expand(wpacket_t w,uint32_t size)
 {
     size = size_of_pow2(size);
@@ -204,6 +213,15 @@ static inline void wpk_write_uint64(wpacket_t w,uint64_t value)
 {
     if(PACKET_RAW(w))return;
 	wpk_write(w,(int8_t*)&value,sizeof(value));
+}
+
+static inline void wpk_write_pointer(wpacket_t w,void *ptr)
+{
+#ifdef _X64
+	wpk_write_uint64(w,(uint64_t)ptr);
+#else
+	wpk_write_uint32(w,(uint32_t)ptr);
+#endif	
 }
 
 static inline void wpk_write_double(wpacket_t w ,double value)
