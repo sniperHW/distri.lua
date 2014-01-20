@@ -1,5 +1,39 @@
 #include "asyndb.h"
 #include "asynredis.h"
+#include "cmd.h"
+#include "asynnet.h"
+
+
+db_result_t rpk_read_dbresult(rpacket_t r)
+{
+	uint8_t local = rpk_read_uint8(r);
+	if(local){
+		return (db_result_t)rpk_read_pointer(r);
+	}else{
+		DB_CALLBACK callback = (DB_CALLBACK)rpk_read_pointer(r);
+		void *ud = rpk_read_pointer(r);
+		const char *str = rpk_read_string(r);
+		int32_t err = (int32_t)rpk_read_uint32(r);
+		return new_dbresult(str,callback,err,ud);
+	}
+}
+
+static inline wpacket_t create_dbresult_packet(int8_t local,db_result_t result)
+{
+
+	wpacket_t wpk = wpk_create(64,0);
+	wpk_write_uint16(wpk,CMD_DB_RESULT);
+	if(local){
+		wpk_write_uint8(wpk,1);
+		wpk_write_pointer(wpk,(void*)result);
+	}else{
+		wpk_write_uint8(wpk,0);
+		wpk_write_pointer(wpk,(void*)result->callback);
+		wpk_write_pointer(wpk,(void*)result->ud);
+		wpk_write_string(wpk,result->result_str);
+		wpk_write_uint32(wpk,result->err);
+	}
+}
 
 int32_t asyndb_sendresult(msgsender sender,db_result_t result)
 {
@@ -7,12 +41,15 @@ int32_t asyndb_sendresult(msgsender sender,db_result_t result)
 	if(is_type(TO_IDENT(sender),type_msgdisp))
 	{
 		msgdisp_t disp = get_msgdisp(sender);
-		wpacket_t wpk = wpk_create(64,0);
-		wpk_write_uint16(wpk,ASYNDB_RESILT);
-		wpk_write_pointer(wpk,(void*)result);
+		wpacket_t wpk = create_dbresult_packet(1,result);
 		push_msg(NULL,disp,rpk_create_by_other((struct packet*)wpk));
 		wpk_destroy(&wpk);
 		return 0;	
+	}else
+	{
+		wpacket_t wpk = create_dbresult_packet(1,result);
+		asyn_send(CAST_2_SOCK(sender),wpk);
+		free_dbresult(result);
 	}
 	return -1;
 }

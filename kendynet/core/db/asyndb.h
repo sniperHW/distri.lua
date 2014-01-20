@@ -14,8 +14,6 @@ enum
 	db_set = 2
 };
 
-#define ASYNDB_RESILT 100
-
 typedef struct db_request
 {
 	lnode        node;     
@@ -53,6 +51,8 @@ db_request_t  new_dbrequest(uint8_t type,const char*,DB_CALLBACK,void*,msgsender
 void     free_dbrequest(db_request_t);
 
 int32_t  asyndb_sendresult(msgsender,db_result_t);
+
+db_result_t rpk_read_dbresult(rpacket_t r);
 
 
 #endif

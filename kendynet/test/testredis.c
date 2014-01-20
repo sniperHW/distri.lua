@@ -38,18 +38,14 @@ void db_setcallback(struct db_result *result)
 int32_t asynprocesspacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 {
 	uint16_t cmd = rpk_read_uint16(rpk);
-	if(cmd != ASYNDB_RESILT)
+	if(cmd == CMD_DB_RESULT)
 	{
-		printf("error packet\n");
-	}else
-	{
-		struct db_result *result = (struct db_result*)rpk_read_pointer(rpk);
+		struct db_result *result = rpk_read_dbresult(rpk);
 		result->callback(result);
 		free_dbresult(result);	
 	}
     return 1;
 }
-
 
 
 static void *service_main(void *ud){
