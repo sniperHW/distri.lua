@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "testcommon.h"
 #include "core/db/asyndb.h"
+#include "core/cmd.h"
 
 
 asyndb_t asydb;
@@ -27,10 +28,12 @@ void db_getcallback(struct db_result *result)
 
 void db_setcallback(struct db_result *result)
 {
+    count++;
 	if(result->ud == NULL) printf("error\n");
 	char req[256];
     snprintf(req,256,"get key%d",g);
     g = (g+1)%102400;
+    asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,make_by_msgdisp((msgdisp_t)result->ud)));
     asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,make_by_msgdisp((msgdisp_t)result->ud)));
 }
 

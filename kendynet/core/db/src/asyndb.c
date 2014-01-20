@@ -33,6 +33,7 @@ static inline wpacket_t create_dbresult_packet(int8_t local,db_result_t result)
 		wpk_write_string(wpk,result->result_str);
 		wpk_write_uint32(wpk,result->err);
 	}
+	return wpk;
 }
 
 int32_t asyndb_sendresult(msgsender sender,db_result_t result)
