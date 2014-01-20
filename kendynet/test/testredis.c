@@ -30,7 +30,7 @@ void db_setcallback(struct db_result *result)
 	if(result->ud == NULL) printf("error\n");
 	char req[256];
     snprintf(req,256,"get key%d",g);
-    g = (g+1)%1024;
+    g = (g+1)%102400;
     asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,make_by_msgdisp((msgdisp_t)result->ud)));
 }
 

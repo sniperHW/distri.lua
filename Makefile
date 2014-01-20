@@ -1,8 +1,8 @@
-CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt
+CFLAGS = -O2 -g -Wall 
+LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -Ikendynet -Ikendynet/core -I.. -I/usr/local/include/luajit-2.0
+INCLUDE = -Ikendynet -Ikendynet/core -I.. -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis -Ikendynet/core/db
 DEFINE = -D_DEBUG -D_LINUX
 TESTDIR = kendynet/test
 
@@ -31,6 +31,9 @@ kendynet.a: \
 		   kendynet/core/src/atomic_st.c \
 		   kendynet/core/src/tls.c \
 		   kendynet/core/src/lua_util.c\
+		   kendynet/core/db/src/asynredis.c\
+		   kendynet/core/db/src/asyndb.c\
+		   kendynet/core/src/lua_util.c\
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
@@ -40,7 +43,8 @@ luanet:luanet.c kendynet.a
 	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) $(DEFINE) 
 	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
-
+testredis:kendynet.a $(TESTDIR)/testredis.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o testredis $(TESTDIR)/testredis.c kendynet.a kendynet/deps/hiredis/libhiredis.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 packet:kendynet.a $(TESTDIR)/testpacket.c
 	$(CC) $(CFLAGS) -o packet $(TESTDIR)/testpacket.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 gateservice:kendynet.a $(TESTDIR)/gateservice.c $(TESTDIR)/testcommon.h
