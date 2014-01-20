@@ -71,22 +71,22 @@ int main(int argc,char **argv)
                                   asynprocesspacket,
                                   asynconnectfailed);
 
-    msgdisp_t  disp2 = new_msgdisp(asynet,
+    /*msgdisp_t  disp2 = new_msgdisp(asynet,
                                   asynconnect,
                                   asynconnected,
                                   asyndisconnected,
                                   asynprocesspacket,
                                   asynconnectfailed);
-
+    */
     thread_t service1 = create_thread(THREAD_JOINABLE);
-    thread_t service2 = create_thread(THREAD_JOINABLE);
+    //thread_t service2 = create_thread(THREAD_JOINABLE);
 
     ip = argv[1];
     port = atoi(argv[2]);
 
     thread_start_run(service1,service_main,(void*)disp1);
-    sleepms(1000);
-    thread_start_run(service2,service_main,(void*)disp2);
+    //sleepms(1000);
+    //thread_start_run(service2,service_main,(void*)disp2);
 
     uint32_t tick,now;
     tick = now = GetSystemMs();
@@ -106,7 +106,7 @@ int main(int argc,char **argv)
     }
 
     thread_join(service1);
-    thread_join(service2);
+    //thread_join(service2);
 
     CleanNetSystem();
     return 0;

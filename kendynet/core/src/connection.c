@@ -354,7 +354,7 @@ struct connection *new_conn(SOCK s,uint8_t is_raw)
 	c->recv_overlap.c = c;
 	c->send_overlap.c = c;
 	c->raw = is_raw;
-	ref_init(&c->ref,connection_destroy,1);
+	ref_init(&c->ref,0,connection_destroy,1);
     c->status = SESTABLISH;
 	return c;
 }

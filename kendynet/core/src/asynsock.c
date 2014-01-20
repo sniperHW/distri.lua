@@ -1,4 +1,5 @@
 #include "asynsock.h"
+#include "common_define.h"
 
 void asynsock_destroy(void *ptr)
 {
@@ -13,7 +14,7 @@ void asynsock_destroy(void *ptr)
 asynsock_t asynsock_new(struct connection *c,SOCK s)
 {
     asynsock_t sock = calloc(1,sizeof(*sock));
-    ref_init(&sock->ref,asynsock_destroy,1);
+    ref_init(&sock->ref,type_asynsock,asynsock_destroy,1);
     if(c){
 		sock->c = c;
         c->usr_ptr = sock;

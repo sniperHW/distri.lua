@@ -17,7 +17,7 @@ struct refbase
         void (*destroyer)(void*);
 };
 
-void ref_init(struct refbase *r,void (*destroyer)(void*),int32_t initcount);
+void ref_init(struct refbase *r,uint16_t type,void (*destroyer)(void*),int32_t initcount);
 
 static inline atomic_32_t ref_increase(struct refbase *r)
 {
@@ -49,8 +49,8 @@ static inline atomic_32_t ref_decrease(struct refbase *r)
 
 typedef struct ident
 {
-        uint64_t identity;
-        struct refbase *ptr;
+    uint64_t identity;    
+    struct refbase *ptr;
 }ident;
 
 static inline ident make_ident(struct refbase *ptr)
@@ -92,6 +92,14 @@ static inline int32_t is_vaild_ident(ident _ident)
 static inline int8_t eq_ident(ident a,ident b)
 {
     return a.identity == b.identity && a.ptr == b.ptr;
+}
+
+static inline int8_t is_type(ident a,uint16_t type)
+{
+    uint64_t _type = type;
+    _type <<= 48;
+    if(_type & a.identity) return 1;
+    return 0;
 }
 
 #define TO_IDENT(OTHER_IDENT) (*(ident*)&OTHER_IDENT)

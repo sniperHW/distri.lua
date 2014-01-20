@@ -20,6 +20,14 @@ enum
 	MSG_END,
 };
 
+
+enum
+{
+	type_asynsock = 1,
+	type_msgdisp  = 2,
+	type_luaobjcet = 3,	
+};
+
 #define MAX_UINT32 0xffffffff
 
 #endif

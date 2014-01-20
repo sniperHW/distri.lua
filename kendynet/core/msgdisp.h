@@ -11,7 +11,7 @@
 
 
 #include "asynnet.h"
-
+#include "common_define.h"
 typedef struct msgdisp* msgdisp_t;
 
 
@@ -33,14 +33,16 @@ static inline msgsender make_by_ident(ident _ident)
 static inline msgsender make_by_msgdisp(msgdisp_t disp)
 {
     msgsender _sender;
-    _sender._ident.identity = 0xABCDDCBA12344321;
+    _sender._ident.identity = type_msgdisp;
+    _sender._ident.identity <<= 48;
     _sender._ident.ptr = (void*)disp;
     return _sender;
 }
 
-static inline int8_t is_msgdisp(msgsender _sender)
+static inline msgdisp_t get_msgdisp(msgsender sender)
 {
-    return _sender._ident.identity == 0xABCDDCBA12344321;
+    if(!is_type(TO_IDENT(sender),type_msgdisp)) return NULL;
+    return (msgdisp_t)sender._ident.ptr;
 }
 
 
@@ -102,8 +104,8 @@ msgdisp_t  new_msgdisp(asynnet_t,
 
 void       msg_loop(msgdisp_t,uint32_t timeout);
 
-//直接往msgdisp_t的消息队列中投递消息
-int32_t    push_msg(msgdisp_t self,msgdisp_t target,struct packet*);
+//直接往msgdisp_t的消息队列中投递消息,如果不关注发送者,self可以为NULL
+int32_t    push_msg(msgdisp_t self,msgdisp_t target,rpacket_t rpk);
 
 
 

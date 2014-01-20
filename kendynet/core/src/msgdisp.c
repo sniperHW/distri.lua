@@ -87,8 +87,8 @@ msgdisp_t  new_msgdisp(asynnet_t asynet,
                        ASYNCN_CONNECT_FAILED connect_failed)
 {
 
-    if(!asynet)
-        return NULL;
+    //if(!asynet)
+    //   return NULL;
     msgdisp_t disp = calloc(1,sizeof(*disp));
     disp->asynet = asynet;
     disp->mq = new_msgque(32,mq_item_destroyer);
@@ -109,6 +109,7 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
     //printf("dispatch_msg\n");
     if(msg->type == MSG_RPACKET)
     {
+        //printf("RPACKET\n");
         rpacket_t rpk = (rpacket_t)msg;
         if(disp->process_packet(disp,make_by_ident(MSG_IDENT(rpk)),rpk))
             rpk_destroy(&rpk);
@@ -152,25 +153,16 @@ void msg_loop(msgdisp_t disp,uint32_t ms)
     }while(nowtick < timeout);
 }
 
-int32_t push_msg(msgdisp_t self,msgdisp_t disp,struct packet *packet)
+int32_t push_msg(msgdisp_t self,msgdisp_t disp,rpacket_t rpk)
 {
-    struct packet *p;
-    if(MSG_TYPE(packet) == MSG_RPACKET)
-        p = packet;
-    else if(MSG_TYPE(packet) == MSG_WPACKET)
-    {
-        rpacket_t rpk = rpk_create_by_other(packet);
-        p = (struct packet*)rpk;
-    }else
-        return -1;
 
-    if(!is_vaild_ident(MSG_IDENT(p))){
+    if(self && !is_vaild_ident(MSG_IDENT(rpk))){
         msgsender _sender = make_by_msgdisp(self);
-        MSG_IDENT(p) = TO_IDENT(_sender);
+        MSG_IDENT(rpk) = TO_IDENT(_sender);
     }
-    int32_t ret = msgque_put(disp->mq,(lnode*)p);
-    if(ret == 0 && p != packet)
-        wpk_destroy((wpacket_t*)&packet);
+    int32_t ret = msgque_put_immeda(disp->mq,(lnode*)rpk);
+    if(ret != 0)
+        rpk_destroy(&rpk);
     return ret;
 }
 

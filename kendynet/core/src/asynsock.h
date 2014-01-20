@@ -24,6 +24,7 @@ asynsock_t asynsock_new(struct connection *c,SOCK s);
 static inline asynsock_t cast_2_asynsock(sock_ident sock)
 {
 	ident _ident = TO_IDENT(sock);
+    if(!is_type(_ident,type_asynsock))return NULL;
     struct refbase *r = cast_2_refbase(_ident);
     if(r) return (asynsock_t)r;
 	return NULL;

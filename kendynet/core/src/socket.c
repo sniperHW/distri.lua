@@ -25,7 +25,7 @@ SOCK new_socket_wrapper()
 {
 	struct socket_wrapper *sw = calloc(1,sizeof(*sw));
 	sw->status = SESTABLISH;
-	ref_init(&sw->ref,destroy_socket_wrapper,1);
+	ref_init(&sw->ref,0,destroy_socket_wrapper,1);
 	return (SOCK)sw;
 }
 
