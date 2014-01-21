@@ -1,8 +1,10 @@
 CFLAGS = -O2 -g -Wall 
-LDFLAGS = -lpthread -lrt -ltcmalloc
+LDFLAGS = -lpthread -lrt -ltcmalloc -lm
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -Ikendynet -Ikendynet/core -I.. -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis -Ikendynet/core/db
+INCLUDE = -Ikendynet -Ikendynet/core -I..\
+		  -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis\
+		  -Ikendynet/core/db
 DEFINE = -D_DEBUG -D_LINUX
 TESTDIR = kendynet/test
 
@@ -38,12 +40,19 @@ kendynet.a: \
 		   kendynet/core/src/hash_map.c\
 		   kendynet/core/src/minheap.c\
 		   kendynet/core/src/lookup8.c\
-		   kendynet/game/src/astar.c\
-		   kendynet/game/src/aoi.c\		   
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
 		rm -f *.o
+game.a:\
+		kendynet/game/src/astar.c\
+		kendynet/game/src/aoi.c
+		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
+		ar -rc game.a *.o
+		rm -f *.o	
+
+testaoi:kendynet.a game.a $(TESTDIR)/testaoi.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o testaoi $(TESTDIR)/testaoi.c kendynet.a game.a $(INCLUDE) $(LDFLAGS) $(DEFINE) 		
 8puzzle:kendynet.a $(TESTDIR)/8puzzle.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o 8puzzle $(TESTDIR)/8puzzle.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) 	
 testmaze:kendynet.a $(TESTDIR)/testmaze.c $(TESTDIR)/testcommon.h

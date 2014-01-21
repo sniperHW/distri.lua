@@ -156,11 +156,13 @@ void move_to(struct map *m,struct aoi_object *o,int32_t _x,int32_t _y)
 	//�����¾ɹ�������
 	uint32_t n_x1,n_y1,n_x2,n_y2;
 	uint32_t o_x1,o_y1,o_x2,o_y2;
+	n_x1 = n_y1 = n_x2 = n_y2 = 0;
+	o_x1 = o_y1 = o_x2 = o_y2 = 0;
 	cal_blocks(m,&old_pos,radius,&o_x1,&o_y1,&o_x2,&o_y2);
 	cal_blocks(m,&new_pos,radius,&n_x1,&n_y1,&n_x2,&n_y2);
 	
 	uint32_t y = n_y1;
-	uint32_t x;
+	uint32_t x = 0;
 	for( ; y <= n_y2; ++y)
 	{
 		for( x = n_x1; x <= n_x2; ++x)
@@ -227,6 +229,7 @@ int32_t enter_map(struct map *m,struct aoi_object *o,int32_t _x,int32_t _y)
 		dlist_push(&m->super_aoi_objs,&o->super_node);
 	}
 	uint32_t x1,y1,x2,y2;
+	x1 = y1 = x2 = y2 = 0;
 	cal_blocks(m,&o->current_pos,radius,&x1,&y1,&x2,&y2);
 	uint32_t y = y1;
 	uint32_t x;
@@ -255,6 +258,7 @@ int32_t leave_map(struct map *m,struct aoi_object *o)
 		dlist_remove(&o->super_node);
 	}	
 	uint32_t x1,y1,x2,y2;
+	x1 = y1 = x2 = y2 = 0;
 	cal_blocks(m,&o->current_pos,radius,&x1,&y1,&x2,&y2);
 	uint32_t y = y1;
 	uint32_t x;
@@ -307,6 +311,7 @@ static inline void tick_super_object(struct map *m,struct aoi_object *o)
 		}
 		//process enter view
 		uint32_t x1,y1,x2,y2;
+		x1 = y1 = x2 = y2 = 0;
 		cal_blocks(m,&o->current_pos,o->view_radius,&x1,&y1,&x2,&y2);
 		uint32_t y = y1;
 		uint32_t x;
