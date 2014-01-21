@@ -104,7 +104,7 @@ static inline void down(minheap_t m,int32_t idx){
 
 	if(min != idx)
 	{
-		swap(m,idx,min);
+		minheap_swap(m,idx,min);
 		down(m,min);
 	}		
 }

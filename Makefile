@@ -34,11 +34,20 @@ kendynet.a: \
 		   kendynet/core/db/src/asynredis.c\
 		   kendynet/core/db/src/asyndb.c\
 		   kendynet/core/src/lua_util.c\
+		   kendynet/core/src/cstring.c\
+		   kendynet/core/src/hash_map.c\
+		   kendynet/core/src/minheap.c\
+		   kendynet/core/src/lookup8.c\
+		   kendynet/game/src/astar.c\
+		   kendynet/game/src/aoi.c\		   
 		   kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
 		rm -f *.o
-
+8puzzle:kendynet.a $(TESTDIR)/8puzzle.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o 8puzzle $(TESTDIR)/8puzzle.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) 	
+testmaze:kendynet.a $(TESTDIR)/testmaze.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o testmaze $(TESTDIR)/testmaze.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) 
 luanet:luanet.c kendynet.a
 	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) $(DEFINE) 
 	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
