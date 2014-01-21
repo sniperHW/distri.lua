@@ -107,8 +107,8 @@ struct map
 #define STAND_RADIUS 700//��׼�Ӿ�,�Ӿ����STAND_RADIUS�Ķ���ӵ�г��Ӿ���Ҫ���⴦��
 
 struct map *create_map(struct point2D *t_left,struct point2D *b_right,callback_ enter,callback_ leave);
-void move_to(struct map *m,struct aoi_object *o,struct point2D *new_pos);
-int32_t enter_map(struct map *m,struct aoi_object *o);
+void move_to(struct map *m,struct aoi_object *o,int32_t x,int32_t y);
+int32_t enter_map(struct map *m,struct aoi_object *o,int32_t x,int32_t y);
 int32_t leave_map(struct map *m,struct aoi_object *o);
 void    tick_super_objects(struct map*m);
 

@@ -6,6 +6,12 @@ static inline struct map_block *get_block(struct map *m,uint32_t r,uint32_t c)
 	return &m->blocks[r*m->x_count+c];
 }
 
+static inline void clear_map_aoi_object(struct map *m,struct aoi_object *o)
+{
+	printf("clear_map_aoi_object %d\n",o->aoi_object_id);
+	m->all_aoi_objects[o->aoi_object_id] = NULL;
+}
+
 struct map *create_map(struct point2D *top_left,struct point2D *bottom_right,callback_ enter_callback,callback_ leave_callback)
 {
 	//����block�����
@@ -90,7 +96,7 @@ static inline void leave_me(struct map *m,struct aoi_object *me,struct aoi_objec
 {
 	clear_bit(&me->self_view_objs,other->aoi_object_id);
 	if(--other->watch_me_count == 0)
-		m->all_aoi_objects[other->aoi_object_id] = NULL;
+		clear_map_aoi_object(m,other);
 	//֪ͨme,other�뿪��Ұ
 	m->leave_callback(me,other);
 }
@@ -118,6 +124,8 @@ static inline void block_process_leave(struct map *m,struct map_block *bl,struct
 		{		
 			if(is_set(&cur->self_view_objs,o->aoi_object_id))
 				leave_me(m,cur,o);
+			if(is_set(&o->self_view_objs,cur->aoi_object_id))
+				leave_me(m,o,cur);			
 		}
 		else
 		{
@@ -132,12 +140,13 @@ static inline void block_process_leave(struct map *m,struct map_block *bl,struct
 }
 
 //��o�ƶ���new_pos,��������Ұ�仯
-void move_to(struct map *m,struct aoi_object *o,struct point2D *new_pos)
+void move_to(struct map *m,struct aoi_object *o,int32_t _x,int32_t _y)
 {
+	struct point2D new_pos = {_x,_y};
 	struct point2D old_pos = o->current_pos;
-	o->current_pos = *new_pos;
+	o->current_pos = new_pos;
 	struct map_block *old_block = get_block_by_point(m,&old_pos);
-	struct map_block *new_block = get_block_by_point(m,new_pos);
+	struct map_block *new_block = get_block_by_point(m,&new_pos);
 	if(old_block != new_block)
 		dlist_remove(&o->block_node);
 		
@@ -148,7 +157,7 @@ void move_to(struct map *m,struct aoi_object *o,struct point2D *new_pos)
 	uint32_t n_x1,n_y1,n_x2,n_y2;
 	uint32_t o_x1,o_y1,o_x2,o_y2;
 	cal_blocks(m,&old_pos,radius,&o_x1,&o_y1,&o_x2,&o_y2);
-	cal_blocks(m,new_pos,radius,&n_x1,&n_y1,&n_x2,&n_y2);
+	cal_blocks(m,&new_pos,radius,&n_x1,&n_y1,&n_x2,&n_y2);
 	
 	uint32_t y = n_y1;
 	uint32_t x;
@@ -163,7 +172,7 @@ void move_to(struct map *m,struct aoi_object *o,struct point2D *new_pos)
 				struct aoi_object *cur = (struct aoi_object*)bl->aoi_objs.head.next;
 				while(cur != (struct aoi_object*)&bl->aoi_objs.tail)
 				{
-					uint64_t distance = cal_distance_2D(new_pos,&cur->current_pos);
+					uint64_t distance = cal_distance_2D(&new_pos,&cur->current_pos);
 					if(o != cur)
 					{
 						if(o->view_radius >= distance && !is_set(&o->self_view_objs,cur->aoi_object_id))
@@ -202,8 +211,10 @@ void move_to(struct map *m,struct aoi_object *o,struct point2D *new_pos)
 }
 
 
-int32_t enter_map(struct map *m,struct aoi_object *o)
+int32_t enter_map(struct map *m,struct aoi_object *o,int32_t _x,int32_t _y)
 {
+	o->current_pos.x = _x;
+	o->current_pos.y = _y;
 	struct map_block *block = get_block_by_point(m,&o->current_pos);
 	if(!block)
 		return -1;
@@ -255,8 +266,9 @@ int32_t leave_map(struct map *m,struct aoi_object *o)
 		}		
 	}
 	o->is_leave_map = 1;
-	if(--o->watch_me_count == 0)
-		m->all_aoi_objects[o->aoi_object_id] = NULL;
+
+	//自己离开自己的视野
+	leave_me(m,o,o);
 	return 0;			
 }
 
