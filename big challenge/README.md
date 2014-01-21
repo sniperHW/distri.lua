@@ -42,11 +42,11 @@
 				|                                                   | 
 				V			                                        V 
 			------------------			                       ---------------
-			|to inter service|                                 |to db service|    
+			|to super service|                                 |to db service|    
 			------------------                                 ---------------
 					
 			-------------------------------------------------------------------
-			|gate service|gate service|gate service| ...                      |
+			|agent service|agent service|agent service| ...                      |
 			-------------------------------------------------------------------
 
 
@@ -58,25 +58,25 @@
 
 ##网关用户id的设计
 
-网关用户id用以唯一标识处于gate service中的玩家
+网关用户id用以唯一标识处于agent service中的玩家
 	
 	--------------------------------------
-	|3位 gate service号|14用户ID号|15递增值|
+	|3位 agent service号|14用户ID号|15位递增值|
 	--------------------------------------
 
 如上图所示，用户在网关的唯一ID用一个32位整数标识:	
 
-其中3位用于作为gate service号，取值0-7也就是一台物理机器最多可以加载8个gate service.
+其中3位用于作为agent service号，取值0-7也就是一台物理机器最多可以加载8个agent service.
 
-14位的用户编号,这个编号在gate service中唯一，也就是每个gate service最多容纳8192个玩家
+14位的用户编号,这个编号在agent service中唯一，也就是每个agent service最多容纳8192个玩家
 
-15位递增值,在gate service内递增，每分配一个用户ID加1,用以防止从inter服务器中过来的消息被转发往一个已过期的用户.
+15位递增值,在agent service内递增，每分配一个用户ID加1,用以防止从inter服务器中过来的消息被转发往一个已过期的用户.
 
 
 ##消息广播的处理
 
-当inter服务器需要广播消息的时候,将需要接收消息的玩家的网关用户标识填入消息包尾部发往gateserver,由 to inter service
-接收,to inter service接收到包后直接推送到所有gate service的消息队列中，由gate serviece自己判断需要发往哪些用户.
+当inter服务器需要广播消息的时候,将需要接收消息的玩家的网关用户标识填入消息包尾部发往gateserver,由 to super service
+接收,to inter service接收到包后直接推送到所有agent service的消息队列中，由agent serviece自己判断需要发往哪些用户.
 
 
 ##逻辑服务器的消息处理
