@@ -10,10 +10,10 @@ void dorequest(struct redis_worker *worker,db_request_t req)
 				db_result_t result = NULL;	
 				if(r->type == REDIS_REPLY_NIL)
 				{
-					result = new_dbresult(r->str,req->callback,-1,req->ud);
+					result = new_dbresult(r,req->callback,-1,req->ud);
 				}else
 				{
-					result = new_dbresult(r->str,req->callback,0,req->ud);
+					result = new_dbresult(r,req->callback,0,req->ud);
 				}	
 				asyndb_sendresult(req->sender,result);
 			}else if(req->type == db_set){
@@ -21,9 +21,9 @@ void dorequest(struct redis_worker *worker,db_request_t req)
 					//需要result
 					db_result_t result = NULL;
 					if(!(r->type == REDIS_REPLY_STATUS && strcasecmp(r->str,"OK") == 0))
-						result = new_dbresult(r->str,req->callback,-1,req->ud);
+						result = new_dbresult(r,req->callback,-1,req->ud);
 					else
-						result = new_dbresult(r->str,req->callback,0,req->ud);
+						result = new_dbresult(r,req->callback,0,req->ud);
 					asyndb_sendresult(req->sender,result);
 				}		
 			}
@@ -34,7 +34,7 @@ void dorequest(struct redis_worker *worker,db_request_t req)
 			worker->context = redisConnect(worker->ip,worker->port);
 		}
 
-	 if(r) freeReplyObject(r);	
+	 //if(r) freeReplyObject(r);	
 	}
 	free_dbrequest(req);
 }

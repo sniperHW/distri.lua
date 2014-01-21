@@ -28,7 +28,7 @@ typedef struct db_request
 typedef struct db_result
 {
 	DB_CALLBACK callback;
-	char* result_str;
+	void       *result_set;
 	int32_t     err;
 	void        *ud;
 }*db_result_t;
@@ -44,13 +44,13 @@ typedef struct asyndb
 asyndb_t new_asyndb();
 void     free_asyndb(asyndb_t);
 
-db_result_t new_dbresult(const char*,DB_CALLBACK,int32_t,void*);
+db_result_t new_dbresult(void*,DB_CALLBACK,int32_t,void*);
 void     free_dbresult(db_result_t);
 
 db_request_t  new_dbrequest(uint8_t type,const char*,DB_CALLBACK,void*,msgsender);
 void     free_dbrequest(db_request_t);
 
-int32_t  asyndb_sendresult(msgsender,db_result_t);
+void  asyndb_sendresult(msgsender,db_result_t);
 
 db_result_t rpk_read_dbresult(rpacket_t r);
 
