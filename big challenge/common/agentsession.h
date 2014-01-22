@@ -8,7 +8,7 @@ typedef struct agentsession{
 	union{
 		struct{
 			uint32_t aid:3;            //agentservice的编号0-7
-			uint32_t sessionid:14;     //用户在agentservice中的下标,0-8191
+			uint32_t sessionid:14;     //用户在agentservice中的下标,1-8191
 			uint32_t identity:15;      
 		};
 		uint32_t     data;

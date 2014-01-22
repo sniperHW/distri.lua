@@ -35,6 +35,13 @@ typedef struct msg
     void (*fn_destroy)(void*);
 }*msg_t;
 
+typedef struct msg_do_function
+{
+    struct msg base;
+    void (*fn_function)(void*);
+
+}*msg_do_function_t;
+
 /*
 * packet is a type of msg
 * base of wpacket and rpacket

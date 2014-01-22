@@ -1,6 +1,7 @@
 #include "agentservice.h"
 #include "core/tls.h"
 #include "togame/togame.h"
+#include "common/tls_define.h"
 
 typedef struct idnode
 {
@@ -138,8 +139,8 @@ agentservice_t new_agentservice(uint8_t agentid,asynnet_t asynet){
 	agentservice_t service = calloc(1,sizeof(*service));
 	service->agentid = agentid;
 	llist_init(&service->idpool);
-	int i = 0;
-	for(; i < MAX_ANGETPLAYER; ++i){
+	int i = 1;
+	for(; i <= MAX_ANGETPLAYER; ++i){
 		idnode *id = calloc(1,sizeof(*id));
 		id->id = i;
 		LLIST_PUSHBACK(&service->idpool,(lnode*)id);

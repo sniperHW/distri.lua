@@ -119,6 +119,11 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
         if(result->callback)
             result->callback(result);
         free_dbresult(result);
+    }else if(msg->type == MSG_DO_FUNCTION){
+        msg_do_function_t _msg = (msg_do_function_t)msg;
+        if(_msg->fn_function)
+            _msg->fn_function(MSG_USRPTR(_msg));
+        free(msg);
     }
     else{
         struct msg_connection *tmsg = (struct msg_connection*)msg;

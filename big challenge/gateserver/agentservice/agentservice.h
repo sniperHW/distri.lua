@@ -6,8 +6,8 @@
 #include "core/thread.h"
 #include "llist.h"
 
-#define MAX_ANGETPLAYER   8192
-#define AGETNSERVICE_TLS  1 
+#define MAX_ANGETPLAYER   8191
+
 
 typedef struct agentservice
 {
@@ -16,7 +16,7 @@ typedef struct agentservice
 	thread_t    thd;            //运行本agentservice的线程
 	struct      llist idpool;
 	msgdisp_t   msgdisp;
-	agentplayer players[8192];
+	agentplayer players[MAX_ANGETPLAYER+1];//0不能用，作为非法值
 	uint16_t    identity;
 }*agentservice_t;
 
