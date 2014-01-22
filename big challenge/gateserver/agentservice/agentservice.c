@@ -4,7 +4,7 @@
 typedef struct idnode
 {
 	lnode    node;	
-	uint16_t id;
+	int16_t id;
 }idnode;
 
 
@@ -18,9 +18,24 @@ static void *service_main(void *ud){
 }
 
 
+agentplayer_t new_agentplayer(agentservice_t service)
+{
+	return NULL;
+}
+
+
 static void agent_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
 {
-
+	agentservice_t service = get_thd_agentservice();
+	agentplayer_t ply = new_agentplayer(service);
+	if(!ply)
+	{
+		//发送一个消息，通知系统繁忙然后关闭连接
+		asynsock_close(sock);
+	}else
+	{
+		asynsock_set_ud(sock,(void*)ply->session.data);
+	}
 }
 
 statci void agent_disconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port,uint32_t err)
@@ -31,6 +46,12 @@ statci void agent_disconnected(msgdisp_t disp,sock_ident sock,const char *ip,int
 
 int32_t agent_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 {
+	uint16_t cmd = rpk_peek_uint16(rpk);
+	if(cmd == CMD_PLY_CONNECTING)
+	{
+		//绑定到asynnet
+		service->msgdisp->bind(service->msgdisp,0,sock,0,30*1000,0);//由系统选择poller
+	}
     return 1;
 }
 

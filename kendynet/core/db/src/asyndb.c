@@ -1,6 +1,5 @@
 #include "asyndb.h"
 #include "asynredis.h"
-#include "cmd.h"
 #include "asynnet.h"
 
 

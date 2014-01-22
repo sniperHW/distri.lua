@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include "testcommon.h"
 #include "core/db/asyndb.h"
-#include "core/cmd.h"
-
 
 asyndb_t asydb;
 

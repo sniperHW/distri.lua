@@ -94,6 +94,32 @@ static inline int rpk_read(rpacket_t r,int8_t *out,uint32_t size)
 	return 0;
 }
 
+static inline int rpk_peek(rpacket_t r,int8_t *out,uint32_t size){
+    if(r->data_remain < size)
+        return -1;
+    buffer_t buffer = r->readbuf;
+    uint32_t pos = r->rpos;
+    uint32_t data_remain = r->data_remain;
+    while(size>0)
+    {
+
+        uint32_t copy_size = buffer->size - pos;
+        copy_size = copy_size >= size ? size:copy_size;
+        memcpy(out,buffer->buf + pos,copy_size);
+        size -= copy_size;
+        pos += copy_size;
+        out += copy_size;
+        data_remain -= copy_size;
+        if(pos >= buffer->size && data_remain)
+        {
+            //当前buffer数据已经被读完,切换到下一个buffer
+            pos = 0;
+            buffer = buffer->next;
+        }
+    }
+    return 0;
+}
+
 static inline uint8_t rpk_read_uint8(rpacket_t r)
 {
 	uint8_t value = 0;
@@ -136,6 +162,13 @@ static inline void* rpk_read_pointer(rpacket_t r)
 #else
     return (void*)rpk_read_uint32(r);
 #endif
+}
+
+static inline uint16_t rpk_peek_uint16(rpacket_t r)
+{
+    uint16_t value = 0;
+    rpk_peek(r,(int8_t*)&value,sizeof(value));
+    return value;
 }
 
 const char*    rpk_read_string(rpacket_t);

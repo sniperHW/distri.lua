@@ -40,6 +40,10 @@ int32_t    get_port_local(sock_ident,int32_t *port);
 int32_t    get_port_remote(sock_ident,int32_t *port);
 
 
+void       asynsock_set_ud(sock_ident,void*);
+void*      asynsock_get_ud(sock_ident);
+
+
 static inline ident rpk_read_ident(rpacket_t rpk)
 {
     ident _ident;

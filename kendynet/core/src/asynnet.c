@@ -381,3 +381,23 @@ int32_t    get_port_remote(sock_ident sock,int32_t *port)
     asynsock_release(asynsock);
     return ret;
 }
+
+void  asynsock_set_ud(sock_ident sock,void *ud)
+{
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(asynsock){
+        asynsock->ud = ud;
+        asynsock_release(asynsock);
+    }
+}
+
+void* asynsock_get_ud(sock_ident sock)
+{
+    void *ret = NULL;
+    asynsock_t asynsock = cast_2_asynsock(sock);
+    if(asynsock){
+        ret = asynsock->ud;
+        asynsock_release(asynsock);
+    }
+    return ret;
+}
