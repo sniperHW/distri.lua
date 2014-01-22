@@ -1,5 +1,6 @@
 #include "agentservice.h"
 #include "core/tls.h"
+#include "togame/togame.h"
 
 typedef struct idnode
 {
@@ -18,9 +19,36 @@ static void *service_main(void *ud){
 }
 
 
-agentplayer_t new_agentplayer(agentservice_t service)
+agentplayer_t new_agentplayer(agentservice_t service,sock_ident sock)
 {
-	return NULL;
+	idnode *id = LLIST_POP((idnode*),&service->idpool);
+	if(!id) return NULL;
+	agentplayer_t player = service->players[id->id];
+	player->session.aid = service->agentid;
+	player->session.identity = service->identity;
+	player->session.sessionid = id->id;
+	player->state = agent_init;
+	player->con = sock;
+	service->identity = (service->identity+1)&0X7FFF;
+	free(id);
+	return player;
+}
+
+void release_agentplayer(agentservice_t service,agentplayer_t player)
+{
+	idnode *_idnode = calloc(1,sizeof(*_idnode));
+	_idnode->id = player->sessionid.sessionid;
+	LLIST_PUSHBACK(&service->idpool,_idnode);
+	player->session.data = 0;
+	player->state = agent_unusing;
+}
+
+agentplayer_t get_agentplayer(agentservice_t service,agentsession session)
+{
+	agentplayer_t ply = service->players[session.sessionid];
+	if(ply->session.data != session.data) return NULL;
+	if(ply->status == agent_unusing) return NULL;
+	return ply;
 }
 
 
@@ -31,6 +59,9 @@ static void agent_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_
 	if(!ply)
 	{
 		//发送一个消息，通知系统繁忙然后关闭连接
+		wpacket_t wpk = wpk_create(64,0);
+		wpk_write_uint16(wpk,CMD_GAME_BUSY);
+		asyn_send(sock,wpk);
 		asynsock_close(sock);
 	}else
 	{
@@ -40,7 +71,17 @@ static void agent_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_
 
 statci void agent_disconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port,uint32_t err)
 {
+	agentservice_t service = get_thd_agentservice();
+	agentsession session;
+	session.data = (uint32_t)asynsock_get_ud(sock);
+	agentplayer_t ply = get_agentplayer(service,session);
+	if(ply){
+		if(ply->status == agent_playing || ply->status == agent_creating)){
+			//通知gameserver玩家连接断开
 
+		}
+		release_agentplayer(service,ply);
+	}
 }
 
 
@@ -51,6 +92,43 @@ int32_t agent_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 	{
 		//绑定到asynnet
 		service->msgdisp->bind(service->msgdisp,0,sock,0,30*1000,0);//由系统选择poller
+	}else
+	{
+		if(cmd >= CMD_CLIENT2GATE && cmd < CMD_CLIENT2GATE_END){
+			rpk_read_uint16(rpk);//丢掉命令码
+
+
+		}else if(cmd >= CMD_GAME2CLIENT && cmd < CMD_GAME2CLIENT_END){
+			uint16_t size = reverse_read_uint16(rpk);//这个包需要发给多少个客户端
+		    //在栈上创建一个rpacket_t用于读取需要广播的客户端
+		    rpacket_t r = rpk_create_skip(rpk,size*sizeof(agentsession)+sizeof(size));
+		    //将rpk中用于广播的信息丢掉
+		    rpk_dropback(rpk,size*sizeof(agentsession)+sizeof(size));
+		    int i = 0;
+		    wpacket_t wpk = wpk_create_by_rpacket(rpk);
+		    //发送给所有需要接收的客户端
+		    for( ; i < size; ++i)
+		    {
+		        agentsession session;
+		        session.data = rpk_read_uint32(r);
+		        agentplayer_t ply = get_agentplayer(service,session);
+		        if(ply)	
+					asyn_send(ply->con,wpk);
+		    }
+		    rpk_destroy(&r);
+		}else{
+			agentservice_t service = get_thd_agentservice();
+			sock_ident sock = CAST_2_SOCK(sender);
+			agentsession session;
+			session.data = (uint32_t)asynsock_get_ud(sock);
+			agentplayer_t ply = get_agentplayer(service,session);
+			if(ply && ply->status == agent_playing)
+			{
+				//转发到gameserver
+				send2game(wpk_create_by_rpacket(rpk));
+			}
+
+		}
 	}
     return 1;
 }

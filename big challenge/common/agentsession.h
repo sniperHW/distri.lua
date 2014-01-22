@@ -15,10 +15,10 @@ typedef struct agentsession{
 	};
 }agentsession;
 
-
 enum
 {
 	agent_unusing = 0,  //没被分配
+	agent_init,
 	agent_verifying,    //等待账号验证
 	agent_playing,      //正在游戏
 	agent_creating,     //正在创建账号信息

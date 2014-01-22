@@ -299,16 +299,17 @@ int32_t asynsock_close(sock_ident s)
 
 int32_t asyn_send(sock_ident sock,wpacket_t wpk)
 {
-    int32_t ret = 0;
+    int32_t ret = -1;
     asynsock_t asynsock = cast_2_asynsock(sock);
     if(asynsock)
     {
         MSG_IDENT(wpk) = TO_IDENT(sock);
         ret = msgque_put_immeda(asynsock->sndque,(lnode*)wpk);
         asynsock_release(asynsock);
-        return ret;
     }
-    return -1;
+    
+    if(ret != 0) wpk_destroy(&wpk);
+    return ret;
 }
 
 

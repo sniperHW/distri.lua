@@ -17,6 +17,7 @@ typedef struct agentservice
 	struct      llist idpool;
 	msgdisp_t   msgdisp;
 	agentplayer players[8192];
+	uint16_t    identity;
 }*agentservice_t;
 
 agentservice_t new_agentservice(uint8_t agentid,asynnet_t asynet);
@@ -24,6 +25,9 @@ void           destroy_agentservice(agentservice_t);
 
 //获得当前线程的agentservice
 agentservice_t get_thd_agentservice();
+
+
+agentplayer_t get_agentplayer(agentservice_t service,agentsession session);
 
 
 #endif
