@@ -104,8 +104,8 @@ msgdisp_t  new_msgdisp(asynnet_t,
 
 void       msg_loop(msgdisp_t,uint32_t timeout);
 
-//直接往msgdisp_t的消息队列中投递消息,如果不关注发送者,self可以为NULL
-int32_t    push_msg(msgdisp_t self,msgdisp_t target,rpacket_t rpk);
+//直接往msgdisp_t的消息队列中投递消息
+int32_t    push_msg(msgdisp_t target,msg_t msg);
 
 
 

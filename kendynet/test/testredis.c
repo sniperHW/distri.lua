@@ -22,7 +22,7 @@ void db_getcallback(struct db_result *result)
 	count++;
 	char req[256];
     snprintf(req,256,"set key%d %d",g,g);
-    if(0 != asydb->request(asydb,new_dbrequest(db_set,req,db_setcallback,result->ud,make_by_msgdisp((msgdisp_t)result->ud))))
+    if(0 != asydb->request(asydb,new_dbrequest(db_set,req,db_setcallback,result->ud,(msgdisp_t)result->ud)))
     	printf("request error\n");
 }
 
@@ -33,21 +33,8 @@ void db_setcallback(struct db_result *result)
 	char req[256];
     snprintf(req,256,"get key%d",g);
     g = (g+1)%102400;
-    asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,make_by_msgdisp((msgdisp_t)result->ud)));
-    asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,make_by_msgdisp((msgdisp_t)result->ud)));
-}
-
-
-int32_t asynprocesspacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
-{
-	uint16_t cmd = rpk_read_uint16(rpk);
-	if(cmd == CMD_DB_RESULT)
-	{
-		struct db_result *result = rpk_read_dbresult(rpk);
-		result->callback(result);
-		free_dbresult(result);	
-	}
-    return 1;
+    asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,(msgdisp_t)result->ud));
+    //asydb->request(asydb,new_dbrequest(db_get,req,db_getcallback,result->ud,(msgdisp_t)result->ud));
 }
 
 
@@ -65,21 +52,11 @@ static void *service_main(void *ud){
 int main(int argc,char **argv)
 {
     setup_signal_handler();
-    msgdisp_t disp1 = new_msgdisp(NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  asynprocesspacket,
-                                  NULL);
+    msgdisp_t disp1 = new_msgdisp(NULL,NULL,NULL, NULL,NULL,NULL);
 
     thread_t service1 = create_thread(THREAD_JOINABLE);
 
-    msgdisp_t disp2 = new_msgdisp(NULL,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  asynprocesspacket,
-                                  NULL);
+    msgdisp_t disp2 = new_msgdisp(NULL,NULL, NULL,NULL,NULL,NULL);
 
     thread_t service2 = create_thread(THREAD_JOINABLE);    
     asydb = new_asyndb();
@@ -89,10 +66,10 @@ int main(int argc,char **argv)
     char req[256];
     snprintf(req,256,"set key%d %d",g,g);
     
-    asydb->request(asydb,new_dbrequest(db_set,req,db_setcallback,disp1,make_by_msgdisp(disp1)));
+    asydb->request(asydb,new_dbrequest(db_set,req,db_setcallback,disp1,disp1));
     thread_start_run(service1,service_main,(void*)disp1);
 
-    asydb->request(asydb,new_dbrequest(db_set,req,db_setcallback,disp2,make_by_msgdisp(disp2)));
+    asydb->request(asydb,new_dbrequest(db_set,req,db_setcallback,disp2,disp2));
     thread_start_run(service2,service_main,(void*)disp2);    
     
     uint32_t tick,now;

@@ -1,6 +1,7 @@
 #include "msgdisp.h"
 #include "asynsock.h"
 #include "asynnet_define.h"
+#include "db/asyndb.h"
 
 void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud);
 
@@ -111,9 +112,15 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
     {
         //printf("RPACKET\n");
         rpacket_t rpk = (rpacket_t)msg;
-        if(disp->process_packet(disp,make_by_ident(MSG_IDENT(rpk)),rpk))
+        if(!disp->process_packet || disp->process_packet(disp,make_by_ident(MSG_IDENT(rpk)),rpk))
             rpk_destroy(&rpk);
-    }else{
+    }else if(msg->type == MSG_DB_RESULT){
+        db_result_t result = (db_result_t)msg;
+        if(result->callback)
+            result->callback(result);
+        free_dbresult(result);
+    }
+    else{
         struct msg_connection *tmsg = (struct msg_connection*)msg;
         //printf("dispatch_msg %d\n",msg->type);
         sock_ident sock = CAST_2_SOCK(tmsg->base._ident);
@@ -153,16 +160,15 @@ void msg_loop(msgdisp_t disp,uint32_t ms)
     }while(nowtick < timeout);
 }
 
-int32_t push_msg(msgdisp_t self,msgdisp_t disp,rpacket_t rpk)
+int32_t push_msg(msgdisp_t disp,msg_t msg)
 {
-
-    if(self && !is_vaild_ident(MSG_IDENT(rpk))){
+    /*if(self && !is_vaild_ident(MSG_IDENT(msg))){
         msgsender _sender = make_by_msgdisp(self);
-        MSG_IDENT(rpk) = TO_IDENT(_sender);
-    }
-    int32_t ret = msgque_put_immeda(disp->mq,(lnode*)rpk);
+        MSG_IDENT(msg) = TO_IDENT(_sender);
+    }*/
+    int32_t ret = msgque_put_immeda(disp->mq,(lnode*)msg);
     if(ret != 0)
-        rpk_destroy(&rpk);
+        mq_item_destroyer((void*)msg);
     return ret;
 }
 

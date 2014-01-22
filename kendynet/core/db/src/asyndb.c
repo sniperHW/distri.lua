@@ -4,7 +4,7 @@
 #include "asynnet.h"
 
 
-db_result_t rpk_read_dbresult(rpacket_t r)
+/*db_result_t rpk_read_dbresult(rpacket_t r)
 {
 	return (db_result_t)rpk_read_pointer(r);
 }
@@ -16,15 +16,14 @@ static inline wpacket_t create_dbresult_packet(db_result_t result)
 	wpk_write_uint16(wpk,CMD_DB_RESULT);
 	wpk_write_pointer(wpk,(void*)result);
 	return wpk;
-}
+}*/
 
-void asyndb_sendresult(msgsender sender,db_result_t result)
+void asyndb_sendresult(msgdisp_t sender,db_result_t result)
 {
-	msgdisp_t disp = get_msgdisp(sender);
-	wpacket_t wpk = create_dbresult_packet(result);
-	if(0 != push_msg(NULL,disp,rpk_create_by_other((struct packet*)wpk)))
+	//msgdisp_t disp = get_msgdisp(sender);
+	//wpacket_t wpk = create_dbresult_packet(result);
+	if(0 != push_msg(sender,(msg_t)result))
 		free_dbresult(result);
-	wpk_destroy(&wpk);
 }
 
 void request_destroyer(void *ptr)
@@ -66,6 +65,8 @@ void free_asyndb(asyndb_t asyndb)
 db_result_t new_dbresult(void *result_set,DB_CALLBACK callback ,int32_t err,void *ud)
 {
 	db_result_t result = calloc(1,sizeof(*result));
+	MSG_TYPE(result) = MSG_DB_RESULT;
+	MSG_FN_DESTROY(result) = (void (*)(void *))free_dbresult;
 	result->callback = callback;
 	result->err = err;
 	result->ud = ud;
@@ -74,15 +75,14 @@ db_result_t new_dbresult(void *result_set,DB_CALLBACK callback ,int32_t err,void
 }
 
 
-void     free_dbresult(db_result_t result)
+void free_dbresult(db_result_t result)
 {
-	
 	redisReply *r = (redisReply*)result->result_set;
-	freeReplyObject(r);
+	if(r) freeReplyObject(r);
 	free(result);
 }
 
-db_request_t  new_dbrequest(uint8_t type,const char *req_string,DB_CALLBACK callback,void *ud,msgsender sender)
+db_request_t  new_dbrequest(uint8_t type,const char *req_string,DB_CALLBACK callback,void *ud,msgdisp_t sender)
 {
 	if(!req_string) return NULL;
 	if(type == db_get && !callback) return NULL;

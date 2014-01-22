@@ -19,14 +19,15 @@ typedef struct db_request
 	lnode        node;     
 	DB_CALLBACK  callback;      //操作完成后的回调
 	void        *ud;
-	char*  query_str;           //操作请求串
-	msgsender    sender;        //请求者，操作结果直接返回给请求者
+	char*        query_str;     //操作请求串
+	msgdisp_t    sender;        //请求者，操作结果直接返回给请求者
 	uint8_t      type; 
 }*db_request_t;
 
 
 typedef struct db_result
 {
+	struct msg  base;
 	DB_CALLBACK callback;
 	void       *result_set;
 	int32_t     err;
@@ -47,12 +48,12 @@ void     free_asyndb(asyndb_t);
 db_result_t new_dbresult(void*,DB_CALLBACK,int32_t,void*);
 void     free_dbresult(db_result_t);
 
-db_request_t  new_dbrequest(uint8_t type,const char*,DB_CALLBACK,void*,msgsender);
+db_request_t  new_dbrequest(uint8_t type,const char*,DB_CALLBACK,void*,msgdisp_t);
 void     free_dbrequest(db_request_t);
 
-void  asyndb_sendresult(msgsender,db_result_t);
+void  asyndb_sendresult(msgdisp_t,db_result_t);
 
-db_result_t rpk_read_dbresult(rpacket_t r);
+//db_result_t rpk_read_dbresult(rpacket_t r);
 
 
 #endif
