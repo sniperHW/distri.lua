@@ -11,39 +11,95 @@
 extern pthread_key_t g_systime_key;
 extern pthread_once_t g_systime_key_once;
 
-extern volatile uint32_t g_global_ms;
-extern volatile time_t g_global_sec;
+struct _clock
+{
+    uint64_t last_tsc;
+    uint64_t last_time;
+};
 
-void* systick_routine(void*);
+#define NN_CLOCK_PRECISION 1000000
+
+static inline uint64_t _clock_rdtsc ()
+{
+#if (defined _MSC_VER && (defined _M_IX86 || defined _M_X64))
+    return __rdtsc ();
+#elif (defined __GNUC__ && (defined __i386__ || defined __x86_64__))
+    uint32_t low;
+    uint32_t high;
+    __asm__ volatile ("rdtsc" : "=a" (low), "=d" (high));
+    return (uint64_t) high << 32 | low;
+#elif (defined __SUNPRO_CC && (__SUNPRO_CC >= 0x5100) && (defined __i386 || \
+    defined __amd64 || defined __x86_64))
+    union {
+        uint64_t u64val;
+        uint32_t u32val [2];
+    } tsc;
+    asm("rdtsc" : "=a" (tsc.u32val [0]), "=d" (tsc.u32val [1]));
+    return tsc.u64val;
+#else
+    /*  RDTSC is not available. */
+    return 0;
+#endif
+}
+
+static inline uint64_t _clock_time ()
+{
+    struct timespec tv;
+    clock_gettime (CLOCK_MONOTONIC, &tv);
+    return tv.tv_sec * (uint64_t) 1000 + tv.tv_nsec / 1000000;
+}
+
+static inline void _clock_init (struct _clock *c)
+{
+    c->last_tsc = _clock_rdtsc ();
+    c->last_time = _clock_time ();
+}
+
+static inline struct _clock* get_thread_clock()
+{
+	struct _clock* c = (struct _clock*)pthread_getspecific(g_systime_key);
+	if(!c){
+	   c = calloc(1,sizeof(*c));
+       _clock_init(c);
+       pthread_setspecific(g_systime_key,c);
+	}
+	return c;
+}
+
 
 static void systick_once_routine(){
     pthread_key_create(&g_systime_key,NULL);
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    g_global_ms =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
-    g_global_sec = time(NULL);
-	//创建一个线程以固定的频率更新g_global_ms,此线程不会退出，知道进程结束
-	thread_run(systick_routine,NULL);
+}
+
+static inline uint64_t GetSystemMs64()
+{
+	pthread_once(&g_systime_key_once,systick_once_routine);
+    uint64_t tsc = _clock_rdtsc ();
+    if (!tsc)
+        return _clock_time ();
+
+    struct _clock *c = get_thread_clock();
+
+    /*  If tsc haven't jumped back or run away too far, we can use the cached
+        time value. */
+    if (tsc - c->last_tsc <= (NN_CLOCK_PRECISION / 2) && tsc >= c->last_tsc)
+        return c->last_time;
+
+    /*  It's a long time since we've last measured the time. We'll do a new
+        measurement now. */
+    c->last_tsc = tsc;
+    c->last_time = _clock_time ();
+    return c->last_time;
 }
 
 static inline uint32_t GetSystemMs()
 {
-#ifdef _WIN
-	return GetTickCount();
-#else
-	pthread_once(&g_systime_key_once,systick_once_routine);
-	return g_global_ms;
-#endif
+    return (uint32_t)GetSystemMs64();
 }
 
 static inline time_t GetSystemSec()
 {
-#ifdef _WIN
 	return time(NULL);
-#else
-	pthread_once(&g_systime_key_once,systick_once_routine);
-	return g_global_sec;
-#endif
 }
 
 #ifdef MQ_HEART_BEAT

@@ -81,7 +81,7 @@ struct aoi_object
 	struct bit_set self_view_objs;                  //�Լ��۲쵽�Ķ��󼯺�
 	struct point2D current_pos;                     //��ǰ���
 	uint32_t view_radius;                           //���Ӱ뾶
-	uint32_t last_update_tick;
+	uint64_t last_update_tick;
 	uint32_t watch_me_count;
 	uint8_t  is_leave_map;
 };

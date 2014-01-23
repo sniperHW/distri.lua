@@ -52,7 +52,7 @@ struct packet
     buffer_t  buf;
 	uint8_t   raw;
 	uint32_t  begin_pos;
-	uint32_t  tstamp;
+	uint64_t  tstamp;
 };
 
 #define MSG_TYPE(MSG) ((msg_t)MSG)->type

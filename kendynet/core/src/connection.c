@@ -175,7 +175,7 @@ int32_t send_packet(struct connection *c,wpacket_t w)
 	}
 	st_io *O;
 	if(w){
-		w->base.tstamp = GetSystemMs();
+		w->base.tstamp = GetSystemMs64();
         LLIST_PUSH_BACK(&c->send_list,w);
 	}
 	if(!c->doing_send){
@@ -195,7 +195,7 @@ static inline void start_recv(struct connection *c)
         c->wrecvbuf[0].iov_base = c->next_recv_buf->buf;
         c->recv_overlap.m_super.iovec_count = 1;
         c->recv_overlap.m_super.iovec = c->wrecvbuf;
-        c->last_recv = GetSystemMs();
+        c->last_recv = GetSystemMs64();
         Post_Recv(c->socket,&c->recv_overlap.m_super);
     }
 }
@@ -241,7 +241,7 @@ void RecvFinish(int32_t bytestransfer,struct connection *c,uint32_t err_code)
 		}else if(bytestransfer > 0){
 			int32_t total_size = 0;
 			do{
-				c->last_recv = GetSystemMs();
+				c->last_recv = GetSystemMs64();
 				update_next_recv_pos(c,bytestransfer);
 				c->unpack_size += bytestransfer;
 				total_size += bytestransfer;

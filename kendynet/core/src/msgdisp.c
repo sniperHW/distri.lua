@@ -154,11 +154,11 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
 
 void msg_loop(msgdisp_t disp,uint32_t ms)
 {
-    uint32_t nowtick = GetSystemMs();
-    uint32_t timeout = nowtick+ms;
+    uint64_t nowtick = GetSystemMs64();
+    uint64_t timeout = nowtick+(uint64_t)ms;
     do{
         msg_t _msg = NULL;
-        uint32_t sleeptime = timeout - nowtick;
+        uint32_t sleeptime = (uint32_t)(timeout - nowtick);
         msgque_get(disp->mq,(lnode**)&_msg,sleeptime);
         if(_msg) dispatch_msg(disp,_msg);
         nowtick = GetSystemMs();

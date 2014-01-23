@@ -209,7 +209,7 @@ void move_to(struct map *m,struct aoi_object *o,int32_t _x,int32_t _y)
 			block_process_leave(m,get_block(m,y,x),o,0);
 		}		
 	}
-	o->last_update_tick = GetSystemMs();
+	o->last_update_tick = GetSystemMs64();
 }
 
 
@@ -240,7 +240,7 @@ int32_t enter_map(struct map *m,struct aoi_object *o,int32_t _x,int32_t _y)
 			block_process_enter(m,get_block(m,y,x),o);
 		}		
 	}
-	o->last_update_tick = GetSystemMs();
+	o->last_update_tick = GetSystemMs64();
 	o->is_leave_map = 0;
 	return 0;
 }

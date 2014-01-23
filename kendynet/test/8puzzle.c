@@ -202,11 +202,11 @@ void show_8puzzle(struct _8puzzle_map *map,struct A_star_procedure *astar,int _f
 		printf("no way\n");
 	}	
 	int path_count = 0;
-	uint32_t tick = GetSystemMs();
+	uint64_t tick = GetSystemMs64();
 	struct map_node *from = (struct map_node*)getnode_by_pv(map,_from,-1,-1);
 	struct map_node *to = (struct map_node*)getnode_by_pv(map,_to,-1,-1);
 	struct path_node *path = find_path(astar,from,to);
-	tick = GetSystemMs() - tick;
+	tick = GetSystemMs64() - tick;
 	if(!path)
 		printf("no way\n");
 	while(path)

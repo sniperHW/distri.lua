@@ -78,7 +78,7 @@ timer:kendynet.a $(TESTDIR)/testtimer.c
 msgque:kendynet.a $(TESTDIR)/testmq.c
 	$(CC) $(CFLAGS) -o msgque $(TESTDIR)/testmq.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 systick:kendynet.a $(TESTDIR)/testgetsystick.c
-	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
+	$(CC) $(CFLAGS) -o systick $(TESTDIR)/testgetsystick.c kendynet.a kendynet/deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
 atomicst:kendynet.a $(TESTDIR)/test_atomic_st.c
 	$(CC) $(CFLAGS) -o atomicst $(TESTDIR)/test_atomic_st.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)
 testexcp:kendynet.a $(TESTDIR)/testexception.c

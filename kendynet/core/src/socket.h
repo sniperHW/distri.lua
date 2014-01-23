@@ -57,7 +57,7 @@ typedef struct socket_wrapper
         };
         //for listen or Connecting socket
         struct {
-            uint32_t timeout;
+            uint64_t timeout;
             void *ud;
             SOCK  sock;
             union{

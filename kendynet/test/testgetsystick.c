@@ -6,19 +6,19 @@
 int main()
 {
     {
-        uint32_t begin = GetSystemMs();
+        uint64_t begin = GetSystemMs();
         int i = 0;
         for(; i < 100000000;++i)
-            GetSystemSec();
-        printf("100000000 call GetSystemSec use %u ms\n",GetSystemMs()-begin);
+            GetSystemMs();
+        printf("100000000 call GetSystemMs use %lld ms\n",GetSystemMs()-begin);
     }
 
     {
-        uint32_t begin = GetSystemMs();
+        uint64_t begin = GetSystemMs();
         int i = 0;
         for(; i < 100000000;++i)
-            time(NULL);
-        printf("100000000 call time(NULL) use %u ms\n",GetSystemMs()-begin);
+            GetSystemSec();
+        printf("100000000 call GetSystemSec() use %lld ms\n",GetSystemMs()-begin);
     }
     return 0;
 }

@@ -302,7 +302,7 @@ static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
 	mutex_lock(que->mtx);
     if(timeout > 0){
         if(llist_is_empty(&que->share_que) && timeout){
-			uint32_t end = GetSystemMs() + timeout;
+			uint64_t end = GetSystemMs64() + (uint64_t)timeout;
             dlist_push(&que->blocks,&ptq->read_que.bnode);
 			do{
                 if(0 != condition_timedwait(ptq->cond,que->mtx,timeout)){
@@ -310,7 +310,7 @@ static inline void msgque_sync_pop(ptq_t ptq,int32_t timeout)
                     dlist_remove(&ptq->read_que.bnode);
 					break;
 				}
-				uint32_t l_now = GetSystemMs();
+				uint64_t l_now = GetSystemMs64();
 				if(l_now < end) timeout = end - l_now;
 				else break;//timeout
             }while(llist_is_empty(&que->share_que));

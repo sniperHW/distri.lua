@@ -54,7 +54,7 @@ struct connection
         uint64_t usr_data;
         void    *usr_ptr;
 	};
-	uint32_t last_recv;
+	uint64_t last_recv;
 	struct timer_item wheelitem;
 	uint32_t recv_timeout;
     uint32_t send_timeout;

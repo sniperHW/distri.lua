@@ -103,7 +103,7 @@ int32_t  epoll_unregister_send(poller_t e,socket_t s)
 int8_t check_connect_timeout(struct dnode *dln, void *ud)
 {
     socket_t s = (socket_t)dln;
-    uint32_t l_now = (uint32_t)ud;
+    uint64_t l_now = *((uint64_t*)ud);
     if(l_now >= s->timeout){
         s->engine->UnRegister(s->engine,s);
         s->on_connect(INVALID_SOCK,&s->addr_remote,s->ud,ETIMEDOUT);
@@ -120,13 +120,13 @@ int32_t epoll_wakeup(poller_t e)
 
 static int32_t _epoll_wait(int epfd, struct epoll_event *events,int maxevents, int timeout)
 {
-	uint32_t _timeout = GetSystemMs() + (uint32_t)timeout;
+	uint64_t _timeout = GetSystemMs64() + (uint64_t)timeout;
 	for(;;){
         int32_t nfds = epoll_wait(epfd,events,MAX_SOCKET+1,timeout);
 		if(nfds < 0 && errno == EINTR){
-			uint32_t cur_tick = GetSystemMs();
+			uint64_t cur_tick = GetSystemMs64();
 			if(_timeout > cur_tick){
-				timeout = _timeout - cur_tick;
+				timeout = (int)(_timeout - cur_tick);
 				errno = 0;
 			}
 			else
@@ -141,9 +141,9 @@ int32_t epoll_loop(poller_t n,int32_t ms)
 {
 	assert(n);
 	if(ms < 0)ms = 0;
-	uint32_t sleep_ms;
-	uint32_t timeout = GetSystemMs() + ms;
-	uint32_t current_tick;
+	uint64_t sleep_ms;
+	uint64_t timeout = GetSystemMs64() + (uint64_t)ms;
+	uint64_t current_tick;
 	uint32_t read_event = EV_IN | EPOLLRDHUP | EPOLLERR | EPOLLHUP;
 	int32_t notify = 0;
 	do{
@@ -151,8 +151,8 @@ int32_t epoll_loop(poller_t n,int32_t ms)
         if(!dlist_empty(&n->connecting))
 	    {
 	        //check timeout connecting
-	        uint32_t l_now = GetSystemMs();
-            dlist_check_remove(&n->connecting,check_connect_timeout,(void*)l_now);
+	        uint64_t l_now = GetSystemMs64();
+            dlist_check_remove(&n->connecting,check_connect_timeout,(void*)&l_now);
 	    }
         if(!is_active_empty(n))
         {
@@ -165,13 +165,13 @@ int32_t epoll_loop(poller_t n,int32_t ms)
                     putin_active(n,(struct dnode*)s);
             }
         }
-		current_tick = GetSystemMs();
+		current_tick = GetSystemMs64();
         if(is_active_empty(n))
 			sleep_ms = timeout > current_tick ? timeout - current_tick:0;
 		else
 			sleep_ms = 0;
 		notify = 0;
-        int32_t nfds = _epoll_wait(n->poller_fd,n->events,MAX_SOCKET,sleep_ms);
+        int32_t nfds = _epoll_wait(n->poller_fd,n->events,MAX_SOCKET,(uint32_t)sleep_ms);
 		if(nfds < 0)
 			return -1;
 		int32_t i;
@@ -201,7 +201,7 @@ int32_t epoll_loop(poller_t n,int32_t ms)
 				}
 			}
 		}
-		current_tick = GetSystemMs();
+		current_tick = GetSystemMs64();
 	}while(notify == 0 && timeout > current_tick);
 	return 0;
 }

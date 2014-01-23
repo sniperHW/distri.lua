@@ -173,8 +173,8 @@ static void *mainloop(void *arg)
     struct poller_st *n = (struct poller_st *)arg;
 	while(0 == n->flag)
 	{
-		uint32_t tick = GetSystemMs();
-        uint32_t timeout = tick + 10;
+		uint64_t tick = GetSystemMs64();
+        uint64_t timeout = tick + 10;
 		int8_t is_empty = 0;
 		for(;tick < timeout;){
             lnode *node = NULL;
@@ -195,7 +195,7 @@ static void *mainloop(void *arg)
 				is_empty = 1;
 				break;
 			}
-			tick = GetSystemMs();
+			tick = GetSystemMs64();
 		}
 		if(is_empty){
 			//注册中断器，如果阻塞在loop里时mq_in收到消息会调用唤醒函数唤醒loop
