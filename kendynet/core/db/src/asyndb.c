@@ -1,6 +1,6 @@
-#include "asyndb.h"
+#include "../asyndb.h"
 #include "asynredis.h"
-#include "asynnet.h"
+#include "asynnet/asynnet.h"
 
 
 /*db_result_t rpk_read_dbresult(rpacket_t r)

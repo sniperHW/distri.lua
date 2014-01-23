@@ -1,7 +1,7 @@
 #ifndef _ASYNREDIS_H
 #define _ASYNREDIS_H
 
-#include "asyndb.h"
+#include "../asyndb.h"
 #include "msgque.h"
 #include "thread.h"
 #include "hiredis.h"

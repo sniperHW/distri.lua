@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "llist.h"
-#include "msgdisp.h"
+#include "asynnet/msgdisp.h"
 
 struct db_result;
 typedef void (*DB_CALLBACK)(struct db_result*);

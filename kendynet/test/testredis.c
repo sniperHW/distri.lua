@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "core/msgdisp.h"
+#include "asynnet/msgdisp.h"
 #include <stdint.h>
 #include "testcommon.h"
 #include "core/db/asyndb.h"

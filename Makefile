@@ -3,8 +3,7 @@ LDFLAGS = -lpthread -lrt -ltcmalloc -lm
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -Ikendynet -Ikendynet/core -I..\
-		  -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis\
-		  -Ikendynet/core/db
+		  -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis
 DEFINE = -D_DEBUG -D_LINUX
 TESTDIR = kendynet/test
 
@@ -27,9 +26,9 @@ kendynet.a: \
 		   kendynet/core/src/timer.c \
 		   kendynet/core/src/uthread.c \
 		   kendynet/core/src/refbase.c \
-		   kendynet/core/src/asynnet.c \
-		   kendynet/core/src/asynsock.c \
-		   kendynet/core/src/msgdisp.c \
+		   kendynet/core/asynnet/src/asynnet.c \
+		   kendynet/core/asynnet/src/asynsock.c \
+		   kendynet/core/asynnet/src/msgdisp.c \
 		   kendynet/core/src/atomic_st.c \
 		   kendynet/core/src/tls.c \
 		   kendynet/core/src/lua_util.c\

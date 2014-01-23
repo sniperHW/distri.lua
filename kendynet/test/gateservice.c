@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "core/msgdisp.h"
+#include "asynnet/msgdisp.h"
 #include "testcommon.h"
 
 
