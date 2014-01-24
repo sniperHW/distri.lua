@@ -5,14 +5,9 @@
 #include "core/msgdisp.h"
 #include "common/agentsession.h"
 #include "core/refbase.h"
+#include "core/cstring.h"
 
-//superservice中的player
-typedef struct super_player{
-	agentsession _agentsession;
-	msgdisp_t    msgdisp;//当前为player处理消息的消息分离器
-	void (*super_fn_destroy)(void*);
-}super_player,*super_player_t;
-
+struct battlemap;
 
 enum{
 	avatar_player = 1,
@@ -22,15 +17,25 @@ enum{
 typedef struct avatar{
 	aoi_object aoi;
 	uint8_t    avatar_type;
+	struct battlemap *_battlemap;
 }avatar,*avatar_t;
 
 
-typedef struct battle_player{
-	struct refbase ref; 
-	avatar _avatar;
-	super_player_t superply;//对应的super_player
-}battle_player,*battle_player_t;
+typedef struct player{
+	avatar       _avatar;	
+	agentsession _agentsession;
+	string_t     _actname;
+	msgdisp_t    _msgdisp;
+	void (*player_fn_destroy)(void*);
+}player,*player_t;
+
+player_t cast2player(uint32_t);
+
+typedef void (*player_cmd_handler)(player_t,rpacket_t);
 
 
+void register_palyer_handle_function(uint16_t cmd,player_cmd_handler);//注册消息处理函数
+
+extern player_cmd_handler player_handlers[MAX_CMD]; 
 
 #endif
