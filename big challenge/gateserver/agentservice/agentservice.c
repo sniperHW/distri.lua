@@ -3,15 +3,9 @@
 #include "togame/togame.h"
 #include "common/tls_define.h"
 
-typedef struct idnode
-{
-	lnode    node;	
-	int16_t id;
-}idnode;
-
-
 static void *service_main(void *ud){
     agentservice_t service = (agentservice_t)ud;
+    tls_create(MSGDISCP_TLS,(void*)service->msgdisp,NULL);
     tls_create(AGETNSERVICE_TLS,(void*)service,NULL);
     while(!service->stop){
         msg_loop(service->msgdisp,50);
@@ -22,24 +16,22 @@ static void *service_main(void *ud){
 
 agentplayer_t new_agentplayer(agentservice_t service,sock_ident sock)
 {
-	idnode *id = LLIST_POP((idnode*),&service->idpool);
-	if(!id) return NULL;
-	agentplayer_t player = service->players[id->id];
+	int32_t id = get_id(service->_idmgr);
+	if(id == -1)
+		return NULL;
+	agentplayer_t player = service->players[id];
 	player->session.aid = service->agentid;
 	player->session.identity = service->identity;
-	player->session.sessionid = id->id;
+	player->session.sessionid = (uint16_t)id;
 	player->state = agent_init;
 	player->con = sock;
 	service->identity = (service->identity+1)&0X7FFF;
-	free(id);
 	return player;
 }
 
 void release_agentplayer(agentservice_t service,agentplayer_t player)
 {
-	idnode *_idnode = calloc(1,sizeof(*_idnode));
-	_idnode->id = player->sessionid.sessionid;
-	LLIST_PUSHBACK(&service->idpool,_idnode);
+	release_id(service->_idmgr,(int32_t)player->sessionid.sessionid);
 	player->session.data = 0;
 	player->state = agent_unusing;
 }
@@ -138,13 +130,7 @@ int32_t agent_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 agentservice_t new_agentservice(uint8_t agentid,asynnet_t asynet){
 	agentservice_t service = calloc(1,sizeof(*service));
 	service->agentid = agentid;
-	llist_init(&service->idpool);
-	int i = 1;
-	for(; i <= MAX_ANGETPLAYER; ++i){
-		idnode *id = calloc(1,sizeof(*id));
-		id->id = i;
-		LLIST_PUSHBACK(&service->idpool,(lnode*)id);
-	}
+	service->_idmgr = new_idmgr(1,MAX_ANGETPLAYER);
 	service->msgdisp = new_msgdisp(asynet,
                              	   NULL,
                                    agent_connected,

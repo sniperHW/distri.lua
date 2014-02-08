@@ -1,16 +1,13 @@
 #include "refbase.h"
 #include "systime.h"
 
-atomic_32_t global_counter = 0;
+static atomic_16_t g_counter[65536] = {0};
 
 void ref_init(struct refbase *r,uint16_t type,void (*destroyer)(void*),int32_t initcount)
 {
 	r->destroyer = destroyer;
-	uint64_t _type = (uint64_t)type;
-	_type <<= 48; 
-	r->identity = ATOMIC_INCREASE(&global_counter) & 0x3FFF;//高14位留作类型编码
-	r->identity <<= 32;
-	r->identity += GetSystemMs();
-	r->identity |= _type;  
+	r->high32 = GetSystemMs();
+	uint32_t _type = type;
+	r->low32  = _type*65536 + (uint32_t)(ATOMIC_INCREASE(&g_counter[type]));
 	r->refcount = initcount;
 }

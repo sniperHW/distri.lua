@@ -10,24 +10,28 @@
 
 typedef struct superservice
 {
-	volatile uint8_t stop;
-	thread_t    thd;
-	msgdisp_t   msgdisp;
-	sock_ident  togate;   //到gate的套接口
-	asyndb_t    asydb;
+	volatile uint8_t   stop;
+	thread_t           thd;
+	msgdisp_t          msgdisp;
+	sock_ident         togate;   //到gate的套接口
+	asyndb_t           asydb;
+	player_cmd_handler player_handlers[MAX_CMD]; 
 }*superservice_t;
 
 
 extern superservice_t g_superservice;
 
-superservice_t create_superservice();
-void destroy_superservice(superservice_t*);
+superservice_t new_superservice();
+
+void   destroy_superservice(superservice_t*);
 
 int32_t send2gate(wpacket_t);
 
 typedef void (*super_cmd_handler)(rpacket_t);
 
-void    register_super_handle_function(uint16_t cmd,super_cmd_handler);//注册消息处理函数
+void    register_super_handle_function(uint16_t cmd,super_cmd_handler);
+
+void    register_super_palyer_handle_function(uint16_t cmd,player_cmd_handler);
 
 player_t create_player(string_t actname,uint32_t gateident);
 

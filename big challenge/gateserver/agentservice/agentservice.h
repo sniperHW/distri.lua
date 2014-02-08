@@ -4,7 +4,7 @@
 #include "../../agentsession.h"
 #include "core/msgdisp.h"
 #include "core/thread.h"
-#include "llist.h"
+#include "../../idmgr.h"
 
 #define MAX_ANGETPLAYER   8191
 
@@ -14,10 +14,10 @@ typedef struct agentservice
 	volatile uint8_t stop;
 	uint8_t     agentid;        //0-7
 	thread_t    thd;            //运行本agentservice的线程
-	struct      llist idpool;
 	msgdisp_t   msgdisp;
 	agentplayer players[MAX_ANGETPLAYER+1];//0不能用，作为非法值
 	uint16_t    identity;
+	idmgr_t     _idmgr;
 }*agentservice_t;
 
 agentservice_t new_agentservice(uint8_t agentid,asynnet_t asynet);

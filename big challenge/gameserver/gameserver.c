@@ -1,5 +1,6 @@
 #include "superservice/superservice.h"
 #include "battleservice/battleservice.h"
+#include "core/lua_util.h"
 
 static volatile int8_t stop = 0;
 
@@ -19,14 +20,28 @@ void setup_signal_handler()
 
 int main()
 {
-	g_superservice = create_superservice();
-	//创建battleservice
+	//从lua读取配置
+	lua_State *L = luaL_newstate();
+	luaL_openlibs(L);
+	if (luaL_dofile(L,"config.lua")) {
+		const char * error = lua_tostring(L, -1);
+		lua_pop(L,1);
+		printf("%s\n",error);
+		return 0;
+	}
+	lua_getglobal(L,"config");
+	luaObject_t config = create_luaObj(L,-1);
+	//先创建battleservice
+	//再创建superservice
+	//g_superservice = new_superservice();
 
-	while(stop == 0)
-		sleep(1);
+	release_luaObj(config);
+	lua_close(L);
+	//while(stop == 0)
+	//	sleep(1);
 
-	destroy_superservice(&g_superservice);
-	//关闭battleservice
+	//先关闭battleservice
+	//destroy_superservice(&g_superservice);
 
 	return 0;
 }

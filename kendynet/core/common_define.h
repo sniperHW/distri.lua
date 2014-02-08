@@ -29,7 +29,8 @@ enum
 {
 	type_asynsock = 1,
 	type_msgdisp  = 2,
-	type_luaobjcet = 3,	
+	type_luaobjcet = 3,
+	type_usertype_begin = 4,	
 };
 
 #define MAX_UINT32 0xffffffff

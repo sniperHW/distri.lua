@@ -7,12 +7,16 @@
 #include <sys/time.h>
 #include "atomic.h"
 
-extern atomic_32_t global_counter;
-
 struct refbase
 {
         atomic_32_t refcount;
-        atomic_64_t identity;
+        union{
+            struct{
+                uint32_t high32;
+                uint32_t low32;        
+            };
+            atomic_64_t identity;
+        };
         atomic_32_t flag;
         void (*destroyer)(void*);
 };

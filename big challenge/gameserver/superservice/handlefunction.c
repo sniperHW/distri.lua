@@ -26,7 +26,7 @@ void player_login(rpacket_t rpk)
 		//对象还未销毁，重新绑定关系
 
 	}else{
-		create_player(actname,gateident);
+		ply = create_player(actname,gateident);
 		load_player_info(ply);//从数据库导入玩家信息
 	}
 }

@@ -2,11 +2,11 @@
 #include "core/tls.h"
 #include "common/tls_define.h"
 #include "core/common_define.h"
-#include "superservice/superservice.h"
+//#include "superservice/superservice.h"
 
-extern superservice_t g_superservice;
+//extern superservice_t g_superservice;
 
-player_cmd_handler player_handlers[MAX_CMD] = {0}
+//player_cmd_handler player_handlers[MAX_CMD] = {0}
 
 
 /*
@@ -15,7 +15,7 @@ player_cmd_handler player_handlers[MAX_CMD] = {0}
 *将super_fn_destroy发给superservice执行
 */
 
-void player_destroyer(player_t splayer)
+/*void player_destroyer(player_t splayer)
 {
 	msgdisp_t disp = (msgdisp_t)tls_get(MSGDISCP_TLS);
 	if(disp == g_superservice->msgdisp)
@@ -35,4 +35,4 @@ void player_destroyer(player_t splayer)
 			free(msg);
 		}
 	}
-}
+}*/
