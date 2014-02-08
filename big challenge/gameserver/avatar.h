@@ -14,8 +14,7 @@ typedef struct avatarid{
 	uint16_t super_player_index;
 	union{
 		struct{
-			uint32_t isplayer:1;
-			uint32_t battleservice_id:6;        
+			uint32_t battleservice_id:7;        
 			uint32_t map_id:14;
 			uint32_t ojb_index:11;     
 		};
