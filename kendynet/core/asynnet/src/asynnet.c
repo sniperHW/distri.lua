@@ -93,7 +93,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 	if(msg->type == MSG_BIND)
 	{
         //printf("MSG_BIND\n");
-        asynsock_t d = cast_2_asynsock(CAST_2_SOCK(msg->_ident));
+        asynsock_t d = cast_2_asynsock(TO_SOCK(msg->_ident));
 		if(d){
 			struct connection *c = d->c;
 			socket_t s = get_socket_wrapper(c->socket);
@@ -140,7 +140,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 		}
     }else if(msg->type == MSG_ACTIVE_CLOSE)
 	{
-        asynsock_t d = cast_2_asynsock(CAST_2_SOCK(msg->_ident));
+        asynsock_t d = cast_2_asynsock(TO_SOCK(msg->_ident));
 		if(d){
 			active_close(d->c);
             asynsock_release(d);
@@ -153,7 +153,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
 
 static inline void process_send(struct poller_st *e,wpacket_t wpk)
 {
-    asynsock_t d = cast_2_asynsock(CAST_2_SOCK(MSG_IDENT(wpk)));
+    asynsock_t d = cast_2_asynsock(TO_SOCK(MSG_IDENT(wpk)));
 	if(d)
 	{
 		send_packet(d->c,wpk);

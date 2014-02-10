@@ -128,7 +128,7 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
     else{
         struct msg_connection *tmsg = (struct msg_connection*)msg;
         //printf("dispatch_msg %d\n",msg->type);
-        sock_ident sock = CAST_2_SOCK(tmsg->base._ident);
+        sock_ident sock = TO_SOCK(tmsg->base._ident);
         if(msg->type == MSG_ONCONNECT){
             //printf("MSG_ONCONNECT\n");
             if(disp->on_connect)

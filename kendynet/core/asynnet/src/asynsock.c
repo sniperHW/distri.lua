@@ -26,7 +26,6 @@ asynsock_t asynsock_new(struct connection *c,SOCK s)
 		free(sock);
 		return NULL;
 	}
-    ident _ident = make_ident(&sock->ref);
-    sock->sident = CAST_2_SOCK(_ident);
+    (*(ident*)&sock->sident) = make_ident(&sock->ref);
 	return sock;
 }
