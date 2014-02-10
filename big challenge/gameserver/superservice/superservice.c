@@ -1,19 +1,18 @@
-#include "superservice.h"
 #include "../common/cmd.h"
 #include "../avatar.h"
-#include "battleservice/battlemap.h"
+#include "battleservice/battleservice.h"
 #include "core/lua_util.h"
+#include "superservice.h"
 
 superservice_t g_superservice = NULL;
-static super_cmd_handler cmd_handlers[MAX_CMD] = {0};
+static cmd_handler super_cmd_handlers[MAX_CMD] = {0};
 
 ident* players[MAX_PLAYER] = {0}; 
 
 int32_t send2gate(wpacket_t wpk)
 {
-	if(!g_superservice) return -1;
-	if(!wpk) return -1;
-	if(is_vaild_ident(TO_IDENT(g_superservice->togate))) return -1;
+	if(!g_superservic || !wpk) return -1;
+	if(!is_vaild_ident(TO_IDENT(g_superservice->togate))) return -1;
 	return asyn_send(g_superservice->togate,wpk);
 }
 
@@ -36,35 +35,29 @@ void super_disconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t po
 
 int32_t super_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
 {
-	int32_t ret = 1;
 	uint16_t cmd = rpk_peek_uint16(rpk);
-	if(cmd >= CMD_CLIENT2GAME && cmd < CMD_CLIENT2GAME_END){
-		player_t _player = cast2player(rpk_reverse_read_avatarid(rpk));
-		if(_player){
-			if(_player->_msgdisp != disp){
-				if(0 == push_msg(_player->msgdisp,rpk))
-					ret = 0;//不销毁rpk,由battleservice负责销毁
-			}else{
-				rpk_read_uint16(rpk);//丢弃cmd
-				if(g_superservice->player_handlers[cmd])
-					g_superservice->player_handlers[cmd](_player,rpk);
-			}
-			release_player(_player);	
-		}
-	}else if(cmd >= CMD_GATE2GAME && cmd < CMD_GATE2GAME_END){
-		rpk_read_uint16(rpk);//丢弃cmd
-		if(cmd_handlers[cmd])
-			cmd_handlers[cmd](rpk);
+	if(cmd >= CMD_CLIENT2BATTLE && cmd <= CMD_CLIENT2BATTLE_END)
+	{
+		//将消息转发到battle
+		avatarid _avatid = rpk_reverse_read_avatarid(rpk);
+		battleservice_t battle = get_battle_by_index((uint8_t)_avatid.battleservice_id);
+		if(battle && 0 == push_msg(battle->msgdisp,rpk))
+			return 0;//不销毁rpk,由battleservice负责销毁
 	}else{
-		//非法消息，记录日志
+		if(super_cmd_handlers[cmd]){
+			rpk_read_uint16(rpk);//丢弃cmd
+			super_cmd_handlers[cmd](rpk);
+		}else{
+			//记录日志
+		}
 	}
-    return ret;
+    return 1;
 }
 
-void register_super_handle_function(uint16_t cmd,super_cmd_handler handler)
+void reg_super_cmd_handler(uint16_t cmd,cmd_handler handler)
 {
 	if(cmd < MAX_CMD)
-		cmd_handlers[cmd] = handler;
+		super_cmd_handlers[cmd] = handler;
 }
 
 player_t cast2player(avatarid _avatarid)
@@ -90,25 +83,4 @@ player_t cast2player(avatarid _avatarid)
 void start_superservice()
 {
 	g_superservice = calloc(1,sizeof(*g_superservice));
-
-	//通过脚本读取战场类型配置
-	lua_State *L = luaL_newstate();
-	luaL_openlibs(L);
-	if (luaL_dofile(L,"battledefine.lua")) {
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("%s\n",error);
-		exit(0);
-	}
-
-	/*
-	*  战场配置
-	*  {
-	*		{type1,maxplayer1,timeout1},	
-	*		{type2,maxplayer2,timeout2},
-	*		{type3,maxplayer3,timeout3},
-	*  }
-	*
-	*/
-
 }

@@ -18,7 +18,6 @@ typedef struct battleservice
 	msgdisp_t          msgdisp;
 	atomic_32_t        player_count;    //此service上的玩家数量
 	luaObject          battlemgr;       //实际的战场由lua对象管理
-	player_cmd_handler player_handlers[MAX_CMD]; 
 }*battleservice_t;
 
 extern battleservice_t g_battleservices[MAX_BATTLE_SERVICE];
@@ -26,8 +25,12 @@ extern battleservice_t g_battleservices[MAX_BATTLE_SERVICE];
 battleservice_t new_battleservice();
 void destroy_battleservice(battleservice_t);
 
-void build_player_cmd_handler(battleservice_t bservice);
+void reg_battle_cmd_handler(uint16_t cmd,cmd_handler handler);
+void build_battle_cmd_handler();
 void register_battle_cfunction(lua_State *L);
+
+battleservice_t get_battle_by_index(uint8_t);
+
 
 
 #endif

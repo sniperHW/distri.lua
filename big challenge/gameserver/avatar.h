@@ -24,6 +24,7 @@ typedef struct avatarid{
 
 
 typedef struct player{
+	struct refbase ref;
 	agentsession _agentsession;
 	string_t     _actname;
 	msgdisp_t    _msgdisp;
@@ -51,57 +52,12 @@ static inline void wpk_write_avatarid(wpacket_t wpk,avatarid _avatarid)
 	wpk_write_uint32(wpk,_avatarid.data);
 }
 
+player_t idx2player(uint16_t index);
 
-/*enum{
-	avatar_player = 1,
-	avatar_npc,
-};
+//增加玩家对象的引用计数
+void     player_incref(player_t _player);
 
-typedef struct avatar{
-	struct refbase ref;
-	aoi_object aoi;
-	avatarid   _avatarid;
-}avatar,*avatar_t;
+//减少玩家对象的引用计数
+void     player_decref(player_t _player);
 
-typedef struct player{
-	avatar       _avatar;
-	agentsession _agentsession;
-	string_t     _actname;
-	msgdisp_t    _msgdisp;
-}player,*player_t;
-
-static inline uint16_t avatar_type(avatarid _avatarid)
-{
-	return (uint16_t)_avatarid.avattype;
-}
-
-static inline uint32_t avatar_index(avatarid _avatarid)
-{
-	return (uint32_t)_avatarid.index;
-}
-
-static inline avatarid rpk_read_avatarid(rpacket_t rpk)
-{
-	avatarid _avatarid;
-	_avatarid.data = rpk_read_uint64(rpk);
-	return _avatarid;
-}
-
-static inline avatarid rpk_reverse_read_avatarid(rpacket_t rpk)
-{
-	avatarid _avatarid;
-	_avatarid.data = reverse_read_uint64(rpk);
-	return _avatarid;	
-}
-
-static inline void wpk_write_avatarid(wpacket_t wpk,avatarid _avatarid)
-{
-	wpk_write_uint64(wpk,_avatarid.data);
-}
-
-player_t cast2player(avatarid);
-void     release_player(player_t _player);
-
-typedef void (*player_cmd_handler)(player_t,rpacket_t);
-*/
 #endif

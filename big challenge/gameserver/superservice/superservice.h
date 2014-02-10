@@ -14,8 +14,7 @@ typedef struct superservice
 	thread_t           thd;
 	msgdisp_t          msgdisp;
 	sock_ident         togate;   //到gate的套接口
-	asyndb_t           asydb;
-	player_cmd_handler player_handlers[MAX_CMD]; 
+	asyndb_t           asydb; 
 }*superservice_t;
 
 
@@ -27,11 +26,8 @@ void   destroy_superservice(superservice_t*);
 
 int32_t send2gate(wpacket_t);
 
-typedef void (*super_cmd_handler)(rpacket_t);
-
-void    register_super_handle_function(uint16_t cmd,super_cmd_handler);
-
-void    register_super_palyer_handle_function(uint16_t cmd,player_cmd_handler);
+void reg_super_cmd_handler(uint16_t cmd,cmd_handler handler);
+void build_super_cmd_handler();
 
 player_t create_player(string_t actname,uint32_t gateident);
 

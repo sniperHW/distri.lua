@@ -12,7 +12,6 @@ void load_ply_info_cb(struct db_result *result)
 
 		//释放player
 	}
-
 }
 
 static void load_player_info(player_t ply);
@@ -27,6 +26,10 @@ void player_login(rpacket_t rpk)
 
 	}else{
 		ply = create_player(actname,gateident);
+		if(!ply){
+			//通知玩家系统繁忙
+			return;
+		}
 		load_player_info(ply);//从数据库导入玩家信息
 	}
 }

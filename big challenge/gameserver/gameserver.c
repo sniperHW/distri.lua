@@ -31,6 +31,11 @@ int main()
 	}
 	lua_getglobal(L,"config");
 	luaObject_t config = create_luaObj(L,-1);
+
+	//建立消息处理映射表
+	build_super_cmd_handler();
+	build_battle_cmd_handler();
+
 	//先创建battleservice
 	//再创建superservice
 	//g_superservice = new_superservice();

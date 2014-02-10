@@ -1,10 +1,13 @@
+#ifndef _CMD_H
+#define _CMD_H
+
 /*
 *   命令码的定义
 */
 
 #define CMD_CLIENT2GATE   100
 
-#define CMD_GAME2CLIENT   200
+#define CMD_SUPER2CLIENT   200
 
 #define CMD_GATE2SUPER    300
 
@@ -20,9 +23,9 @@ enum{
 	CMD_PLY_CONNECTING,//用户请求建立连接
 	CMD_GAME_BUSY,     //通知玩家系统繁忙
 	CMD_PLY_LOGIN = CMD_CLIENT2GATE,
-	CMD_CLIENT2GATE_END,
-	CMD_GAME2CLIENT_END,
-	CMD_PLY_DISCONNECT = CMD_GATE2GAME,
-	CMD_GATE2GAME_END,
-	CMD_CLIENT2GAME_END,
 };
+
+struct rpacket;
+typedef void (*cmd_handler)(struct rpacket*);
+
+#endif

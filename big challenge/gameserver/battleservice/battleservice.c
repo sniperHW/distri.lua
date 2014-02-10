@@ -1,4 +1,8 @@
+#include "../common/cmd.h"
 #include "battleservice.h"
+
+
+static cmd_handler battle_cmd_handlers[MAX_CMD] = {0};
 
 int32_t battle_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk);
 
@@ -10,6 +14,12 @@ static void *service_main(void *ud){
         msg_loop(service->msgdisp,50);
     }
     return NULL;
+}
+
+void reg_battle_cmd_handler(uint16_t cmd,cmd_handler handler)
+{
+	if(cmd < MAX_CMD)
+		battle_cmd_handlers[cmd] = handler;
 }
 
 battleservice_t new_battleservice()
@@ -33,7 +43,6 @@ battleservice_t new_battleservice()
 	}
 	bservice->battlemgr = create_luaObj(L,-1);
 	bservice->msgdisp = new_msgdisp(NULL,NULL,NULL, NULL,battle_processpacket,NULL);
-	build_player_cmd_handler(bservice);
 	bservice->thd = create_thread(THREAD_JOINABLE);
     thread_start_run(bservice->thd,service_main,(void*)bservice);
 	return bservice;
