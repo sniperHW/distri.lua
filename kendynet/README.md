@@ -204,7 +204,8 @@ OnIoFinish函数,在传入回调函数的参数中表明了拿个IO请求被完�
 	        {
 	            uint32_t elapse = now-tick;
 	            recvsize = (recvsize/elapse)/1000;
-	            printf("client_count:%d,recvsize:%d,recvcount:%d,discount:%d\n",client_count,recvsize,recvcount,disconnect_count);
+	            printf("client_count:%d,recvsize:%d,recvcount:%d,discount:%d\n",
+                             client_count,recvsize,recvcount,disconnect_count);
 	            tick = now;
 	            packet_send_count = 0;
 	            recvcount = 0;
