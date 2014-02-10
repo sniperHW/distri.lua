@@ -104,7 +104,7 @@ OnIoFinish函数,在传入回调函数的参数中表明了拿个IO请求被完�
 
 下面是一个多服务共用网络层的模式，创建了两个线程各运行一个echo服务，一个监听8010端口，一个监听8011端口，
 客户端连接到不同的端口，将由不同的服务实例为其提供服务.
-
+```c
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include "core/msgdisp.h"
@@ -218,5 +218,5 @@ OnIoFinish函数,在传入回调函数的参数中表明了拿个IO请求被完�
 	    CleanNetSystem();
 	    return 0;
 	}
-
+```
 
