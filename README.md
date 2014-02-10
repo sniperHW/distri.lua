@@ -1,5 +1,5 @@
 #一个简单高效的lua网络框架#
-
+```lua
 echo.lua
 
 	local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))
@@ -58,3 +58,4 @@ echo.lua
 	mainloop()
 	
 	lua echo.lua 127.0.0.1 8010
+```
