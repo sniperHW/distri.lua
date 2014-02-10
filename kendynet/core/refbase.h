@@ -100,9 +100,8 @@ static inline int8_t eq_ident(ident a,ident b)
 
 static inline int8_t is_type(ident a,uint16_t type)
 {
-    uint64_t _type = type;
-    _type <<= 48;
-    if(_type & a.identity) return 1;
+    if(((uint16_t*)&a.identity)[2] == type)
+        return 1;
     return 0;
 }
 

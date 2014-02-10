@@ -32,11 +32,10 @@ static inline msgsender make_by_ident(ident _ident)
 
 static inline msgsender make_by_msgdisp(msgdisp_t disp)
 {
-    msgsender _sender;
-    _sender._ident.identity = type_msgdisp;
-    _sender._ident.identity <<= 48;
-    _sender._ident.ptr = (void*)disp;
-    return _sender;
+    ident _ident;
+    ((uint16_t*)&_ident.identity)[2] = type_msgdisp;
+    _ident.ptr = (void*)disp;
+    return *((msgsender*)&_ident);
 }
 
 static inline msgdisp_t get_msgdisp(msgsender sender)
