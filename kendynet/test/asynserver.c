@@ -64,11 +64,11 @@ int main(int argc,char **argv)
 
     asynnet_t asynet = asynnet_new(1);
     msgdisp_t  disp1 = new_msgdisp(asynet,5,
-                                   REG_ASYNCONNECT(asynconnect),
-                                   REG_ASYNCONNECTED(asynconnected),
-                                   REG_ASYNDISCNT(asyndisconnected),
-                                   REG_ASYNPROCESSPACKET(asynprocesspacket),
-                                   REG_ASYNCONNECTFAILED(asynconnectfailed));
+                                   CB_CONNECT(asynconnect),
+                                   CB_CONNECTED(asynconnected),
+                                   CB_DISCNT(asyndisconnected),
+                                   CB_PROCESSPACKET(asynprocesspacket),
+                                   CB_CONNECTFAILED(asynconnectfailed));
 
     /*msgdisp_t  disp2 = new_msgdisp(asynet,
                                   asynconnect,

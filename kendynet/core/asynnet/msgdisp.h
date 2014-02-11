@@ -69,12 +69,12 @@ typedef void (*ASYNCN_CONNECT_FAILED)(msgdisp_t,const char *ip,int32_t port,uint
 
 
 enum{
-    TYPE_ASYNCB_CONNECT = 0,
-    TYPE_ASYNCB_CONNECTED,
-    TYPE_ASYNCB_DISCNT,          
-    TYPE_ASYNCB_PROCESS_PACKET,
-    TYPE_ASYNCN_CONNECT_FAILED,
-    TYPE_ASYNCB_SIZE,    
+    TYPE_CONNECT = 0,
+    TYPE_CONNECTED,
+    TYPE_DISCNT,          
+    TYPE_PROCESS_PACKET,
+    TYPE_CONNECT_FAILED,
+    TYPE_SIZE,    
 };
 
 
@@ -99,20 +99,20 @@ typedef struct msgdisp{
 
 }*msgdisp_t;
 
-static inline void* reg_asynconnect(ASYNCB_CONNECT fn){return (void*)fn;}
-#define REG_ASYNCONNECT(FN_CB) (uint32_t)TYPE_ASYNCB_CONNECT,reg_asynconnect(FN_CB)
+static inline void* cb_asynconnect(ASYNCB_CONNECT fn){return (void*)fn;}
+#define CB_CONNECT(FN_CB) (uint32_t)TYPE_CONNECT,cb_asynconnect(FN_CB)
 
-static inline void* reg_asynconnected(ASYNCB_CONNECTED fn){return (void*)fn;}
-#define REG_ASYNCONNECTED(FN_CB) (uint32_t)TYPE_ASYNCB_CONNECTED,reg_asynconnected(FN_CB)
+static inline void* cb_asynconnected(ASYNCB_CONNECTED fn){return (void*)fn;}
+#define CB_CONNECTED(FN_CB) (uint32_t)TYPE_CONNECTED,cb_asynconnected(FN_CB)
 
-static inline void* reg_asyndiscnt(ASYNCB_DISCNT fn){return (void*)fn;}
-#define REG_ASYNDISCNT(FN_CB) (uint32_t)TYPE_ASYNCB_DISCNT,reg_asyndiscnt(FN_CB)
+static inline void* cb_asyndiscnt(ASYNCB_DISCNT fn){return (void*)fn;}
+#define CB_DISCNT(FN_CB) (uint32_t)TYPE_DISCNT,cb_asyndiscnt(FN_CB)
 
-static inline void* reg_asynprocesspacket(ASYNCB_PROCESS_PACKET fn){return (void*)fn;}
-#define REG_ASYNPROCESSPACKET(FN_CB) (uint32_t)TYPE_ASYNCB_PROCESS_PACKET,reg_asynprocesspacket(FN_CB)
+static inline void* cb_asynprocesspacket(ASYNCB_PROCESS_PACKET fn){return (void*)fn;}
+#define CB_PROCESSPACKET(FN_CB) (uint32_t)TYPE_PROCESS_PACKET,cb_asynprocesspacket(FN_CB)
 
-static inline void* reg_asynconnectfailed(ASYNCN_CONNECT_FAILED fn){return (void*)fn;}
-#define REG_ASYNCONNECTFAILED(FN_CB) (uint32_t)TYPE_ASYNCN_CONNECT_FAILED,reg_asynconnectfailed(FN_CB)
+static inline void* cb_asynconnectfailed(ASYNCN_CONNECT_FAILED fn){return (void*)fn;}
+#define CB_CONNECTFAILED(FN_CB) (uint32_t)TYPE_CONNECT_FAILED,cb_asynconnectfailed(FN_CB)
 
 msgdisp_t  new_msgdisp(asynnet_t,uint8_t cbsize,...);
 

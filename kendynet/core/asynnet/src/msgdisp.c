@@ -99,19 +99,16 @@ sock_ident asynnet_listen(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t
 
 msgdisp_t  new_msgdisp(asynnet_t asynet,uint8_t cbsize,...)
 {
-
-    //if(!asynet)
-    //   return NULL;
     msgdisp_t disp = calloc(1,sizeof(*disp));
     disp->asynet = asynet;
-    disp->mq = new_msgque(32,msg_destroyer);
-    void *asyncb[TYPE_ASYNCB_SIZE] = {NULL};
+    disp->mq = new_msgque(64,msg_destroyer);
+    void *asyncb[TYPE_SIZE] = {NULL};
     if(cbsize){
         va_list argptr;
         va_start(argptr,cbsize);
         while(cbsize){
             uint8_t type = (uint8_t)va_arg(argptr,uint32_t);
-            if(type >= TYPE_ASYNCB_SIZE)
+            if(type >= TYPE_SIZE)
             {
                 printf("invaild asyncb type\n");
                 abort();
@@ -122,11 +119,11 @@ msgdisp_t  new_msgdisp(asynnet_t asynet,uint8_t cbsize,...)
             --cbsize;
         }
     }
-    disp->on_connect = (ASYNCB_CONNECT)asyncb[TYPE_ASYNCB_CONNECT];
-    disp->on_connected = (ASYNCB_CONNECTED)asyncb[TYPE_ASYNCB_CONNECTED];
-    disp->on_disconnect = (ASYNCB_DISCNT)asyncb[TYPE_ASYNCB_DISCNT];
-    disp->process_packet = (ASYNCB_PROCESS_PACKET)asyncb[TYPE_ASYNCB_PROCESS_PACKET];
-    disp->connect_failed = (ASYNCN_CONNECT_FAILED)asyncb[TYPE_ASYNCN_CONNECT_FAILED];
+    disp->on_connect = (ASYNCB_CONNECT)asyncb[TYPE_CONNECT];
+    disp->on_connected = (ASYNCB_CONNECTED)asyncb[TYPE_CONNECTED];
+    disp->on_disconnect = (ASYNCB_DISCNT)asyncb[TYPE_DISCNT];
+    disp->process_packet = (ASYNCB_PROCESS_PACKET)asyncb[TYPE_PROCESS_PACKET];
+    disp->connect_failed = (ASYNCN_CONNECT_FAILED)asyncb[TYPE_CONNECT_FAILED];
     disp->bind = asynnet_bind;
     disp->connect = asynnet_connect;
     disp->listen = asynnet_listen;
