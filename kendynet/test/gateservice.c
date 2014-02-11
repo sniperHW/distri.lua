@@ -99,19 +99,14 @@ int main(int argc,char **argv)
 
     asynnet_t asynet = asynnet_new(3);//3个poller,1个用于监听,1个用于处理客户端连接，1个用于处理服务器连接
 
-    msgdisp_t  disp_to_server = new_msgdisp(asynet,
-                                  to_server_connect,
-                                  to_server_connected,
-                                  NULL,
-                                  to_server_process,
-                                  NULL);
+    msgdisp_t  disp_to_server = new_msgdisp(asynet,3,
+                                            REG_ASYNCONNECT(to_server_connect),
+                                            REG_ASYNCONNECTED(to_server_connected),
+                                            REG_ASYNPROCESSPACKET(to_server_process));
 
-    msgdisp_t  disp_to_client = new_msgdisp(asynet,
-                                  to_client_connect,
-                                  NULL,
-                                  NULL,
-                                  to_client_process,
-                                  NULL);
+    msgdisp_t  disp_to_client = new_msgdisp(asynet,2,
+                                            REG_ASYNCONNECT(to_client_connect),
+                                            REG_ASYNPROCESSPACKET(to_client_process));
 
     thread_t service1 = create_thread(THREAD_JOINABLE);
     thread_t service2 = create_thread(THREAD_JOINABLE);

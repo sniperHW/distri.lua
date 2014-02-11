@@ -3,6 +3,7 @@
 #include "asynnet_define.h"
 #include "db/asyndb.h"
 #include "../asyncall.h"
+#include <stdarg.h>
 
 void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud);
 
@@ -96,12 +97,7 @@ sock_ident asynnet_listen(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t
     }
 }
 
-msgdisp_t  new_msgdisp(asynnet_t asynet,
-                       ASYNCB_CONNECT        on_connect,
-                       ASYNCB_CONNECTED      on_connected,
-                       ASYNCB_DISCNT         on_disconnect,
-                       ASYNCB_PROCESS_PACKET process_packet,
-                       ASYNCN_CONNECT_FAILED connect_failed)
+msgdisp_t  new_msgdisp(asynnet_t asynet,uint8_t cbsize,...)
 {
 
     //if(!asynet)
@@ -109,11 +105,28 @@ msgdisp_t  new_msgdisp(asynnet_t asynet,
     msgdisp_t disp = calloc(1,sizeof(*disp));
     disp->asynet = asynet;
     disp->mq = new_msgque(32,msg_destroyer);
-    disp->on_connect = on_connect;
-    disp->on_connected = on_connected;
-    disp->on_disconnect = on_disconnect;
-    disp->process_packet = process_packet;
-    disp->connect_failed = connect_failed;
+    void *asyncb[TYPE_ASYNCB_SIZE] = {NULL};
+    if(cbsize){
+        va_list argptr;
+        va_start(argptr,cbsize);
+        while(cbsize){
+            uint8_t type = (uint8_t)va_arg(argptr,uint32_t);
+            if(type >= TYPE_ASYNCB_SIZE)
+            {
+                printf("invaild asyncb type\n");
+                abort();
+            }
+            if(asyncb[type])
+                abort();
+            asyncb[type] = va_arg(argptr,void*);
+            --cbsize;
+        }
+    }
+    disp->on_connect = (ASYNCB_CONNECT)asyncb[TYPE_ASYNCB_CONNECT];
+    disp->on_connected = (ASYNCB_CONNECTED)asyncb[TYPE_ASYNCB_CONNECTED];
+    disp->on_disconnect = (ASYNCB_DISCNT)asyncb[TYPE_ASYNCB_DISCNT];
+    disp->process_packet = (ASYNCB_PROCESS_PACKET)asyncb[TYPE_ASYNCB_PROCESS_PACKET];
+    disp->connect_failed = (ASYNCN_CONNECT_FAILED)asyncb[TYPE_ASYNCN_CONNECT_FAILED];
     disp->bind = asynnet_bind;
     disp->connect = asynnet_connect;
     disp->listen = asynnet_listen;

@@ -63,12 +63,12 @@ int main(int argc,char **argv)
     //共用网络层，两个线程各运行一个echo服务
 
     asynnet_t asynet = asynnet_new(1);
-    msgdisp_t  disp1 = new_msgdisp(asynet,
-                                  asynconnect,
-                                  asynconnected,
-                                  asyndisconnected,
-                                  asynprocesspacket,
-                                  asynconnectfailed);
+    msgdisp_t  disp1 = new_msgdisp(asynet,5,
+                                   REG_ASYNCONNECT(asynconnect),
+                                   REG_ASYNCONNECTED(asynconnected),
+                                   REG_ASYNDISCNT(asyndisconnected),
+                                   REG_ASYNPROCESSPACKET(asynprocesspacket),
+                                   REG_ASYNCONNECTFAILED(asynconnectfailed));
 
     /*msgdisp_t  disp2 = new_msgdisp(asynet,
                                   asynconnect,

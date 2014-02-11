@@ -50,11 +50,11 @@ static void *service_main(void *ud){
 int main(int argc,char **argv)
 {
     setup_signal_handler();
-    msgdisp_t disp1 = new_msgdisp(NULL,NULL,NULL, NULL,NULL,NULL);
+    msgdisp_t disp1 = new_msgdisp(NULL,0);
 
     thread_t service1 = create_thread(THREAD_JOINABLE);
 
-    msgdisp_t disp2 = new_msgdisp(NULL,NULL, NULL,NULL,NULL,NULL);
+    msgdisp_t disp2 = new_msgdisp(NULL,0);
 
     thread_t service2 = create_thread(THREAD_JOINABLE);    
     asydb = new_asyndb();

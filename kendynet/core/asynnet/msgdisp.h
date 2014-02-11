@@ -68,6 +68,16 @@ typedef int32_t (*ASYNCB_PROCESS_PACKET)(msgdisp_t,rpacket_t);
 typedef void (*ASYNCN_CONNECT_FAILED)(msgdisp_t,const char *ip,int32_t port,uint32_t reason);
 
 
+enum{
+    TYPE_ASYNCB_CONNECT = 0,
+    TYPE_ASYNCB_CONNECTED,
+    TYPE_ASYNCB_DISCNT,          
+    TYPE_ASYNCB_PROCESS_PACKET,
+    TYPE_ASYNCN_CONNECT_FAILED,
+    TYPE_ASYNCB_SIZE,    
+};
+
+
 typedef struct msgdisp{
     msgque_t  mq;          //用于接收从网络过来的消息
     asynnet_t asynet;
@@ -76,7 +86,6 @@ typedef struct msgdisp{
     ASYNCB_DISCNT          on_disconnect;
     ASYNCB_PROCESS_PACKET  process_packet;
     ASYNCN_CONNECT_FAILED  connect_failed;
-
     /*
     *    param:pollerid,如果填<=0则由系统来选择poller,否则使用用户传入的pollerid,pollerid<=asynnet创建时创建的pollercount
     */
@@ -90,12 +99,22 @@ typedef struct msgdisp{
 
 }*msgdisp_t;
 
-msgdisp_t  new_msgdisp(asynnet_t,
-                       ASYNCB_CONNECT,
-                       ASYNCB_CONNECTED,
-                       ASYNCB_DISCNT,
-                       ASYNCB_PROCESS_PACKET,
-                       ASYNCN_CONNECT_FAILED);
+static inline void* reg_asynconnect(ASYNCB_CONNECT fn){return (void*)fn;}
+#define REG_ASYNCONNECT(FN_CB) (uint32_t)TYPE_ASYNCB_CONNECT,reg_asynconnect(FN_CB)
+
+static inline void* reg_asynconnected(ASYNCB_CONNECTED fn){return (void*)fn;}
+#define REG_ASYNCONNECTED(FN_CB) (uint32_t)TYPE_ASYNCB_CONNECTED,reg_asynconnected(FN_CB)
+
+static inline void* reg_asyndiscnt(ASYNCB_DISCNT fn){return (void*)fn;}
+#define REG_ASYNDISCNT(FN_CB) (uint32_t)TYPE_ASYNCB_DISCNT,reg_asyndiscnt(FN_CB)
+
+static inline void* reg_asynprocesspacket(ASYNCB_PROCESS_PACKET fn){return (void*)fn;}
+#define REG_ASYNPROCESSPACKET(FN_CB) (uint32_t)TYPE_ASYNCB_PROCESS_PACKET,reg_asynprocesspacket(FN_CB)
+
+static inline void* reg_asynconnectfailed(ASYNCN_CONNECT_FAILED fn){return (void*)fn;}
+#define REG_ASYNCONNECTFAILED(FN_CB) (uint32_t)TYPE_ASYNCN_CONNECT_FAILED,reg_asynconnectfailed(FN_CB)
+
+msgdisp_t  new_msgdisp(asynnet_t,uint8_t cbsize,...);
 
 void       msg_loop(msgdisp_t,uint32_t timeout);
 

@@ -41,9 +41,9 @@ void test_result(struct asyncall_context *context,void *result)
 int main(int argc,char **argv)
 {
     setup_signal_handler();
-    msgdisp_t disp1 = new_msgdisp(NULL,NULL,NULL, NULL,NULL,NULL);
+    msgdisp_t disp1 = new_msgdisp(NULL,0);
 
-    msgdisp_t disp2 = new_msgdisp(NULL,NULL, NULL,NULL,NULL,NULL);
+    msgdisp_t disp2 = new_msgdisp(NULL,0);
     thread_t service2 = create_thread(THREAD_JOINABLE);    
 
     thread_start_run(service2,service_main,(void*)disp2);    
