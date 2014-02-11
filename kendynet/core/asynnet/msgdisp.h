@@ -24,11 +24,7 @@ typedef struct msgsender{
 }msgsender;
 
 
-
-static inline msgsender make_by_ident(ident _ident)
-{
-    return *((msgsender*)&_ident);
-}
+#define TO_MSGSENDER(IDENT) (*(msgsender *)&IDENT)
 
 static inline msgsender make_by_msgdisp(msgdisp_t disp)
 {
@@ -66,7 +62,7 @@ typedef void (*ASYNCB_DISCNT)(msgdisp_t,sock_ident,const char *ip,int32_t port,u
 *   返回1：coro_process_packet调用后rpacket_t自动销毁
 *   否则,将由使用者自己销毁
 */
-typedef int32_t (*ASYNCB_PROCESS_PACKET)(msgdisp_t,msgsender,rpacket_t);
+typedef int32_t (*ASYNCB_PROCESS_PACKET)(msgdisp_t,rpacket_t);
 
 
 typedef void (*ASYNCN_CONNECT_FAILED)(msgdisp_t,const char *ip,int32_t port,uint32_t reason);
@@ -103,8 +99,8 @@ msgdisp_t  new_msgdisp(asynnet_t,
 
 void       msg_loop(msgdisp_t,uint32_t timeout);
 
-//直接往msgdisp_t的消息队列中投递消息
-int32_t    push_msg(msgdisp_t target,msg_t msg);
+//直接往msgdisp_t的消息队列中投递消息,如果sender不为NULL,则将msg->_ident设为sender
+int32_t    send_msg(msgdisp_t sender,msgdisp_t recver,msg_t msg);
 
 
 

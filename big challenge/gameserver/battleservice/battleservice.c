@@ -4,7 +4,7 @@
 
 static cmd_handler battle_cmd_handlers[MAX_CMD] = {0};
 
-int32_t battle_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk);
+int32_t battle_processpacket(msgdisp_t disp,rpacket_t rpk);
 
 static void *service_main(void *ud){
     battleservice_t service = (battleservice_t)ud;

@@ -1,5 +1,8 @@
 #ifndef _KN_MSG_H
 #define _KN_MSG_H
+#include "llist.h"
+#include "refbase.h"
+#include <stdint.h>
 
 typedef struct msg
 {
@@ -19,12 +22,5 @@ typedef struct msg
 #define MSG_USRPTR(MSG)  ((msg_t)MSG)->usr_ptr
 #define MSG_IDENT(MSG)   ((msg_t)MSG)->_ident
 #define MSG_FN_DESTROY(MSG) ((msg_t)MSG)->fn_destroy
-
-typedef struct msg_do_function
-{
-    struct msg base;
-    void (*fn_function)(void*);
-
-}*msg_do_function_t;
 
 #endif

@@ -4,6 +4,8 @@
 #include "systime.h"
 #include "asynnet_define.h"
 
+void msg_destroyer(void *ud);
+
 static void asyncb_disconnect(struct connection *c,uint32_t reason)
 {
     asynsock_t asysock = (asynsock_t)c->usr_ptr;
@@ -146,8 +148,7 @@ static void process_msg(struct poller_st *n,msg_t msg)
             asynsock_release(d);
 		}
 	}
-    if(MSG_FN_DESTROY(msg)) MSG_FN_DESTROY(msg)((void*)msg);
-	else free(msg);
+	msg_destroyer(msg);
 }
 
 
@@ -209,23 +210,6 @@ static void *mainloop(void *arg)
 	return NULL;
 }
 
-void mq_item_destroyer(void *ptr)
-{
-    msg_t msg = (msg_t)ptr;
-    if(msg->type == MSG_RPACKET)
-        rpk_destroy((rpacket_t*)&msg);
-    else if(msg->type == MSG_WPACKET)
-        wpk_destroy((wpacket_t*)&msg);
-	else
-	{
-        if(MSG_FN_DESTROY(msg))
-            MSG_FN_DESTROY(msg)(ptr);
-		else
-			free(ptr);
-	}
-}
-
-
 asynnet_t asynnet_new(uint8_t  pollercount)
 {
 	if(pollercount == 0)return NULL;
@@ -239,7 +223,7 @@ asynnet_t asynnet_new(uint8_t  pollercount)
 	for(; i < pollercount;++i)
 	{
         asynet->netpollers[i].poller_thd = create_thread(THREAD_JOINABLE);
-        asynet->netpollers[i].mq_in = new_msgque(32,mq_item_destroyer);
+        asynet->netpollers[i].mq_in = new_msgque(32,msg_destroyer);
         asynet->netpollers[i].netpoller = new_service();
         thread_start_run(asynet->netpollers[i].poller_thd,mainloop,(void*)&asynet->netpollers[i]);
 	}

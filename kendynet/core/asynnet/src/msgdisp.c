@@ -2,8 +2,26 @@
 #include "asynsock.h"
 #include "asynnet_define.h"
 #include "db/asyndb.h"
+#include "../asyncall.h"
 
 void new_connection(SOCK sock,struct sockaddr_in *addr_remote,void *ud);
+
+void msg_destroyer(void *ud)
+{
+    msg_t msg = (msg_t)ud;
+    if(MSG_TYPE(msg) == MSG_RPACKET){
+        rpacket_t rpk = (rpacket_t)msg;
+        rpk_destroy(&rpk);
+    }
+    else if(MSG_TYPE(msg) == MSG_WPACKET){
+        wpacket_t rpk = (wpacket_t)msg;
+        wpk_destroy(&rpk);
+    }else if(MSG_TYPE(msg) == MSG_DB_RESULT)
+        free_dbresult((db_result_t)msg);
+    else
+        free(msg);
+}
+
 
 int32_t asynnet_connect(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t port,uint32_t timeout)
 {
@@ -21,7 +39,7 @@ int32_t asynnet_connect(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t p
         pollerid -= 1;
 
     if(0 != msgque_put_immeda(asynet->netpollers[pollerid].mq_in,(lnode*)msg)){
-        free(msg);
+        msg_destroyer((msg_t)msg);
         return -1;
     }
     return 0;
@@ -45,7 +63,7 @@ int32_t asynnet_bind(msgdisp_t disp,int32_t pollerid,sock_ident sock,int8_t raw,
     }else
         idx = pollerid-1;
     if(0 != msgque_put_immeda(asynet->netpollers[idx].mq_in,(lnode*)msg)){
-        free(msg);
+        msg_destroyer((msg_t)msg);
         asynsock_release(asysock);
         return -1;
     }
@@ -78,8 +96,6 @@ sock_ident asynnet_listen(msgdisp_t disp,int32_t pollerid,const char *ip,int32_t
     }
 }
 
-void mq_item_destroyer(void *ptr);
-
 msgdisp_t  new_msgdisp(asynnet_t asynet,
                        ASYNCB_CONNECT        on_connect,
                        ASYNCB_CONNECTED      on_connected,
@@ -92,7 +108,7 @@ msgdisp_t  new_msgdisp(asynnet_t asynet,
     //   return NULL;
     msgdisp_t disp = calloc(1,sizeof(*disp));
     disp->asynet = asynet;
-    disp->mq = new_msgque(32,mq_item_destroyer);
+    disp->mq = new_msgque(32,msg_destroyer);
     disp->on_connect = on_connect;
     disp->on_connected = on_connected;
     disp->on_disconnect = on_disconnect;
@@ -112,18 +128,20 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
     {
         //printf("RPACKET\n");
         rpacket_t rpk = (rpacket_t)msg;
-        if(!disp->process_packet || disp->process_packet(disp,make_by_ident(MSG_IDENT(rpk)),rpk))
-            rpk_destroy(&rpk);
+        if(disp->process_packet && 0 == disp->process_packet(disp,rpk))
+            return;
     }else if(msg->type == MSG_DB_RESULT){
         db_result_t result = (db_result_t)msg;
-        if(result->callback)
-            result->callback(result);
-        free_dbresult(result);
-    }else if(msg->type == MSG_DO_FUNCTION){
-        msg_do_function_t _msg = (msg_do_function_t)msg;
-        if(_msg->fn_function)
-            _msg->fn_function(MSG_USRPTR(_msg));
-        free(msg);
+        if(result->callback) result->callback(result);
+    }else if(msg->type == MSG_ASYNCALL){
+        msg_asyncall_t asyncall = (msg_asyncall_t)msg;
+        if(asyncall->fn_call){
+            asyncall->fn_call(asyncall->context,(void**)&asyncall->param);
+        }
+    }else if(msg->type == MSG_ASYNRESULT){
+        msg_asynresult_t asynresult = (msg_asynresult_t)msg;
+        if(asynresult->context->fn_result)
+           asynresult->context->fn_result(asynresult->context,asynresult->context->result);
     }
     else{
         struct msg_connection *tmsg = (struct msg_connection*)msg;
@@ -148,8 +166,8 @@ static void dispatch_msg(msgdisp_t disp,msg_t msg)
         }
         else if(msg->type == MSG_CONNECT_FAIL && disp->connect_failed)
             disp->connect_failed(disp,tmsg->ip,tmsg->port,tmsg->reason);
-        free(msg);
     }
+    msg_destroyer(msg);
 }
 
 void msg_loop(msgdisp_t disp,uint32_t ms)
@@ -165,15 +183,15 @@ void msg_loop(msgdisp_t disp,uint32_t ms)
     }while(nowtick < timeout);
 }
 
-int32_t push_msg(msgdisp_t disp,msg_t msg)
+int32_t send_msg(msgdisp_t sender,msgdisp_t recver,msg_t msg)
 {
-    /*if(self && !is_vaild_ident(MSG_IDENT(msg))){
-        msgsender _sender = make_by_msgdisp(self);
-        MSG_IDENT(msg) = TO_IDENT(_sender);
-    }*/
-    int32_t ret = msgque_put_immeda(disp->mq,(lnode*)msg);
+    if(!msg || !recver || recver == sender)
+        return -1;
+    if(sender)
+        (*(msgsender*)&MSG_IDENT(msg)) = make_by_msgdisp(sender);
+    int32_t ret = msgque_put_immeda(recver->mq,(lnode*)msg);
     if(ret != 0)
-        mq_item_destroyer((void*)msg);
+        msg_destroyer(msg);
     return ret;
 }
 

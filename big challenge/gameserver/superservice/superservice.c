@@ -33,7 +33,7 @@ void super_disconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t po
 }
 
 
-int32_t super_processpacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
+int32_t super_processpacket(msgdisp_t disp,rpacket_t rpk)
 {
 	uint16_t cmd = rpk_peek_uint16(rpk);
 	if(cmd >= CMD_CLIENT2BATTLE && cmd <= CMD_CLIENT2BATTLE_END)

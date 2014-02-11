@@ -17,11 +17,11 @@ static inline wpacket_t create_dbresult_packet(db_result_t result)
 	return wpk;
 }*/
 
-void asyndb_sendresult(msgdisp_t sender,db_result_t result)
+void asyndb_sendresult(msgdisp_t recver,db_result_t result)
 {
 	//msgdisp_t disp = get_msgdisp(sender);
 	//wpacket_t wpk = create_dbresult_packet(result);
-	if(0 != push_msg(sender,(msg_t)result))
+	if(0 != send_msg(NULL,recver,(msg_t)result))
 		free_dbresult(result);
 }
 
@@ -65,7 +65,6 @@ db_result_t new_dbresult(void *result_set,DB_CALLBACK callback ,int32_t err,void
 {
 	db_result_t result = calloc(1,sizeof(*result));
 	MSG_TYPE(result) = MSG_DB_RESULT;
-	MSG_FN_DESTROY(result) = (void (*)(void *))free_dbresult;
 	result->callback = callback;
 	result->err = err;
 	result->ud = ud;

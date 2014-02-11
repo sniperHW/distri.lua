@@ -19,16 +19,16 @@ void to_server_connected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t p
 }
 
 
-int32_t to_client_process(msgdisp_t disp,msgsender sender,rpacket_t rpk)
+int32_t to_client_process(msgdisp_t disp,rpacket_t rpk)
 {
-    if(!eq_ident(TO_IDENT(sender),TO_IDENT(to_server))){
+    if(!eq_ident(MSG_IDENT(rpk),TO_IDENT(to_server))){
         //from cliet,send to server
-        push_msg(disp,disp_to_server,(struct packet*)rpk);
+        send_msg(disp,disp_to_server,(msg_t)rpk);
     }else
     {
         //from server,send to client
         ident client = rpk_read_ident(rpk);
-        asyn_send(CAST_2_SOCK(client),wpk_create_by_rpacket(rpk));
+        asyn_send(TO_SOCK(client),wpk_create_by_rpacket(rpk));
     }
     return 1;
 }
@@ -40,14 +40,14 @@ void to_client_connect(msgdisp_t disp,sock_ident sock,const char *ip,int32_t por
 }
 
 
-int32_t to_server_process(msgdisp_t disp,msgsender sender,rpacket_t rpk)
+int32_t to_server_process(msgdisp_t disp,rpacket_t rpk)
 {
-    if(!eq_ident(TO_IDENT(sender),TO_IDENT(to_server))){
+    if(!eq_ident(MSG_IDENT(rpk),TO_IDENT(to_server))){
         //from cliet,send to server        
         asyn_send(to_server,wpk_create_by_rpacket(rpk));
     }else{
         //from server,send to client
-        push_msg(disp,disp_to_client,(struct packet*)rpk);
+        send_msg(disp,disp_to_client,(msg_t)rpk);
     }
     return 1;
 }
@@ -137,37 +137,6 @@ int main(int argc,char **argv)
     CleanNetSystem();
     return 0;
 }
-
-/*
-    广播包示例,场景服务器中的代码
-    void BroadCast(wpacket_t wpk,sock_ident gate,sock_ident *client,uint16_t client_size)
-    {
-        int i = 0;
-        for(; i < client_size; ++i)
-            wpk_write_ident(wpk,TO_IDENT(client[i]));
-        wpk_write_uint16(wpk,client_size);
-        asyn_send(gate,wpk);
-    }
-*/
-
-/*
-    网关中的代码
-    uint16_t size = reverse_read_uint16(rpk);//这个包需要发给多少个客户端
-    //在栈上创建一个rpacket_t用于读取需要广播的客户端
-    rpacket_t r = rpk_stack_create(rpk,size*sizeof(sock_ident)+sizeof(size));
-    //将rpk中用于广播的信息丢掉
-    rpk_dropback(rpk,size*sizeof(sock_ident)+sizeof(size));
-    int i = 0;
-    wpacket_t wpk = wpk_create_by_rpacket(rpk);
-    //发送给所有需要接收的客户端
-    for( ; i < size; ++i)
-    {
-        ident _ident = rpk_read_ident(r);
-        asyn_send(CAST_2_SOCK(_ident),wpk);
-    }
-    rpk_destroy(&r);
-*/
-
 
 
 

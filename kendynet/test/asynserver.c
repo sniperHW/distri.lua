@@ -24,12 +24,11 @@ void asyndisconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port
 }
 
 
-int32_t asynprocesspacket(msgdisp_t disp,msgsender sender,rpacket_t rpk)
+int32_t asynprocesspacket(msgdisp_t disp,rpacket_t rpk)
 {
     recvsize += rpk_len(rpk);
     recvcount++;
-    sock_ident *sock = (sock_ident*)&sender;
-    asyn_send(*sock,wpk_create_by_rpacket(rpk));
+    asyn_send(TO_SOCK(MSG_IDENT(rpk)),wpk_create_by_rpacket(rpk));
     return 1;
 }
 

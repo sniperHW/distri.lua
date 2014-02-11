@@ -21,7 +21,8 @@ enum
 	MSG_DB_RESULT,
 	MSG_END,
 	//other
-	MSG_DO_FUNCTION,
+	MSG_ASYNCALL,
+	MSG_ASYNRESULT,
 };
 
 
