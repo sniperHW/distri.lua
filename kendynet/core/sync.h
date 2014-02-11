@@ -72,7 +72,7 @@ static inline int32_t condition_wait(condition_t c,mutex_t m)
 static inline int32_t _condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 	uint64_t msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);

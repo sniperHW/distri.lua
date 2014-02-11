@@ -4,7 +4,7 @@ SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -Ikendynet -Ikendynet/core -I..\
 		  -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis
-DEFINE = -D_DEBUG -D_LINUX
+DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
 TESTDIR = kendynet/test
 
 kendynet.a: \
