@@ -29,6 +29,7 @@ kendynet.a: \
 		   kendynet/core/asynnet/src/asynnet.c \
 		   kendynet/core/asynnet/src/asynsock.c \
 		   kendynet/core/asynnet/src/msgdisp.c \
+		   kendynet/core/asynnet/src/asyncall.c \
 		   kendynet/core/src/atomic_st.c \
 		   kendynet/core/src/tls.c \
 		   kendynet/core/src/lua_util.c\
@@ -84,5 +85,8 @@ testexcp:kendynet.a $(TESTDIR)/testexception.c
 	$(CC) $(CFLAGS) -o testexcp $(TESTDIR)/testexception.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl
 testlua:kendynet.a 	$(TESTDIR)/test.c
 	$(CC) $(CFLAGS) -o testlua $(TESTDIR)/test.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -llua -lm
+testasyncall:kendynet.a $(TESTDIR)/testasyncall.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o testasyncall $(TESTDIR)/testasyncall.c kendynet.a kendynet/deps/hiredis/libhiredis.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+
 	
 	
