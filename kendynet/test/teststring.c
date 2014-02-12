@@ -1,4 +1,4 @@
-#include "core/cstring.h"
+#include "core/kn_string.h"
 #include <stdio.h>
 
 int main(){

@@ -7,6 +7,13 @@
 static pthread_key_t  g_log_key;
 static pthread_once_t g_log_key_once = PTHREAD_ONCE_INIT;
 static msgque_t pending_log = NULL;//等待写入磁盘的日志项
+
+static thread_t       g_log_thd = NULL;
+
+static struct llist   g_log_file_list;
+static mutex_t        g_mtx_log_file_list;
+
+
 const char *log_lev_str[] = {
 	"INFO",
 	"ERROR"
@@ -15,7 +22,10 @@ const char *log_lev_str[] = {
 
 #define MAX_FILE_SIZE 1024*1024*256  //日志文件最大大小256MB
 
+static volatile uint8_t stop = 0;
+
 struct logfile{
+	lnode node;
 	string_t filename;
 	FILE    *file;
 	uint32_t total_size;
@@ -39,21 +49,18 @@ int32_t write_prefix(char *buf,uint8_t loglev)
 				   _tm.tm_year+1900,_tm.tm_mon+1,_tm.tm_mday,_tm.tm_hour,_tm.tm_min,_tm.tm_sec,(int32_t)tv.tv_nsec/1000000);
 }
 
-logfile_t create_logfile(const char *filename)
-{
-	logfile_t _logfile = calloc(1,sizeof(*_logfile));
-	_logfile->filename = new_string(filename);
-	return _logfile;
-}
-
 
 static void* log_routine(void *arg){
+	printf("log_routine\n");
 	while(1){
+		uint32_t ms = stop ? 0:100;
 		struct log_item *item = NULL;
-        msgque_get(pending_log,(lnode**)&item,100);
+        msgque_get(pending_log,(lnode**)&item,ms);
         if(item){
-	        if(item->_logfile->file == NULL)
+	        if(item->_logfile->file == NULL || item->_logfile->total_size > MAX_FILE_SIZE)
 	        {
+	        	if(item->_logfile->total_size)
+	        		fclose(item->_logfile->file);
 	        	//还没创建文件
 	        	char filename[128];
 	        	struct timespec tv;
@@ -71,47 +78,79 @@ static void* log_routine(void *arg){
 	        }
 	        fprintf(item->_logfile->file,"%s\n",item->content);
 	        free(item);
+	    }else if(stop){
+	    	//向所有打开的日志文件写入"log close success"
+	    	struct logfile *l = NULL;
+			char buf[128];
+			mutex_lock(g_mtx_log_file_list);
+			while((l = LLIST_POP(struct logfile*,&g_log_file_list)) != NULL)
+			{
+				int32_t size = write_prefix(buf,LOG_INFO);
+                snprintf(&buf[size],128-size,"log close success");
+                fprintf(l->file,"%s\n",buf);
+			}	
+			mutex_unlock(g_mtx_log_file_list);    	
+	    	break;
 	    }
 	}
+	printf("log_routine end\n");
 	return NULL;
+}
+
+static void on_process_end()
+{
+	printf("on_process_end\n");
+	stop = 1;
+	if(g_log_thd)
+		thread_join(g_log_thd);
+}
+
+void _write_log(logfile_t logfile,const char *content)
+{
+	uint32_t content_len = strlen(content);
+	struct log_item *item = calloc(1,sizeof(*item) + content_len);
+	item->_logfile = logfile;
+	strncpy(item->content,content,content_len);
+	int8_t ret = msgque_put_immeda(pending_log,(lnode*)item);	
+	if(ret != 0) free(item);
 }
 
 static void log_once_routine(){
 	pthread_key_create(&g_log_key,NULL);
-	sys_log = create_logfile(SYSLOG_NAME);
+	llist_init(&g_log_file_list);
+	sys_log = calloc(1,sizeof(*sys_log));
+	sys_log->filename = new_string(SYSLOG_NAME);
+	g_mtx_log_file_list = mutex_create();
+	mutex_lock(g_mtx_log_file_list);
+	LLIST_PUSH_BACK(&g_log_file_list,sys_log);
+	mutex_unlock(g_mtx_log_file_list);
 	pending_log = new_msgque(64,default_item_destroyer);
-	thread_run(log_routine,NULL);
+	g_log_thd = create_thread(THREAD_JOINABLE);
+	thread_start_run(g_log_thd,log_routine,NULL);
+	atexit(on_process_end);
+	LOG(sys_log,LOG_INFO,"log open success");
+}
+
+logfile_t create_logfile(const char *filename)
+{
+	pthread_once(&g_log_key_once,log_once_routine);
+	logfile_t _logfile = calloc(1,sizeof(*_logfile));
+	_logfile->filename = new_string(filename);
+	mutex_lock(g_mtx_log_file_list);
+	LLIST_PUSH_BACK(&g_log_file_list,sys_log);
+	mutex_unlock(g_mtx_log_file_list);	
+	LOG(_logfile,LOG_INFO,"log open success");
+	return _logfile;
 }
 
 
 void write_log(logfile_t logfile,const char *content)
 {
-	pthread_once(&g_log_key_once,log_once_routine);
-	int32_t content_len = strlen(content);
-	struct log_item *item = calloc(1,sizeof(*item) + content_len);
-	item->_logfile = logfile;
-	strncpy(item->content,content,content_len);
-	int8_t ret = 0;
-#ifdef MQ_HEART_BEAT
-	ret = msgque_put(pending_log,(lnode*)item);
-#else
-	ret = msgque_put_immeda(pending_log,(lnode*)item);
-#endif	
-	if(ret != 0) free(item);
+	_write_log(logfile,content);
 }
 
 void write_sys_log(const char *content)
 {
 	pthread_once(&g_log_key_once,log_once_routine);
-	int32_t content_len = strlen(content);
-	struct log_item *item = calloc(1,sizeof(*item) + content_len);
-	item->_logfile = sys_log;
-	strncpy(item->content,content,content_len);
-	int8_t ret = 0;
-#ifdef MQ_HEART_BEAT
-	ret = msgque_put(pending_log,(lnode*)item);
-#else
-	ret = msgque_put_immeda(pending_log,(lnode*)item);
-#endif	
-	if(ret != 0) free(item);
+	_write_log(sys_log,content);
 }

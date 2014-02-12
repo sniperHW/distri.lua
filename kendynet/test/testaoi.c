@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "game/aoi.h"
-#include "cstring.h"
+#include "core/kn_string.h"
 
 struct player
 {
