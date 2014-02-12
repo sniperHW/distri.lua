@@ -70,7 +70,9 @@ int32_t redis_connectdb(asyndb_t asyndb,const char *ip,int32_t port)
 	worker->stop = 0;
 	strcpy(worker->ip,ip);
 	worker->port = port;
+	mutex_lock(redis->mtx);
 	LLIST_PUSH_BACK(&redis->workers,worker);
+	mutex_unlock(redis->mtx);
 	thread_start_run(worker->worker,worker_main,(void*)worker);
 	return 0;
 }

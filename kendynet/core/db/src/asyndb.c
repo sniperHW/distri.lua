@@ -34,6 +34,7 @@ asyndb_t new_asyndb()
 {
 	struct asynredis *redis = calloc(1,sizeof(*redis));
 	llist_init(&redis->workers);
+	redis->mtx = mutex_create();
 	redis->mq =  new_msgque(32,request_destroyer);
 	redis->base.connectdb = redis_connectdb;
 	redis->base.request = redis_request;
@@ -44,6 +45,7 @@ void free_asyndb(asyndb_t asyndb)
 {
 	
 	struct asynredis *redis = (struct asynredis*)asyndb;
+	mutex_lock(redis->mtx);
 	struct lnode *n = llist_head(&redis->workers);
 	while(n)
 	{
@@ -58,6 +60,8 @@ void free_asyndb(asyndb_t asyndb)
 		destroy_thread(&worker->worker);
 		free(worker);
 	}
+	mutex_unlock(redis->mtx);
+	mutex_destroy(&redis->mtx);
 	free(asyndb);
 } 
 

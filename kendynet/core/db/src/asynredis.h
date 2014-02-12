@@ -6,6 +6,7 @@
 #include "thread.h"
 #include "hiredis.h"
 #include "llist.h"
+#include "sync.h"
 
 struct redis_worker
 {
@@ -21,6 +22,7 @@ struct redis_worker
 struct asynredis
 {
 	struct asyndb base;
+	mutex_t mtx;
 	struct llist  workers;
 	msgque_t   mq;
 };
