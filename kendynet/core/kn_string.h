@@ -1,5 +1,5 @@
-#ifndef _CSTRING_H
-#define _CSTRING_H
+#ifndef _KN_STRING_H
+#define _KN_TRING_H
 #include <stdint.h>
 
 typedef struct string* string_t;

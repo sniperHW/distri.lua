@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "cstring.h"
+#include "kn_string.h"
 #include "refbase.h"
 #include "buffer.h"
 
