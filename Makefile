@@ -26,6 +26,7 @@ kendynet.a: \
 		   kendynet/core/src/timer.c \
 		   kendynet/core/src/uthread.c \
 		   kendynet/core/src/refbase.c \
+		   kendynet/core/src/log.c \
 		   kendynet/core/asynnet/src/asynnet.c \
 		   kendynet/core/asynnet/src/asynsock.c \
 		   kendynet/core/asynnet/src/msgdisp.c \
@@ -36,7 +37,7 @@ kendynet.a: \
 		   kendynet/core/db/src/asynredis.c\
 		   kendynet/core/db/src/asyndb.c\
 		   kendynet/core/src/lua_util.c\
-		   kendynet/core/src/cstring.c\
+		   kendynet/core/src/kn_string.c\
 		   kendynet/core/src/hash_map.c\
 		   kendynet/core/src/minheap.c\
 		   kendynet/core/src/lookup8.c\
@@ -86,7 +87,9 @@ testexcp:kendynet.a $(TESTDIR)/testexception.c
 testlua:kendynet.a 	$(TESTDIR)/test.c
 	$(CC) $(CFLAGS) -o testlua $(TESTDIR)/test.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -llua -lm
 testasyncall:kendynet.a $(TESTDIR)/testasyncall.c $(TESTDIR)/testcommon.h
-	$(CC) $(CFLAGS) -o testasyncall $(TESTDIR)/testasyncall.c kendynet.a kendynet/deps/hiredis/libhiredis.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+	$(CC) $(CFLAGS) -o testasyncall $(TESTDIR)/testasyncall.c kendynet.a kendynet/deps/hiredis/libhiredis.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+testlog:kendynet.a $(TESTDIR)/testlog.c $(TESTDIR)/testcommon.h
+	$(CC) $(CFLAGS) -o testlog $(TESTDIR)/testlog.c kendynet.a kendynet/deps/hiredis/libhiredis.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 
 	
 	

@@ -20,8 +20,6 @@ const char *log_lev_str[] = {
 };
 
 
-#define MAX_FILE_SIZE 1024*1024*256  //日志文件最大大小256MB
-
 static volatile uint8_t stop = 0;
 
 struct logfile{
@@ -45,8 +43,9 @@ int32_t write_prefix(char *buf,uint8_t loglev)
     clock_gettime (CLOCK_REALTIME, &tv);
 	struct tm _tm;
 	localtime_r(&tv.tv_sec, &_tm);
-	return sprintf(buf,"[%s]%04d-%02d-%02d-%02d:%02d:%02d.%03d:",log_lev_str[loglev],
-				   _tm.tm_year+1900,_tm.tm_mon+1,_tm.tm_mday,_tm.tm_hour,_tm.tm_min,_tm.tm_sec,(int32_t)tv.tv_nsec/1000000);
+	return sprintf(buf,"[%s]%04d-%02d-%02d-%02d:%02d:%02d.%03d[%x]:",log_lev_str[loglev],
+				   _tm.tm_year+1900,_tm.tm_mon+1,_tm.tm_mday,_tm.tm_hour,_tm.tm_min,_tm.tm_sec,
+				   (int32_t)tv.tv_nsec/1000000,(uint32_t)pthread_self());
 }
 
 
@@ -59,16 +58,18 @@ static void* log_routine(void *arg){
         if(item){
 	        if(item->_logfile->file == NULL || item->_logfile->total_size > MAX_FILE_SIZE)
 	        {
-	        	if(item->_logfile->total_size)
+	        	if(item->_logfile->total_size){
 	        		fclose(item->_logfile->file);
+	        		item->_logfile->total_size = 0;
+	        	}
 	        	//还没创建文件
 	        	char filename[128];
 	        	struct timespec tv;
 	    		clock_gettime(CLOCK_REALTIME, &tv);
 				struct tm _tm;
 				localtime_r(&tv.tv_sec, &_tm);
-				snprintf(filename,128,"%s-%04d-%02d-%02d %02d.%02d.%02d.log",to_cstr(item->_logfile->filename),
-					   _tm.tm_year+1900,_tm.tm_mon+1,_tm.tm_mday,_tm.tm_hour,_tm.tm_min,_tm.tm_sec);
+				snprintf(filename,128,"%s-%04d-%02d-%02d %02d.%02d.%02d.%03d.log",to_cstr(item->_logfile->filename),
+					   _tm.tm_year+1900,_tm.tm_mon+1,_tm.tm_mday,_tm.tm_hour,_tm.tm_min,_tm.tm_sec,(int32_t)tv.tv_nsec/1000000);
 				item->_logfile->file = fopen(filename,"w+");
 				if(!item->_logfile->file){
 					printf("%d\n",errno);
@@ -77,22 +78,23 @@ static void* log_routine(void *arg){
 				}
 	        }
 	        fprintf(item->_logfile->file,"%s\n",item->content);
+	        item->_logfile->total_size += strlen(item->content);
 	        free(item);
-	    }else if(stop){
-	    	//向所有打开的日志文件写入"log close success"
-	    	struct logfile *l = NULL;
-			char buf[128];
-			mutex_lock(g_mtx_log_file_list);
-			while((l = LLIST_POP(struct logfile*,&g_log_file_list)) != NULL)
-			{
-				int32_t size = write_prefix(buf,LOG_INFO);
-                snprintf(&buf[size],128-size,"log close success");
-                fprintf(l->file,"%s\n",buf);
-			}	
-			mutex_unlock(g_mtx_log_file_list);    	
+	    }else if(stop){   	
 	    	break;
 	    }
 	}
+	//向所有打开的日志文件写入"log close success"
+	struct logfile *l = NULL;
+	char buf[128];
+	mutex_lock(g_mtx_log_file_list);
+	while((l = LLIST_POP(struct logfile*,&g_log_file_list)) != NULL)
+	{
+		int32_t size = write_prefix(buf,LOG_INFO);
+        snprintf(&buf[size],128-size,"log close success");
+        fprintf(l->file,"%s\n",buf);
+	}	
+	mutex_unlock(g_mtx_log_file_list); 	
 	printf("log_routine end\n");
 	return NULL;
 }
@@ -137,7 +139,7 @@ logfile_t create_logfile(const char *filename)
 	logfile_t _logfile = calloc(1,sizeof(*_logfile));
 	_logfile->filename = new_string(filename);
 	mutex_lock(g_mtx_log_file_list);
-	LLIST_PUSH_BACK(&g_log_file_list,sys_log);
+	LLIST_PUSH_BACK(&g_log_file_list,_logfile);
 	mutex_unlock(g_mtx_log_file_list);	
 	LOG(_logfile,LOG_INFO,"log open success");
 	return _logfile;

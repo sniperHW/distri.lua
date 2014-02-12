@@ -12,6 +12,8 @@ enum{
 	LOG_ERROR,
 };
 
+#define MAX_FILE_SIZE 1024*1024*256  //日志文件最大大小256MB
+
 struct logfile;
 typedef struct logfile* logfile_t;
 
