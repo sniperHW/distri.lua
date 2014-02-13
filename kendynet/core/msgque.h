@@ -1,4 +1,20 @@
 /*
+    Copyright (C) <2012>  <huangweilook@21cn.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/*
 *  一个线程安全的单向消息队列,提供多线程对队列的N读N写.
 *  每个队列有一个由所有线程共享的公共队列,同时每个线程有自己私有的push/pop队列
 *  一个线程往消息队列中push消息时,首先将消息push到自己私有的push队列中,然后判断当前
