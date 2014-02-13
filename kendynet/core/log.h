@@ -2,7 +2,7 @@
 #define _LOG_H
 
 #include "kn_string.h"
-
+#include "singleton.h"
 /*
 * 一个简单的日志系统
 */
@@ -43,6 +43,21 @@ int32_t write_prefix(char *buf,uint8_t loglev);
                 int32_t size = write_prefix(buf,LOGLEV);\
                 snprintf(&buf[size],4096-size,__VA_ARGS__);\
                 write_sys_log(buf);\
-            }while(0)             
+            }while(0)
+
+
+#define DEF_LOG(LOGNAME,LOGFILENAME)\
+        typedef struct{  logfile_t _logfile;}LOGNAME;\
+        static inline LOGNAME *LOGNAME##create_function(){\
+        	LOGNAME *tmp = calloc(1,sizeof(*tmp));\
+        	tmp->_logfile = create_logfile(LOGFILENAME);\
+        	return tmp;\
+        }\
+        DECLARE_SINGLETON(LOGNAME)
+
+#define IMP_LOG(LOGNAME) IMPLEMENT_SINGLETON(LOGNAME,LOGNAME##create_function,NULL)        
+
+#define GET_LOGFILE(LOGNAME) GET_INSTANCE(LOGNAME)->_logfile           
+
 
 #endif
