@@ -19,7 +19,7 @@ int8_t on_process_packet(struct connection *c,rpacket_t r)
 void on_connect(SOCK s,struct sockaddr_in *addr_remote, void *ud,int err)
 {
     if(s != INVALID_SOCK){
-        struct connection * con = new_conn(s,0);
+        struct connection * con = new_conn(s,1);
         add_client(con);
         struct netservice *tcpclient = (struct netservice *)ud;
 		tcpclient->bind(tcpclient,con,on_process_packet,remove_client

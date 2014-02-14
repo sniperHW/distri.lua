@@ -72,6 +72,8 @@ asynserver:kendynet.a $(TESTDIR)/asynserver.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o asynserver $(TESTDIR)/asynserver.c kendynet.a kendynet/deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 tcpserver:kendynet.a $(TESTDIR)/benchserver.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o tcpserver $(TESTDIR)/benchserver.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+server:kendynet.a $(TESTDIR)/server.c
+	$(CC) $(CFLAGS) -o server $(TESTDIR)/server.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 tcpclient:kendynet.a $(TESTDIR)/benchclient.c $(TESTDIR)/testcommon.h
 	$(CC) $(CFLAGS) -o tcpclient $(TESTDIR)/benchclient.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 timer:kendynet.a $(TESTDIR)/testtimer.c
