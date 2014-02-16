@@ -1,10 +1,10 @@
-CFLAGS = -O2 -g -Wall 
+CFLAGS = -g -Wall 
 LDFLAGS = -lpthread -lrt -ltcmalloc -lm
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -Ikendynet -Ikendynet/core -I..\
 		  -I/usr/local/include/luajit-2.0 -Ikendynet/deps/hiredis
-DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
+DEFINE = -D_DEBUG -D_LINUX
 TESTDIR = kendynet/test
 
 kendynet.a: \

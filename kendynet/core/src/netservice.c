@@ -37,7 +37,8 @@ static int32_t _bind(struct netservice *n,
     c->send_timeout = stimeout;
     c->wheelitem.ud_ptr = (void*)n;
     c->wheelitem.callback = check_timeout;
-    register_timer(n->timer,con2wheelitem(c),1);
+    if(cb_recv_timeout || cb_send_timeout)
+        register_timer(n->timer,con2wheelitem(c),1);
     return bind2engine(n->engine,c,cb_process_packet,cb_disconnect);
  }
 

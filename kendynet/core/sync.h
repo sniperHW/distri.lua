@@ -72,7 +72,7 @@ static inline int32_t condition_wait(condition_t c,mutex_t m)
 static inline int32_t _condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	clock_gettime(CLOCK_REALTIME, &ts);
 	uint64_t msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);
@@ -95,14 +95,14 @@ static inline int32_t _condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 static inline int32_t condition_timedwait(condition_t c,mutex_t m,int32_t ms)
 {
 	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
+	clock_gettime(CLOCK_REALTIME, &ts);
 	uint32_t cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
 	uint32_t timeout = cur_tick + (uint32_t)ms;
 	for(;;){
 		int32_t ret = _condition_timedwait(c,m,ms);
 		if(ret == 0 || errno != EINTR)
 			return ret;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
+		clock_gettime(CLOCK_REALTIME, &ts);
 		cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000; 
 		if(timeout > cur_tick)
 			ms = timeout - cur_tick;

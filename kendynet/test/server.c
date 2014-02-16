@@ -63,7 +63,7 @@ void cb_accept(SOCK sock,struct sockaddr_in *addr,void *ud)
 	ENGINE e = (ENGINE)ud;
 	struct session *s = calloc(1,sizeof(*s));
 	s->sock = sock;    	
-	Bind2Engine(e,s->sock,IoFinish,NULL);
+	Bind2Engine(e,s->sock,IoFinish);
 	session_recv(s);   
 }
 

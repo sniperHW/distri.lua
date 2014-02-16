@@ -9,7 +9,7 @@ uint32_t recvcount = 0;
 void asynconnect(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
 {
     printf("asynconnect,ip:%s,port:%d\n",ip,port);
-    disp->bind(disp,0,sock,1,3*1000,0);//由系统选择poller
+    disp->bind(disp,0,sock,1,0,0);//由系统选择poller
 }
 
 void asynconnected(msgdisp_t disp,sock_ident sock,const char *ip,int32_t port)
@@ -49,8 +49,9 @@ static void *service_main(void *ud){
     int32_t err = 0;
     disp->listen(disp,0,ip,port++,&err);
     while(!stop){
-        msg_loop(disp,50);
+        msg_loop(disp,500);
     }
+    printf("service_main finish\n");
     return NULL;
 }
 
@@ -62,7 +63,7 @@ int main(int argc,char **argv)
 
     //共用网络层，两个线程各运行一个echo服务
 
-    asynnet_t asynet = asynnet_new(1);
+    asynnet_t asynet = asynnet_new(2);
     msgdisp_t  disp1 = new_msgdisp(asynet,5,
                                    CB_CONNECT(asynconnect),
                                    CB_CONNECTED(asynconnected),
@@ -90,9 +91,9 @@ int main(int argc,char **argv)
     uint32_t tick,now;
     tick = now = GetSystemMs();
     while(!stop){
-        sleepms(100);
+        sleepms(1000);
         now = GetSystemMs();
-        if(now - tick > 1000)
+        //if(now - tick > 1000)
         {
             uint32_t elapse = now-tick;
             recvsize = (recvsize/elapse)/1000;

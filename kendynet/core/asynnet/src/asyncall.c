@@ -1,7 +1,7 @@
 #include "../asyncall.h"
-#include "stdio.h"
-#include "stdarg.h"
-#include "string.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
 
 int32_t asynreturn(asyncall_context_t context,void *result)
 {
