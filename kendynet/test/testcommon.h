@@ -69,6 +69,7 @@ void sendpacket()
 static volatile int8_t stop = 0;
 
 static void stop_handler(int signo){
+	printf("stop_handler\n");
     stop = 1;
 }
 

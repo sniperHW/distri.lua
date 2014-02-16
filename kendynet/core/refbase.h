@@ -28,8 +28,8 @@ struct refbase
         atomic_32_t refcount;
         union{
             struct{
-                uint32_t high32;
-                uint32_t low32;        
+                uint32_t low32; 
+                uint32_t high32;       
             };
             atomic_64_t identity;
         };
@@ -116,9 +116,13 @@ static inline int8_t eq_ident(ident a,ident b)
 
 static inline int8_t is_type(ident a,uint16_t type)
 {
-    if(((uint16_t*)&a.identity)[2] == type)
-        return 1;
+    uint32_t low32 = (uint32_t)a.identity;
+    uint32_t _type = type*65536;
+    if(low32 & _type) return 1;
     return 0;
+    //if(((uint16_t*)&a.identity)[3] == type)
+    //    return 1;
+    //return 0;
 }
 
 #define TO_IDENT(OTHER_IDENT) (*(ident*)&OTHER_IDENT)
