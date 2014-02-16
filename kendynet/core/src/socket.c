@@ -208,20 +208,20 @@ void   shutdown_send(socket_t s)
 
 void   clear_pending_send(socket_t sw)
 {
-    if((sw)->clear_pending_io)
+    if(destroy_stio)
     {
         lnode *tmp;
         while((tmp = llist_pop(&sw->pending_send))!=NULL)
-            sw->clear_pending_io((st_io*)tmp);
+            destroy_stio((st_io*)tmp);
     }
 }
 
 void   clear_pending_recv(socket_t sw)
 {
-    if((sw)->clear_pending_io)
+    if(destroy_stio)
     {
         lnode *tmp;
         while((tmp = llist_pop(&sw->pending_recv))!=NULL)
-            sw->clear_pending_io((st_io*)tmp);
+            destroy_stio((st_io*)tmp);
     }
 }

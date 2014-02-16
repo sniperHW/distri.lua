@@ -7,6 +7,8 @@
 #include "dlist.h"
 #include "systime.h"
 
+void (*destroy_stio)(st_io*) = NULL;
+
 socket_t get_socket_wrapper(SOCK s);
 void init_socket_pool();
 void destroy_socket_pool();
@@ -61,8 +63,7 @@ void CloseEngine(ENGINE handle)
 	ReleaseEngine(handle);
 }
 
-int32_t Bind2Engine(ENGINE e,SOCK s,CB_IOFINISH iofinish,
-        CB_CLEARPENDING clear_pending)
+int32_t Bind2Engine(ENGINE e,SOCK s,CB_IOFINISH iofinish)
 {
     //iofinish should not be NULL
     if(!iofinish)
@@ -76,7 +77,6 @@ int32_t Bind2Engine(ENGINE e,SOCK s,CB_IOFINISH iofinish,
 	if(setNonblock(s) != 0)
         return -1;
     sock->io_finish = iofinish;
-    sock->clear_pending_io = clear_pending;
 	sock->engine = engine;
 	sock->socket_type = DATA;
 	if(engine->Register(engine,sock) == 0)

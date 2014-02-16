@@ -51,10 +51,7 @@ typedef struct socket_wrapper
     struct sockaddr_in addr_remote;
     union{
 	    //for data socket
-        struct{
-            void (*io_finish)(int32_t,st_io*,uint32_t err_code);
-            void (*clear_pending_io)(st_io*);
-        };
+        void (*io_finish)(int32_t,st_io*,uint32_t err_code);
         //for listen or Connecting socket
         struct {
             uint64_t timeout;

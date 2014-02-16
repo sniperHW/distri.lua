@@ -373,5 +373,5 @@ int32_t bind2engine(ENGINE e,struct connection *c,
     c->cb_process_packet = cb_process_packet;
     c->cb_disconnect = cb_disconnect;
 	start_recv(c);
-	return Bind2Engine(e,c->socket,IoFinish,NULL);
+	return Bind2Engine(e,c->socket,IoFinish);
 }
