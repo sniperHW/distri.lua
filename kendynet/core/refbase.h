@@ -22,6 +22,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include "atomic.h"
+#include "except.h"
+#include <signal.h>    
 
 struct refbase
 {
@@ -87,20 +89,44 @@ static inline ident make_empty_ident()
 
 static inline struct refbase *cast_2_refbase(ident _ident)
 {
-    while(_ident.identity == _ident.ptr->identity)
+    struct refbase *ptr = NULL;
+    TRY{    
+        while(_ident.identity == _ident.ptr->identity)
         {
-                if(COMPARE_AND_SWAP(&_ident.ptr->flag,0,1))
-                {
-            struct refbase *ptr = NULL;
+            if(COMPARE_AND_SWAP(&_ident.ptr->flag,0,1))
+            {
+                
+                if(_ident.identity == _ident.ptr->identity &&
+                   ref_increase(_ident.ptr) > 0)
+                        ptr = _ident.ptr;
+                _FENCE;
+                _ident.ptr->flag = 0;
+                break;
+            }
+        }
+    }CATCH_ALL
+    {
+		//出现异常表示_ident.ptr已被释放，直接返回NULL
+        //printf("catch error,%x\n",_ident.ptr);
+        ptr = NULL;      
+    }ENDTRY;
+    return ptr;
+/*
+    struct refbase *ptr = NULL; 
+    while(_ident.identity == _ident.ptr->identity)
+    {
+        if(COMPARE_AND_SWAP(&_ident.ptr->flag,0,1))
+        {
+            
             if(_ident.identity == _ident.ptr->identity &&
                ref_increase(_ident.ptr) > 0)
                     ptr = _ident.ptr;
             _FENCE;
             _ident.ptr->flag = 0;
-            return ptr;
-                }
+            break;
         }
-    return NULL;
+    }
+return ptr;*/    
 }
 
 static inline int32_t is_vaild_ident(ident _ident)

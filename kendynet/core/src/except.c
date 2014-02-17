@@ -21,14 +21,17 @@ static void delete_thd_exstack(void  *arg)
     free(arg);
 }
 
+int setup_sigsegv();
 static void signal_segv(int signum,siginfo_t* info, void*ptr){
     THROW(except_segv_fault);
     return;
 }
-
+   
 int setup_sigsegv(){
+    printf("setup_sigsegv\n");
     struct sigaction action;
     memset(&action, 0, sizeof(action));
+    //sigaddset(&action.sa_mask,SIGINT);
     action.sa_sigaction = signal_segv;
     action.sa_flags = SA_SIGINFO;
     if(sigaction(SIGSEGV, &action, NULL) < 0) {
@@ -73,10 +76,10 @@ int setup_sigfpe(){
 }
 
 void exception_once_routine(){
+    pthread_key_create(&g_exception_key,delete_thd_exstack);
     setup_sigsegv();
     setup_sigbus();
     setup_sigfpe();
-    pthread_key_create(&g_exception_key,delete_thd_exstack);
 }
 
 
@@ -122,7 +125,11 @@ void exception_throw(int32_t code,const char *file,const char *func,int32_t line
                 break;
         }
         free(strings);
-        longjmp(frame->jumpbuffer,code);
+        int sig = 0;
+        if(code == except_segv_fault) sig = SIGSEGV;
+        else if(code == except_sigbus) sig = SIGBUS;
+        else if(code == except_arith) sig = SIGFPE;  
+        siglongjmp(frame->jumpbuffer,sig);
     }
 	else
 	{

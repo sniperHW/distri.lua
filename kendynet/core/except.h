@@ -33,7 +33,7 @@ struct callstack_frame
 struct exception_frame
 {
     lnode   node;
-	jmp_buf jumpbuffer;
+	sigjmp_buf jumpbuffer;
 	int32_t exception;
 	int32_t line; 
     const char   *file;
@@ -131,7 +131,8 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
     frame.is_process = 1;\
     llist_init(&frame.call_stack);\
     expstack_push(&frame);\
-	if((frame.exception = setjmp(frame.jumpbuffer)) == 0)
+    int savesigs= SIGSEGV | SIGBUS | SIGFPE;\
+	if(sigsetjmp(frame.jumpbuffer,savesigs) == 0)
 	
 #define THROW(EXP) exception_throw(EXP,__FILE__,__FUNCTION__,__LINE__)
 
@@ -151,7 +152,7 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
 
 //#define FINALLY
 /*根据当前函数中try的处理情况丢弃数量正确的异常栈,再返回*/
-#define RETURN  do{struct exception_frame *top;\
+/*#define RETURN  do{struct exception_frame *top;\
                     while((top = expstack_top())!=NULL){\
                         if(top->file == __FILE__ && top->func == __FUNCTION__)\
                         {\
@@ -161,7 +162,8 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
                         break;\
                     };\
                 }while(0);return
-/*
+*/
+
 #define RETURN  do{struct exception_frame *top;\
                     while((top = expstack_top())!=NULL){\
                         if(strcmp(top->file,__FILE__) == 0 && strcmp(top->func,__FUNCTION__) == 0)\
@@ -171,8 +173,7 @@ extern void exception_throw(int32_t code,const char *file,const char *func,int32
                         }else\
                         break;\
                     };\
-                }while(0);return
-*/				
+                }while(0);return			
 
 #define EXPNO frame.exception
 

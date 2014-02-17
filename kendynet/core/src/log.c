@@ -78,6 +78,7 @@ static void* log_routine(void *arg){
 				}
 	        }
 	        fprintf(item->_logfile->file,"%s\n",item->content);
+	        //fflush(item->_logfile->file);
 	        item->_logfile->total_size += strlen(item->content);
 	        free(item);
 	    }else if(stop){   	

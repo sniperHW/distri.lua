@@ -3,6 +3,7 @@
 #include "asynsock.h"
 #include "systime.h"
 #include "asynnet_define.h"
+#include "log.h"
 
 void msg_destroyer(void *ud);
 
@@ -159,8 +160,10 @@ static inline void process_send(struct poller_st *e,wpacket_t wpk)
 	{
 		send_packet(d->c,wpk);
         asynsock_release(d);
-	}else		
+	}else{
+        SYS_LOG(LOG_INFO,"invaild sock\n");		
         wpk_destroy(&wpk);//连接已失效丢弃wpk
+    }
 }
 
 static void notify_function(void *arg)

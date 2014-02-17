@@ -3,7 +3,8 @@
 #include "core/except.h"
 #include "core/exception.h"
 #include "core/thread.h"
-
+#include <signal.h>
+#include "core/systime.h"
 /*
 #if defined(REG_RIP)
 # define SIGSEGV_STACK_IA64
@@ -97,9 +98,11 @@ void entry1()
 void func2()
 {
     printf("func2\n");
-    int a = 10;
-    a = a/0;
-    printf("%d\n",a);
+    int *a = NULL;
+    printf("%d\n",*a);
+    
+    //int a = 10;
+    //printf("%d\n",1/0);
     printf("func2 end\n");
 }
 
@@ -137,12 +140,35 @@ void *Routine1(void *arg)
     return NULL;
 }
 
+static volatile int8_t stop = 0;
+
+static void stop_handler(int signo){
+    printf("stop_handler\n");
+    stop = 1;
+}
+
+void setup_signal_handler()
+{
+    struct sigaction act;
+    bzero(&act, sizeof(act));
+    act.sa_handler = stop_handler;
+    sigaction(SIGINT, &act, NULL);
+    sigaction(SIGTERM, &act, NULL);
+}
+
+
 int main()
 {
-    entry1();
+    setup_signal_handler();
+    //entry1();
     entry2();
-    thread_t t1 = create_thread(0);
-    thread_start_run(t1,Routine1,NULL);
+    printf("here\n");
+    //while(!stop)
+    //   sleepms(100);
+    //setup_sigsegv();
+    entry2();
+    //thread_t t1 = create_thread(0);
+    //thread_start_run(t1,Routine1,NULL);
     getchar();
     printf("main end\n");
     return 0;

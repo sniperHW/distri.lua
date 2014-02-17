@@ -58,6 +58,7 @@ static void *service_main(void *ud){
 
 int main(int argc,char **argv)
 {
+    //msgque_flush_time = 5;
     setup_signal_handler();
     InitNetSystem();
 
