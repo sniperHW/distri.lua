@@ -1,61 +1,41 @@
-#一个简单高效的lua网络框架#
-
-echo.lua
-```lua
-local registernet = assert(package.loadlib("./luanet.so","RegisterNet"))
-registernet()
-dofile("net/net.lua")
-
-function process_packet(connection,packet)
-	SendPacket(connection,packet)
-end
-
-function _timeout(connection)
-	active_close(connection)
-end
-
-function client_come(connection)
-	client_count = client_count + 1
-end
-
-function client_go(connection)
-	client_count = client_count - 1
-end
-
-client_count = 0;
-
-tcpserver = net:new()
-
-function tcpserver:new()
-  	local o = {}
-  	self.__index = self
-  	self._process_packet = process_packet    --处理网络包
-    self._on_accept = client_come         --处理新到连接
-	self._on_connect = nil
-	self._on_disconnect = client_go     --处理连接关闭
-	self._on_send_finish = nil
-	self._send_timeout = _timeout
-	self._recv_timeout = _timeout
-  	setmetatable(o, self)
-	return o
-end
+一套由lua实现的轻量级分布式系统解决方案,主要特性如下:
+    
+    1)异步IO.
+    
+    2)单线程
+    
+    3)异步日志系统.
+    
+    4)通过coroutine化异步为同步
+    
+    5)支持tcp,udp,unix域套接字等多种通讯协议
+    
+    6)支持消息方式和RPC方式的通讯
+    
+    7)通过名字实现进程间的通信
 
 
-function mainloop()
-	local lasttick = GetSysTick()
-	local server = tcpserver:new():listen(arg[1],arg[2])
-	while server:run(50) == 0 do
-		local tick = GetSysTick()
-		if tick - 1000 >= lasttick then
-			print("client:" .. client_count)
-			lasttick = tick
-		end
-	end
-	server = nil
-	print("main loop end")
-end
+luanet分布式集群按功能分为nameservice和应用服务器.nameservice在集群中唯一部署,用于按名字获取服务
+监听的网络协议以及监听地址.
 
-mainloop()
-```	
-lua echo.lua 127.0.0.1 8010
+应用服务器在启动后首先连接到nameservice,向nameservice注册自己的唯一名字,由nameservice为服务根据注册的
+协议分配监听端口号(对于TCP和UDP)/地址(unix域协议).
 
+应用服务器之间的通信提供两种方式:
+    
+    send(name,data)
+    
+    send_and_waitresponse(name,data)
+
+其中第一种用于普通消息通信，第二种用于rpc通信.
+
+sendX函数内部的工作方式如下:
+
+    1)在本地查找name对应的连接,如果找到跳到 3)
+    
+    2)向nameservice发送查询消息，查询name的监听地址
+    
+    3)根据nameservice返回的信息与name建立连接(流式协议).
+    
+    4)向name发送消息
+    
