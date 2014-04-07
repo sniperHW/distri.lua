@@ -31,7 +31,7 @@ luanet分布式集群按功能分为nameservice和应用服务器.nameservice在
 
 sendX函数内部的工作方式如下:
 
-    1)在本地查找name对应的连接,如果找到跳到 3)
+    1)在本地查找name对应的连接,如果找到跳到 4)
     
     2)向nameservice发送查询消息，查询name的监听地址
     
