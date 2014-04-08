@@ -16,9 +16,15 @@
 */
 #ifndef _LUA_UTIL_H
 #define _LUA_UTIL_H
+#ifdef USE_LUAJIT
+#include <luajit-2.0/lua.h>  
+#include <luajit-2.0/lauxlib.h>  
+#include <luajit-2.0/lualib.h>
+#else
 #include <lua.h>  
 #include <lauxlib.h>  
-#include <lualib.h> 
+#include <lualib.h>
+#endif 
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -251,7 +257,7 @@ void        release_luaObj(luaObject_t);
 			lua_gettable(OBJ->L,-2);\
 			do __result = (TYPE)POP(OBJ->L,-1);\
 			while(0);\
-			lua_pop(OBJ->L,2);\
+			lua_pop(OBJ->L,1);\
 		__result;})
 		
 #define SET_OBJ_FIELD(OBJ,FIELD,PUSH,VAL)\

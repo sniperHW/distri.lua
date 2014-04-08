@@ -1,7 +1,7 @@
 local net = require "lua/net/netaddr"
 local tcp = require "lua/net/tcp"
 
-function on_data(co,l,data,err)
+function on_data(l,data,err)
 	if not data then
 		print("a client disconnected")
 		close(l)
@@ -10,7 +10,7 @@ function on_data(co,l,data,err)
 	end
 end
 
-function on_newclient(co,l)
+function on_newclient(l)
 	print("on_newclient")
 	print(l)
 	if not net.bind(l,on_data) then

@@ -98,24 +98,22 @@ static void luasocket_post_send(lua_socket_t l){
 
 static void stream_recv_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,int32_t err)
 {
+	//callbackObj只是一个普通的表所以不能直接使用CALL_OBJ_FUNC
+	lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
+	lua_pushstring(l->callbackObj->L,"recvfinish");
+	lua_gettable(l->callbackObj->L,-2);
+	lua_pushlightuserdata(l->callbackObj->L,l);
 	if(bytestransfer <= 0){
-		CALL_OBJ_FUNC3(l->callbackObj,"recvfinish",0,
-		               lua_pushlightuserdata(l->callbackObj->L,l),
-		               lua_pushnil(l->callbackObj->L),
-		               lua_pushnumber(l->callbackObj->L,err)
-		               );       
+		lua_pushnil(l->callbackObj->L);   
 	}else{
 		l->recvbuf[bytestransfer] = 0;
-		CALL_OBJ_FUNC3(l->callbackObj,"recvfinish",0,
-			   lua_pushlightuserdata(l->callbackObj->L,l),
-			   lua_pushstring(l->callbackObj->L,l->recvbuf),
-			   lua_pushnumber(l->callbackObj->L,err)
-			   );
-		if(l->status != lua_socket_close){	   			   
-			//发起新的接收
-			luasocket_post_recv(l);
-		}	     
+		lua_pushstring(l->callbackObj->L,l->recvbuf);
 	}
+	lua_pushnumber(l->callbackObj->L,err);
+	lua_pcall(l->callbackObj->L,3,0,0);
+	lua_pop(l->callbackObj->L,1);
+	if(bytestransfer > 0 && l->status != lua_socket_close)
+		luasocket_post_recv(l);
 }
 
 static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,int32_t err)
@@ -151,11 +149,14 @@ static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer
     kn_ref_acquire(&l->ref);
     //防止l在callback中被释放
     if(!io){
-		CALL_OBJ_FUNC3(l->callbackObj,"recvfinish",0,
-		               lua_pushlightuserdata(l->callbackObj->L,l),
-		               lua_pushnil(l->callbackObj->L),
-		               lua_pushnumber(l->callbackObj->L,err)
-		               );                       		
+		lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
+		lua_pushstring(l->callbackObj->L,"recvfinish");
+		lua_gettable(l->callbackObj->L,-2);
+		lua_pushlightuserdata(l->callbackObj->L,l);
+		lua_pushnil(l->callbackObj->L);
+		lua_pushnumber(l->callbackObj->L,err);				
+		lua_pcall(l->callbackObj->L,3,0,0);
+		lua_pop(l->callbackObj->L,1);                 		
 	}else if(io == &l->send_overlap)
 		stream_send_finish(l,io,bytestransfer,err);
 	else if(io == &l->recv_overlap)
@@ -173,7 +174,14 @@ static void on_accept(kn_socket_t s,void *ud){
 	printf("c on_accept\n");
 	lua_socket_t l = new_luasocket(s,(luaObject_t)ud);
 	kn_socket_setud(s,l);
-	CALL_OBJ_FUNC1(l->callbackObj,"onaccept",0,lua_pushlightuserdata(l->callbackObj->L,l));   		
+	 kn_ref_acquire(&l->ref);
+	lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
+	lua_pushstring(l->callbackObj->L,"onaccept");
+	lua_gettable(l->callbackObj->L,-2);
+	lua_pushlightuserdata(l->callbackObj->L,l);			
+	lua_pcall(l->callbackObj->L,1,0,0);
+	lua_pop(l->callbackObj->L,1);
+	kn_ref_release(&l->ref);  		
 }
 
 
@@ -225,7 +233,8 @@ int lua_run(lua_State *L){
 int lua_bind(lua_State *L){
 	lua_socket_t l = lua_touserdata(L,1);
 	if(0 == kn_proactor_bind(g_proactor,l->sock,stream_transfer_finish)){
-		l->callbackObj = create_luaObj(L,2);	
+		l->callbackObj = create_luaObj(L,2);
+		luasocket_post_recv(l);	
 		lua_pushboolean(L,1);
 	}
 	else

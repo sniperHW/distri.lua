@@ -1,9 +1,9 @@
 CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt -ltcmalloc
+LDFLAGS = -lpthread -lrt -ltcmalloc -rdynamic -ldl -lm -lluajit-5.1
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -I../cproactor/include -I.. -I/usr/local/include/luajit-2.0
-DEFINE = -D_DEBUG -D_LINUX
+INCLUDE = -I../cproactor/include -I..
+DEFINE = -D_DEBUG -D_LINUX -DUSE_LUAJIT
 
 kendynet.a: \
 		   ../cproactor/src/kn_connector.c \
@@ -22,7 +22,7 @@ kendynet.a: \
 	rm -f *.o
 		
 luanet:luanet.c lua_util.c kendynet.a
-	$(CC) $(CFLAGS) -o luanet luanet.c lua_util.c kendynet.a /usr/local/lib/libluajit-5.1.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
+	$(CC) $(CFLAGS) -o luanet luanet.c lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
 
 	
 	
