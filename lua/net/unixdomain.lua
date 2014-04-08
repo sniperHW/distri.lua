@@ -1,4 +1,4 @@
-function local_listen(local_addr,type,cb)
+local function local_listen(local_addr,type,cb)
 	local callbackobj = {}
 	if type == SOCK_STREAM then
 		callbackobj.onaccept = cb
@@ -10,7 +10,12 @@ function local_listen(local_addr,type,cb)
 	return clisten(local_addr,0,type,callbackobj)	
 end
 
-function local_connect(remote_addr,local_addr,type)
+local function local_connect(remote_addr,local_addr,type)
 	return cconnect(remote_addr,local_addr,0,type)
 end
+
+return {
+	local_listen = local_listen,
+	local_connect = local_connect
+}
 

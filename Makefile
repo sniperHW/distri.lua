@@ -21,10 +21,8 @@ kendynet.a: \
 	ar -rc kendynet.a *.o
 	rm -f *.o
 		
-luanet:luanet.c kendynet.a
-	$(CC) $(CFLAGS) -c $(SHARED) luanet.c $(INCLUDE) $(DEFINE) 
-	$(CC) $(SHARED) -o luanet.so luanet.o kendynet.a $(LDFLAGS) $(DEFINE)
-	rm -f *.o
+luanet:luanet.c lua_util.c kendynet.a
+	$(CC) $(CFLAGS) -o luanet luanet.c lua_util.c kendynet.a /usr/local/lib/libluajit-5.1.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
 
 	
 	
