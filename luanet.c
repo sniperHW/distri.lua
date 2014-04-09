@@ -9,6 +9,7 @@
 static kn_proactor_t g_proactor = NULL;
 static lua_State*    g_L = NULL;
 static int           recv_sigint = 0;
+static int           recv_count = 0;
 
 static void sig_int(int sig){
 	recv_sigint = 1;
@@ -141,6 +142,7 @@ static void stream_recv_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 		lua_pushlightuserdata(l->callbackObj->L,l->recvbuf);		
 		lua_settable(l->callbackObj->L, -3);		
 		l->recvbuf = NULL;
+		recv_count++;
 	}
 	lua_pushnumber(l->callbackObj->L,err);
 	if(0 != lua_pcall(l->callbackObj->L,3,0,0)){
@@ -283,9 +285,22 @@ int lua_send(lua_State *L){
 }
 
 int lua_run(lua_State *L){
+
+ 	uint64_t tick,now;
+    tick = now = kn_systemms64();	
 	while(!recv_sigint){
 		kn_proactor_run(g_proactor,50);
-		lua_gc(L,LUA_GCCOLLECT,0);
+        now = kn_systemms64();
+		if(now - tick > 1000)
+		{
+            uint32_t elapse = (uint32_t)(now-tick);
+            printf("count:%d/s\n",recv_count);
+            //totalbytes = (totalbytes/elapse)/1024;
+			//printf("client_count:%d,totalbytes:%lldMB/s\n",client_count,totalbytes);
+			tick = now;
+			recv_count = 0;
+			//totalbytes = 0;
+		}			
 	}
 	return 0;
 }
