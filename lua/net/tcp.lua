@@ -19,10 +19,15 @@ local function tcp_connect(remote_addr,local_addr)
 	return cconnect(remote_addr,local_addr,IPPROTO_TCP,SOCK_STREAM)
 end
 
+local function tcp_send(s,msg)
+	return csend(s,msg.ptr,nil)
+end
+
 return {
 	tcp_listen = tcp_listen,
 	tcp_asynconnect = tcp_asynconnect,
-	tcp_connect = tcp_connect
+	tcp_connect = tcp_connect,
+	send = tcp_send
 }
 
 

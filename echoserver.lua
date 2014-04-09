@@ -1,4 +1,4 @@
-local net = require "lua/net/netaddr"
+local net = require "lua/net/net"
 local tcp = require "lua/net/tcp"
 
 function on_data(l,data,err)
@@ -6,7 +6,7 @@ function on_data(l,data,err)
 		print("a client disconnected")
 		close(l)
 	else
-		print(data)
+		tcp.send(l,data)
 	end
 end
 
