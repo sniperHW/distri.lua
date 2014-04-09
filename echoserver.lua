@@ -20,5 +20,5 @@ end
 
 tcp.tcp_listen(net.netaddr_ipv4("127.0.0.1",8010),on_newclient)
 
-run()
+--run()
 

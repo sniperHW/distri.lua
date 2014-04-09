@@ -26,4 +26,4 @@ for i=1,10 do
 	tcp.tcp_asynconnect(net.netaddr_ipv4("127.0.0.1",8010),nil,on_connected,3000)
 end
 
-run()
+--run()

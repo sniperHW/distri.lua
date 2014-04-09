@@ -392,8 +392,7 @@ int lua_send(lua_State *L){
 	return 1;
 }
 
-int lua_run(lua_State *L){
-
+static void p_run(){
  	uint64_t tick,now;
     tick = now = kn_systemms64();	
 	while(!recv_sigint){
@@ -409,7 +408,12 @@ int lua_run(lua_State *L){
 			recv_count = 0;
 			//totalbytes = 0;
 		}			
-	}
+	}	
+}
+
+
+int lua_run(lua_State *L){
+	p_run();
 	return 0;
 }
 
@@ -502,6 +506,7 @@ int main(int argc,char **argv)
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
-	}	
+	}
+	p_run();	
 	return 0;
 } 
