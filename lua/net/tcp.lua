@@ -12,15 +12,19 @@ local function tcp_asynconnect(remote_addr,local_addr,cb,timeout)
 	local callbackobj = {
 		onconnected = cb
 	}
-	return casyn_connect(remote_addr,local_addr,IPPROTO_TCP,SOCK_STREAM,callbackobj,timeout)
+	return casyn_connect(IPPROTO_TCP,SOCK_STREAM,remote_addr,local_addr,callbackobj,timeout)
 end
 
 local function tcp_connect(remote_addr,local_addr)
-	return cconnect(remote_addr,local_addr,IPPROTO_TCP,SOCK_STREAM)
+	return cconnect(IPPROTO_TCP,SOCK_STREAM,remote_addr,local_addr)
 end
 
 local function tcp_send(s,msg)
-	return csend(s,msg.ptr,nil)
+	if type(msg) == "table" then
+		return csend(s,msg.ptr,nil)
+	elseif type(msg) == "string" then
+		return csend(s,msg,nil)
+	end
 end
 
 return {

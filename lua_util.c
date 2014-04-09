@@ -26,6 +26,8 @@ luaObject_t create_luaObj(lua_State *L,int idx)
 
 void release_luaObj(luaObject_t o)
 {
-	luaL_unref(o->L,LUA_REGISTRYINDEX,o->rindex);
-	free(o);
+	if(o){
+		luaL_unref(o->L,LUA_REGISTRYINDEX,o->rindex);
+		free(o);
+	}
 }
