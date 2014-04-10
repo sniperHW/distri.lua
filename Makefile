@@ -21,8 +21,8 @@ kendynet.a: \
 	ar -rc kendynet.a *.o
 	rm -f *.o
 		
-luanet:luanet.c lua_util.c kendynet.a
-	$(CC) $(CFLAGS) -o luanet luanet.c lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
+luanet:src/luanet.c src/lua_util.c kendynet.a
+	$(CC) $(CFLAGS) -o luanet src/luanet.c src/lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
 
 	
 	
