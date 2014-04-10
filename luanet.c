@@ -238,6 +238,7 @@ int lua_closefd(lua_State *L){
 	return 0;
 }
 
+/*
 static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err)
 {	
 	luaObject_t callbackObj = (luaObject_t)ud;
@@ -329,10 +330,7 @@ int lua_asyn_connect(lua_State *L){
 	release_luaObj(remote);	
 	return 1;
 }
-
-int lua_connect(lua_State *L){
-	return 0;
-}
+*/
 
 int lua_listen(lua_State *L){
 	int proto = lua_tonumber(L,1);
@@ -411,12 +409,6 @@ static void p_run(){
 	}	
 }
 
-
-int lua_run(lua_State *L){
-	p_run();
-	return 0;
-}
-
 int lua_bind(lua_State *L){
 	lua_socket_t l = lua_touserdata(L,1);
 	if(0 == kn_proactor_bind(g_proactor,l->sock,stream_transfer_finish)){
@@ -477,13 +469,11 @@ void RegisterNet(lua_State *L){
 	
 	lua_pop(L,1);
     
-	lua_register(L,"clisten",&lua_listen);
-	lua_register(L,"cconnect",&lua_connect);
-	lua_register(L,"casyn_connect",&lua_asyn_connect);   
-    lua_register(L,"csend",&lua_send);
+	lua_register(L,"listen",&lua_listen);
+	lua_register(L,"_connect",&lua_connect); 
+    lua_register(L,"_send",&lua_send);
 	lua_register(L,"close",&lua_closefd);
-	lua_register(L,"run",&lua_run);
-	lua_register(L,"cbind",&lua_bind); 
+	lua_register(L,"_bind",&lua_bind); 
 	lua_register(L,"release_bytebuffer",&lua_release_bytebuffer); 
 	 
 	g_L = L;

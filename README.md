@@ -6,36 +6,34 @@
     
     3)异步日志系统.
     
-    4)通过coroutine化异步为同步
+    4)coroutine化异步为同步
     
     5)支持tcp,udp,unix域套接字等多种通讯协议
     
     6)支持消息方式和RPC方式的通讯
     
-    7)通过名字实现进程间的通信
-
-
-luanet分布式集群按功能分为nameservice和应用服务器.nameservice在集群中唯一部署,用于按名字获取服务
-监听的网络协议以及监听地址.
-
-应用服务器在启动后首先连接到nameservice,向nameservice注册自己的唯一名字,由nameservice为服务根据注册的
-协议分配监听端口号(对于TCP和UDP)/地址(unix域协议).
-
-应用服务器之间的通信提供两种方式:
+    7)淡化连接的概念，各服务之间通过名字通讯
     
-    send(name,data)
-    
-    send_and_waitresponse(name,data)
+ 整个框架在通讯方面只暴露3个函数:
+ 
+ 	SendMsg(name,msg)
+ 	向远程服务name发送一条msg，如果与name还没有建立通讯连接，则由SendMsg函数内部向nameservice查询name的信息
+ 	并建立通讯连接.
+ 	
+ 	
+	RpcCall(name,funcname,argument)
+	向name发起一个远程调用，请求执行funcname方法，如果与name的通讯连接没有建立执行与SendMsg一样的步骤
+	
+	GetRemoteFuncProvider(funcname)
+	返回所有提供funcname远程方法的服务的名字(自己除外)
+	
+所有的服务启动后首先连接到名字服务,由名字服务分配端口(TCP或UDP)/本地文件地址(unix域套接字),建立监听连接之后将本
+服务的名字和所提供的远程方法发往名字服务注册。
 
-其中第一种用于普通消息通信，第二种用于rpc通信.
 
-sendX函数内部的工作方式如下:
 
-    1)在本地查找name对应的连接,如果找到跳到 4)
-    
-    2)向nameservice发送查询消息，查询name的监听地址
-    
-    3)根据nameservice返回的信息与name建立连接(流式协议).
-    
-    4)向name发送消息
+	
+	
+	  
+
     

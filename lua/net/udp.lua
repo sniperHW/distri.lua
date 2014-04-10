@@ -1,3 +1,4 @@
+--[[	测试用，已废弃
 local function udp_listen(local_addr,cb)
 	local callbackobj = { recvfinish = cb }
 	return clisten(local_addr,IPPROTO_UDP,SOCK_DGRAM,callbackobj)	
@@ -10,4 +11,4 @@ end
 return {
 	udp_listen = udp_listen,
 	udp_connect = udp_connect
-}
+}]]--

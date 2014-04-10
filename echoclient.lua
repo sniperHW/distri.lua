@@ -1,3 +1,5 @@
+--[[
+测试用，已废弃
 local net = require "lua/net/net"
 local tcp = require "lua/net/tcp"
 
@@ -25,5 +27,5 @@ end
 for i=1,10 do
 	tcp.tcp_asynconnect(net.netaddr_ipv4("127.0.0.1",8010),nil,on_connected,3000)
 end
-
+]]--
 --run()

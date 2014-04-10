@@ -11,17 +11,17 @@ local function netaddr_local(path)
 	return {type=AF_LOCAL,path=path}
 end
 
-local function bind(l,cb)
+--[[local function bind(l,cb)
 	local callbackobj = {
 		recvfinish = cb
 	}
 	return cbind(l,callbackobj)
-end
+end]]--
 
 return {
 	netaddr_ipv4 = netaddr_ipv4,
 	netaddr_ipv6 = netaddr_ipv6,
 	netaddr_local = netaddr_local,
-	bind = bind
+	--bind = bind
 }
 

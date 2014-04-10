@@ -1,4 +1,6 @@
-local function local_listen(local_addr,type,cb)
+--[[
+	测试用，已废弃
+	local function local_listen(local_addr,type,cb)
 	local callbackobj = {}
 	if type == SOCK_STREAM then
 		callbackobj.onaccept = cb
@@ -17,5 +19,5 @@ end
 return {
 	local_listen = local_listen,
 	local_connect = local_connect
-}
+}]]--
 

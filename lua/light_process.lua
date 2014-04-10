@@ -5,7 +5,7 @@ light_process =
     croutine = nil,
     timeout = 0,
     ud = nil,
-	start_func = nil,
+	start_func = nil
 }
 
 function light_process:new(o)
@@ -20,3 +20,4 @@ function light_process:new(o)
   o.start_func = nil
   return o
 end
+

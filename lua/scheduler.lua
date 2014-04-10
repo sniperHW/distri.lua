@@ -1,8 +1,4 @@
-dofile("node/timer.lua")
-dofile("node/light_process.lua")
-dofile("node/socket.lua")
-
-scheduler =
+local scheduler =
 {
     pending_add,  --等待添加到活动列表中的coObject
     timer,
@@ -10,14 +6,14 @@ scheduler =
     current_lp
 }
 
-function scheduler:new(o)
+local function scheduler:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
-function scheduler:init()
+local function scheduler:init()
     self.m_timer = timer:new()
     self.pending_add = {}
     self.current_lp = nil
@@ -25,7 +21,7 @@ function scheduler:init()
 end
 
 --添加到活动列表中
-function scheduler:Add2Active(lprocess)
+local function scheduler:Add2Active(lprocess)
     if lprocess.status == "actived" then
         return
     end
@@ -33,7 +29,7 @@ function scheduler:Add2Active(lprocess)
     table.insert(self.pending_add,lprocess)
 end
 
-function scheduler:Block(ms)
+local function scheduler:Block(ms)
     local lprocess = self.current_lp
     if ms and ms > 0 then
         local nowtick = GetSysTick()
@@ -56,7 +52,7 @@ end
 
 
 --睡眠ms
-function scheduler:Sleep(ms)
+local function scheduler:Sleep(ms)
     local lprocess = self.current_lp
     if ms and ms > 0 then
         lprocess.timeout = GetSysTick() + ms
@@ -73,13 +69,13 @@ function scheduler:Sleep(ms)
 end
 
 --暂时释放执行权
-function scheduler:Yield()
+local function scheduler:Yield()
     self:Sleep(0)
 end
 
 
 --主调度循环
-function scheduler:Schedule()
+local function scheduler:Schedule()
     local runlist = {}
     --将pending_add中所有coObject添加到活动列表中
     for k,v in pairs(self.pending_add) do
@@ -111,34 +107,38 @@ function scheduler:Schedule()
     return #self.pending_add
 end
 
-function scheduler:WakeUp(lprocess)
+local function scheduler:WakeUp(lprocess)
     self:Add2Active(lprocess)
 end
 
-global_sc = scheduler:new()
-global_sc:init()
+local global_sc = scheduler:new()
+local global_sc:init()
 
-function Yield()
+local function Yield()
     global_sc:Yield()
 end
 
-function Sleep(ms)
+local function Sleep(ms)
     global_sc:Yield(ms)
 end
 
-function Block(ms)
+local function Block(ms)
     global_sc:Block(ms)
 end
 
-function WakeUp(lprocess)
+local function WakeUp(lprocess)
    global_sc:WakeUp(lprocess)
 end
 
-function GetCurrentLightProcess()
+local function GetCurrentLightProcess()
     return global_sc.current_lp
 end
 
-function lp_start_fun(lp)
+local function Schedule()
+	global_sc:Schedule()
+end
+
+local function lp_start_fun(lp)
     print("lp_start_fun")
 	global_sc.CoroCount = global_sc.CoroCount + 1
 	lp.start_func(lp.ud)
@@ -148,7 +148,7 @@ function lp_start_fun(lp)
 	print("end lp_start_fun")
 end
 
-function spawn(func,ud)
+local function Spawn(func,ud)
     print("node_spwan")
     local lprocess = light_process:new()
     lprocess.croutine = coroutine.create(lp_start_fun)
@@ -156,4 +156,14 @@ function spawn(func,ud)
     lprocess.start_func = func
     global_sc:Add2Active(lprocess)
 end
+
+return {
+		Spawn = Spawn,
+		Yield = Yield,
+		Sleep = Sleep,
+		Block = Block,
+		WakeUp = WakeUp,
+		GetCurrentLightProcess = GetCurrentLightProcess,
+		Schedule = Schedule
+}
 
