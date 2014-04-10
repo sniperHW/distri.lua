@@ -23,7 +23,7 @@ local function connect(remote_addr,timeout)
 		if not block.lp then
 			return nil
 		end
-		block.onconnected = function (s,block)
+		block.onconnected = function (s)
 								block.flag = 1
 								if Sche.GetCurrentLightProcess() != block.lp then
 									block.sock = s
@@ -94,9 +94,6 @@ end
 local function on_name_data(s,data,err)
 	if not data then
 		service_map[name] = nil
-		
-		
-		
 		close(s)
 	end
 end
@@ -107,15 +104,9 @@ local function connect2name()
 		service_map["nameservice"] = nservice
 		set_name(nservice,"nameservice")
 		_bind(nservice,{recvfinish=on_name_data})
-		if local_main_addr then
-			--nameservice重启，只需要发送本地提供的远程方法和name给nameservice即可
-		else
-			--获取本地主监听地址
 		
-			--启动主监听
-			
-			--发送本地提供的远程方法和name给nameservice
-		end
+		--向nameservice发送本服务的信息
+		
 	end
 	return nservice
 end
@@ -201,6 +192,7 @@ remotefunc_map["GetRemoteFunc"] = {"nameservice"}
 remotefunc_map["GetInfo"] = {"nameservice"}
 
 return {
+	StartMainListen = StartMainListen,            --启动主监听
 	Register2Name = Register2Name,
 	SendMsg = SendMsg,                            --向一个远程服务发送消息 
 	RpcCall = RpcCall,                            --调用一个远程方法

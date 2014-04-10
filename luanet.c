@@ -128,29 +128,30 @@ static void stream_recv_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 	lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
 	lua_pushstring(l->callbackObj->L,"recvfinish");
 	lua_gettable(l->callbackObj->L,-2);
-	lua_pushlightuserdata(l->callbackObj->L,l);
+	if(l->callbackObj->L != g_L) lua_xmove(l->callbackObj->L,g_L,1);
+	lua_pushlightuserdata(g_L,l);
 	if(bytestransfer <= 0){
-		lua_pushnil(l->callbackObj->L);   
+		lua_pushnil(g_L);   
 	}else{
 		l->recvbuf->data[bytestransfer] = 0;
 		l->recvbuf->size = bytestransfer;
-		lua_newtable(l->callbackObj->L);
-		lua_pushstring(l->callbackObj->L,"data");
-		lua_pushstring(l->callbackObj->L,l->recvbuf->data);
-		lua_settable(l->callbackObj->L, -3);
-		lua_pushstring(l->callbackObj->L,"ptr");
-		lua_pushlightuserdata(l->callbackObj->L,l->recvbuf);		
-		lua_settable(l->callbackObj->L, -3);		
+		lua_newtable(g_L);
+		lua_pushstring(g_L,"data");
+		lua_pushstring(g_L,l->recvbuf->data);
+		lua_settable(g_L, -3);
+		lua_pushstring(g_L,"ptr");
+		lua_pushlightuserdata(g_L,l->recvbuf);		
+		lua_settable(g_L, -3);		
 		l->recvbuf = NULL;
 		recv_count++;
 	}
-	lua_pushnumber(l->callbackObj->L,err);
-	if(0 != lua_pcall(l->callbackObj->L,3,0,0)){
-		const char * error = lua_tostring(l->callbackObj->L, -1);
+	lua_pushnumber(g_L,err);
+	if(0 != lua_pcall(g_L,3,0,0)){
+		const char * error = lua_tostring(g_L, -1);
 		printf("stream_recv_finish:%s\n",error);
-		lua_pop(l->callbackObj->L,1);
+		lua_pop(g_L,1);
 	}
-	lua_pop(l->callbackObj->L,1);
+	lua_pop(g_L,1);
 	if(bytestransfer > 0 && l->status != lua_socket_close)
 		luasocket_post_recv(l);
 }
@@ -193,16 +194,17 @@ static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer
 		lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
 		lua_pushstring(l->callbackObj->L,"recvfinish");
 		lua_gettable(l->callbackObj->L,-2);
-		lua_pushlightuserdata(l->callbackObj->L,l);
-		lua_pushnil(l->callbackObj->L);
-		lua_pushnumber(l->callbackObj->L,err);				
-		if(0 != lua_pcall(l->callbackObj->L,3,0,0))
+		if(l->callbackObj->L != g_L) lua_xmove(l->callbackObj->L,g_L,1);
+		lua_pushlightuserdata(g_L,l);
+		lua_pushnil(g_L);
+		lua_pushnumber(g_L,err);				
+		if(0 != lua_pcall(g_L,3,0,0))
 		{
-			const char * error = lua_tostring(l->callbackObj->L, -1);
+			const char * error = lua_tostring(g_L, -1);
 			printf("stream_transfer_finish:%s\n",error);
-			lua_pop(l->callbackObj->L,1);
+			lua_pop(g_L,1);
 		}
-		lua_pop(l->callbackObj->L,1);                 		
+		lua_pop(g_L,1);                 		
 	}else if(io == &l->send_overlap)
 		stream_send_finish(l,io,bytestransfer,err);
 	else if(io == &l->recv_overlap)
@@ -216,86 +218,86 @@ static void on_accept(kn_socket_t s,void *ud){
 	lua_socket_t c = new_luasocket(s,NULL);
 	luaObject_t  callbackObj = (luaObject_t)ud;
 	kn_socket_setud(s,c);
-	 kn_ref_acquire(&c->ref);
+	kn_ref_acquire(&c->ref);
 	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
 	lua_pushstring(callbackObj->L,"onaccept");
 	lua_gettable(callbackObj->L,-2);
-	lua_pushlightuserdata(callbackObj->L,c);			
-	if(0 != lua_pcall(callbackObj->L,1,0,0))
+	if(callbackObj->L != g_L) lua_xmove(callbackObj->L,g_L,1);
+	lua_pushlightuserdata(g_L,c);			
+	if(0 != lua_pcall(g_L,1,0,0))
 	{
-		const char * error = lua_tostring(callbackObj->L, -1);
+		const char * error = lua_tostring(g_L, -1);
 		printf("on_accept:%s\n",error);
-		lua_pop(callbackObj->L,1);		
+		lua_pop(g_L,1);		
 	}
-	lua_pop(callbackObj->L,1);
+	lua_pop(g_L,1);
 	kn_ref_release(&c->ref);  		
 }
 
 
-int lua_closefd(lua_State *L){
+static int lua_closefd(lua_State *L){
 	lua_socket_t l = lua_touserdata(L,1);
 	luasocket_close(l);
 	return 0;
 }
 
-/*
+
 static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err)
 {	
-	luaObject_t callbackObj = (luaObject_t)ud;
-	lua_State *L = callbackObj->L;	
+	luaObject_t obj = (luaObject_t)ud;	
 	lua_socket_t l = NULL;
 	if(s){
 		l = new_luasocket(s,NULL);
 		kn_socket_setud(s,l);
 	}
-	lua_rawgeti(L,LUA_REGISTRYINDEX,callbackObj->rindex);
-	lua_pushstring(L,"onconnected");
-	lua_gettable(L,-2);
+	lua_rawgeti(obj->L,LUA_REGISTRYINDEX,obj->rindex);
+	lua_pushstring(obj->L,"onconnected");
+	lua_gettable(obj->L,-2);
+	if(obj->L != g_L) lua_xmove(obj->L,g_L,1);
+	if(l) lua_pushlightuserdata(g_L,l);
+	else  lua_pushnil(g_L);
 	
-	if(l) lua_pushlightuserdata(L,l);
-	else  lua_pushnil(L);
-	
-	lua_newtable(L);
-	lua_pushstring(L,"type");
-	lua_pushnumber(L,remote->addrtype);
-	lua_settable(L, -3);
+	lua_newtable(g_L);
+	lua_pushstring(g_L,"type");
+	lua_pushnumber(g_L,remote->addrtype);
+	lua_settable(g_L, -3);
 	if(remote->addrtype == AF_INET){
 		char ip[32];
 		inet_ntop(AF_INET,&remote->in,ip,(socklen_t )sizeof(remote->in));
-		lua_pushstring(L,"ip");
-		lua_pushstring(L,ip);		
-		lua_settable(L, -3);
-		lua_pushstring(L,"port");
-		lua_pushnumber(L,ntohl(remote->in.sin_port));		
-		lua_settable(L, -3);			
+		lua_pushstring(g_L,"ip");
+		lua_pushstring(g_L,ip);		
+		lua_settable(g_L, -3);
+		lua_pushstring(g_L,"port");
+		lua_pushnumber(g_L,ntohl(remote->in.sin_port));		
+		lua_settable(g_L, -3);			
 	}
-	lua_pushnumber(L,err);
+	lua_pushnumber(g_L,err);
 	
 	kn_ref_acquire(&l->ref);
 	
-	if(0 != lua_pcall(L,3,0,0))
+	if(0 != lua_pcall(g_L,3,0,0))
 	{
-		const char * error = lua_tostring(L, -1);
+		const char * error = lua_tostring(g_L, -1);
 		printf("on_connect:%s\n",error);
-		lua_pop(L,1);		
+		lua_pop(g_L,1);		
 	}
-	lua_pop(L,1);
+	lua_pop(g_L,1);
 	kn_ref_release(&l->ref);
-	release_luaObj(callbackObj);
+	release_luaObj(obj);
 }
 
-int lua_asyn_connect(lua_State *L){
+int lua_connect(lua_State *L){
 	
 	int proto = lua_tonumber(L,1);
 	int sock_type = lua_tonumber(L,2);
 	luaObject_t remote = create_luaObj(L,3);
 	luaObject_t local = create_luaObj(L,4);
-	luaObject_t callbackObj = create_luaObj(L,5);
+	luaObject_t obj = create_luaObj(L,5);
 	int timeout = lua_tonumber(L,6);
-	if(!remote || !callbackObj){
+	if(!remote || !obj){
 		release_luaObj(local);
 		release_luaObj(remote);
-		release_luaObj(callbackObj);
+		release_luaObj(obj);
 		lua_pushboolean(L,0);
 		return 1;
 	}
@@ -319,9 +321,9 @@ int lua_asyn_connect(lua_State *L){
 	}
 			
 	if(0 != kn_asyn_connect(g_proactor,proto,sock_type,local?&addr_local:NULL,
-					&addr_remote,on_connect,(void*)callbackObj,(int64_t)timeout))
+					&addr_remote,on_connect,(void*)obj,(int64_t)timeout))
 	{
-		release_luaObj(callbackObj);
+		release_luaObj(obj);
 		lua_pushboolean(L,0);
 	}else
 		lua_pushboolean(L,1);
@@ -330,7 +332,7 @@ int lua_asyn_connect(lua_State *L){
 	release_luaObj(remote);	
 	return 1;
 }
-*/
+
 
 int lua_listen(lua_State *L){
 	int proto = lua_tonumber(L,1);
@@ -400,11 +402,8 @@ static void p_run(){
 		{
             uint32_t elapse = (uint32_t)(now-tick);
             printf("count:%d/s\n",recv_count);
-            //totalbytes = (totalbytes/elapse)/1024;
-			//printf("client_count:%d,totalbytes:%lldMB/s\n",client_count,totalbytes);
 			tick = now;
 			recv_count = 0;
-			//totalbytes = 0;
 		}			
 	}	
 }
