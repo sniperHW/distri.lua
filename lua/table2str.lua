@@ -53,7 +53,7 @@ for k,v in pairs(tb) do
 end
 
 return {
-	Table2str = Table2str,
+	Table2Str = Table2Str,
 	Str2Table = Str2Table
 }
 

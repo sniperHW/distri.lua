@@ -177,16 +177,16 @@ static int unpack(lua_socket_t c)
 		if(pk_total_size > c->unpack_size)
 			return 1;
 		
-		if(pk_len < 65536)
+		if(pk_total_size < 65536)
 			packet = pk_buf;
 		else 
-			packet = calloc(1,sizeof(char)*pk_len);
+			packet = calloc(1,sizeof(char)*pk_total_size);
 		pos = 0;
 		//调整unpack_buf和unpack_pos
 		do{
 			uint32_t size = c->unpack_buf->size - c->unpack_pos;
 			size = pk_total_size > size ? size:pk_total_size;
-			memcpy(&c->unpack_buf->data[c->unpack_pos],packet+pos,size);
+			memcpy(packet+pos,&c->unpack_buf->data[c->unpack_pos],size);
 			pos += size;
 			c->unpack_pos  += size;
 			pk_total_size  -= size;
@@ -203,7 +203,7 @@ static int unpack(lua_socket_t c)
 		
 		if(packet){
 			//传递给应用
-			do_callback(c,packet,0);
+			do_callback(c,&packet[sizeof(int)],0);
 			if(packet != pk_buf)
 				free(packet);
 			packet = NULL;
@@ -217,14 +217,38 @@ static int unpack(lua_socket_t c)
 }
 
 static void luasocket_post_recv(lua_socket_t l){
-	/*if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
-		l->recv_buf = new_bytebuffer(65536);
-		l->wrecvbuf[0].iov_base = l->recvbuf->data;
-		l->wrecvbuf[0].iov_len = 65536;
-		l->recv_overlap.iovec_count = 1;
+	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
+		if(!l->recv_buf){
+			l->recv_buf = new_bytebuffer(65536);
+			l->recv_pos = 0;
+		}
+		
+		int size = 65536;
+		int c = 0;
+		bytebuffer_t buf = l->recv_buf;
+		int pos = l->recv_pos;
+		do
+		{
+			int free_buffer_size = buf->cap - pos;
+			free_buffer_size = size > free_buffer_size ? free_buffer_size:size;
+			l->wrecvbuf[c].iov_len = free_buffer_size;
+			l->wrecvbuf[c].iov_base = buf->data + pos;
+			size -= free_buffer_size;
+			pos += free_buffer_size;
+			if(size && pos >= buf->cap)
+			{
+				pos = 0;
+				if(!buf->next)
+					buf->next = new_bytebuffer(65536);
+				buf = buf->next;
+			}
+			++c;
+		}while(size);
+		l->recv_overlap.iovec_count = c;
 		l->recv_overlap.iovec = l->wrecvbuf;
-		kn_post_recv(l->sock,&l->recv_overlap);
-	}*/
+		if(!l->unpack_buf) l->unpack_buf = l->recv_buf;
+		kn_post_recv(l->sock,&l->recv_overlap);	
+	}
 }
 
 static void luasocket_post_send(lua_socket_t l){
@@ -462,8 +486,10 @@ int lua_send(lua_State *L){
 	if(lua_isstring(L,2)){
 		str = lua_tostring(L,2);
 		int size = strlen(str)+1;
-		buf = calloc(1,sizeof(*buf)+size);
-		strcpy(buf->buf,str); 
+		buf = calloc(1,sizeof(*buf)+size+sizeof(int));
+		*(int*)&buf->buf[0] = size;
+		strcpy(buf->buf+sizeof(int),str);
+		buf->size = size+sizeof(int); 
 	}else
 	{
 		lua_pushboolean(L,0);	
@@ -483,7 +509,7 @@ int lua_send(lua_State *L){
 	return 1;
 }
 
-static void p_run(){
+static void run(){
  	uint64_t tick,now;
     tick = now = kn_systemms64();	
 	while(!recv_sigint){
@@ -511,11 +537,6 @@ int lua_bind(lua_State *L){
 	return 1;
 }
 
-/*int lua_release_bytebuffer(lua_State *L){
-	bytebuffer_t b = (bytebuffer_t)lua_touserdata(L,1);
-	kn_ref_release(&b->ref); 
-	return 0; 
-}*/
 
 void RegisterNet(lua_State *L){  
     
@@ -563,8 +584,7 @@ void RegisterNet(lua_State *L){
 	lua_register(L,"_connect",&lua_connect); 
     lua_register(L,"_send",&lua_send);
 	lua_register(L,"close",&lua_closefd);
-	lua_register(L,"_bind",&lua_bind); 
-	//lua_register(L,"release_bytebuffer",&lua_release_bytebuffer); 
+	lua_register(L,"_bind",&lua_bind);  
 	 
 	g_L = L;
 	kn_net_open();
@@ -587,6 +607,6 @@ int main(int argc,char **argv)
 		lua_pop(L,1);
 		printf("%s\n",error);
 	}
-	p_run();	
+	run();	
 	return 0;
 } 
