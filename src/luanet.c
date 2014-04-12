@@ -5,6 +5,7 @@
 #include "kendynet.h"
 #include "kn_time.h"
 #include "kn_ref.h"
+#include "kn_list.h"
 
 static kn_proactor_t g_proactor = NULL;
 static lua_State*    g_L = NULL;
@@ -22,35 +23,53 @@ enum{
 };
 
 typedef struct bytebuffer{
-	kn_ref ref;
+	struct bytebuffer *next;
 	int    cap;
 	int    size;
 	char   data[0];
 }*bytebuffer_t;
-
-void bytebuffer_destroyer(void *ptr){
-	bytebuffer_t b = (bytebuffer_t)ptr;
-	free(b);
-}
 
 bytebuffer_t new_bytebuffer(int cap)
 {
 	bytebuffer_t b = calloc(1,sizeof(*b)+sizeof(char)*cap);
 	b->cap = cap;
 	b->size = 0;
-	kn_ref_init(&b->ref,bytebuffer_destroyer);
 	return b;
+}
+
+static inline int bytebuffer_read(bytebuffer_t b,uint32_t pos,int8_t *out,uint32_t size)
+{
+	uint32_t copy_size;
+	while(size){
+        if(!b) return -1;
+        if(pos >= b->size) return -1;
+        copy_size = b->size - pos;
+		copy_size = copy_size > size ? size : copy_size;
+		memcpy(out,&b->data[pos],copy_size);
+		size -= copy_size;
+		pos += copy_size;
+		out += copy_size;
+		if(pos >= b->size){
+			pos = 0;
+			b = b->next;
+		}
+	}
+	return 0;
 }
 
 typedef struct lua_socket{
 	kn_ref       ref;	
 	st_io        send_overlap;
 	st_io        recv_overlap;
-	struct       iovec wrecvbuf[1];
-	bytebuffer_t recvbuf;
+	struct       iovec wrecvbuf[2];
 	struct       iovec wsendbuf[512];
 	uint8_t      status;	
-	kn_list      send_list;	
+	kn_list      send_list;
+	uint32_t     unpack_size; //还未解包的数据大小
+	uint32_t     unpack_pos;
+	uint32_t     recv_pos;
+	bytebuffer_t recv_buf;
+	bytebuffer_t unpack_buf;
 	kn_socket_t  sock;
 	luaObject_t  callbackObj;//存放lua回调函数
 }*lua_socket_t;
@@ -58,8 +77,9 @@ typedef struct lua_socket{
 typedef struct sendbuf{
 	kn_list_node node;
 	kn_sockaddr  remote;
-	bytebuffer_t data;
 	int          index;
+	int          size;
+	char         buf[0];
 }sendbuf;
 
 void luasocket_destroyer(void *ptr){
@@ -68,7 +88,6 @@ void luasocket_destroyer(void *ptr){
 	release_luaObj(l->callbackObj);
 	while(kn_list_size(&l->send_list)){
 		sendbuf *buf = (sendbuf*)kn_list_pop(&l->send_list);
-		kn_ref_release(&buf->data->ref);
 		free(buf);
 	}
 }
@@ -81,28 +100,131 @@ lua_socket_t new_luasocket(kn_socket_t sock,luaObject_t callbackObj){
 	return l;
 }
 
-
-
 static void luasocket_close(lua_socket_t l)
 {
 	if(l->status == 0 && kn_list_size(&l->send_list))
 	{
 		l->status = lua_socket_waitclose;
 		return;		
-	}	
+	}
+	while(l->unpack_buf){
+		bytebuffer_t tmp = l->unpack_buf;
+		l->unpack_buf = l->unpack_buf->next;
+		free(tmp);
+	}		
 	l->status = lua_socket_close;
 	kn_ref_release(&l->ref);
 }
 
+
+static void update_recv_pos(lua_socket_t c,int32_t _bytestransfer)
+{
+    assert(_bytestransfer >= 0);
+    uint32_t bytestransfer = (uint32_t)_bytestransfer;
+    uint32_t size;
+	do{
+		size = c->recv_buf->cap - c->recv_pos;
+        size = size > bytestransfer ? bytestransfer:size;
+		c->recv_buf->size += size;
+		c->recv_pos += size;
+		bytestransfer -= size;
+		if(c->recv_pos >= c->recv_buf->cap)
+		{
+			if(!c->recv_buf->next)
+				c->recv_buf->next = new_bytebuffer(65536);
+			c->recv_buf = c->recv_buf->next;
+			c->recv_pos = 0;
+		}
+	}while(bytestransfer);
+}
+
+
+static void do_callback(lua_socket_t l,char *packet,int err){
+	//callbackObj只是一个普通的表所以不能直接使用CALL_OBJ_FUNC
+	lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
+	lua_pushstring(l->callbackObj->L,"recvfinish");
+	lua_gettable(l->callbackObj->L,-2);
+	if(l->callbackObj->L != g_L) lua_xmove(l->callbackObj->L,g_L,1);
+	lua_pushlightuserdata(g_L,l);
+	if(!packet){
+		lua_pushnil(g_L);   
+	}else{
+		lua_pushstring(g_L,packet);
+		recv_count++;
+	}
+	lua_pushnumber(g_L,err);
+	if(0 != lua_pcall(g_L,3,0,0)){
+		const char * error = lua_tostring(g_L, -1);
+		printf("stream_recv_finish:%s\n",error);
+		lua_pop(g_L,1);
+	}
+	lua_pop(g_L,1);	
+}
+
+static int unpack(lua_socket_t c)
+{
+	uint32_t pk_len = 0;
+	uint32_t pk_total_size;
+	char*    packet = NULL;
+	char     pk_buf[65536];
+	uint32_t pos;
+	do{
+
+		if(c->unpack_size <= sizeof(uint32_t))
+			return 1;
+		bytebuffer_read(c->unpack_buf,c->unpack_pos,(int8_t*)&pk_len,sizeof(pk_len));
+		pk_total_size = pk_len+sizeof(pk_len);
+		if(pk_total_size > c->unpack_size)
+			return 1;
+		
+		if(pk_len < 65536)
+			packet = pk_buf;
+		else 
+			packet = calloc(1,sizeof(char)*pk_len);
+		pos = 0;
+		//调整unpack_buf和unpack_pos
+		do{
+			uint32_t size = c->unpack_buf->size - c->unpack_pos;
+			size = pk_total_size > size ? size:pk_total_size;
+			memcpy(&c->unpack_buf->data[c->unpack_pos],packet+pos,size);
+			pos += size;
+			c->unpack_pos  += size;
+			pk_total_size  -= size;
+			c->unpack_size -= size;
+			if(c->unpack_pos >= c->unpack_buf->cap)
+			{
+				assert(c->unpack_buf->next);
+				bytebuffer_t tmp = c->unpack_buf;
+				c->unpack_pos = 0;
+				c->unpack_buf = c->unpack_buf->next;
+				free(tmp);
+			}
+		}while(pk_total_size);
+		
+		if(packet){
+			//传递给应用
+			do_callback(c,packet,0);
+			if(packet != pk_buf)
+				free(packet);
+			packet = NULL;
+		}
+		
+		if(c->status == lua_socket_close)
+			return 0;
+	}while(1);
+
+	return 1;
+}
+
 static void luasocket_post_recv(lua_socket_t l){
-	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
-		l->recvbuf = new_bytebuffer(65536);
+	/*if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
+		l->recv_buf = new_bytebuffer(65536);
 		l->wrecvbuf[0].iov_base = l->recvbuf->data;
-		l->wrecvbuf[0].iov_len = 65535;
+		l->wrecvbuf[0].iov_len = 65536;
 		l->recv_overlap.iovec_count = 1;
 		l->recv_overlap.iovec = l->wrecvbuf;
 		kn_post_recv(l->sock,&l->recv_overlap);
-	}
+	}*/
 }
 
 static void luasocket_post_send(lua_socket_t l){
@@ -110,9 +232,8 @@ static void luasocket_post_send(lua_socket_t l){
 		int c = 0;
 		sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
 		while(c < 512 && buf){
-			bytebuffer_t b = buf->data;
-			l->wsendbuf[c].iov_base = b->data + buf->index;//buf->buf+buf->index;
-			l->wsendbuf[c].iov_len = b->size;
+			l->wsendbuf[c].iov_base = buf->buf + buf->index;//buf->buf+buf->index;
+			l->wsendbuf[c].iov_len  = buf->size;
 			++c;
 			buf = (sendbuf*)buf->node.next;
 		}
@@ -124,36 +245,14 @@ static void luasocket_post_send(lua_socket_t l){
 
 static void stream_recv_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,int32_t err)
 {
-	//callbackObj只是一个普通的表所以不能直接使用CALL_OBJ_FUNC
-	lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
-	lua_pushstring(l->callbackObj->L,"recvfinish");
-	lua_gettable(l->callbackObj->L,-2);
-	if(l->callbackObj->L != g_L) lua_xmove(l->callbackObj->L,g_L,1);
-	lua_pushlightuserdata(g_L,l);
 	if(bytestransfer <= 0){
-		lua_pushnil(g_L);   
+		do_callback(l,NULL,err);
 	}else{
-		l->recvbuf->data[bytestransfer] = 0;
-		l->recvbuf->size = bytestransfer;
-		lua_newtable(g_L);
-		lua_pushstring(g_L,"data");
-		lua_pushstring(g_L,l->recvbuf->data);
-		lua_settable(g_L, -3);
-		lua_pushstring(g_L,"ptr");
-		lua_pushlightuserdata(g_L,l->recvbuf);		
-		lua_settable(g_L, -3);		
-		l->recvbuf = NULL;
-		recv_count++;
-	}
-	lua_pushnumber(g_L,err);
-	if(0 != lua_pcall(g_L,3,0,0)){
-		const char * error = lua_tostring(g_L, -1);
-		printf("stream_recv_finish:%s\n",error);
-		lua_pop(g_L,1);
-	}
-	lua_pop(g_L,1);
-	if(bytestransfer > 0 && l->status != lua_socket_close)
+		update_recv_pos(l,bytestransfer);
+		l->unpack_size += bytestransfer;
+		if(!unpack(l)) return;
 		luasocket_post_recv(l);
+	}
 }
 
 static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,int32_t err)
@@ -163,13 +262,11 @@ static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 	else{
 		while(bytestransfer > 0){
 			sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
-			bytebuffer_t b = buf->data;
-			int size = b->size - buf->index;
+			int size = buf->size - buf->index;
 			if(size <= bytestransfer)
 			{
 				bytestransfer -= size;
 				kn_list_pop(&l->send_list);
-				kn_ref_release(&b->ref);
 				free(buf);
 			}else{
 				buf->index += bytestransfer;
@@ -359,17 +456,14 @@ int lua_listen(lua_State *L){
 
 int lua_send(lua_State *L){
 	lua_socket_t l  = lua_touserdata(L,1);
-	bytebuffer_t b  = NULL;
+	sendbuf *buf;
 	const char* str = NULL;
 	
-	if(lua_isuserdata(L,2))
-		b = (bytebuffer_t)lua_touserdata(L,2);
-	else if(lua_isstring(L,2)){
+	if(lua_isstring(L,2)){
 		str = lua_tostring(L,2);
 		int size = strlen(str)+1;
-		b = new_bytebuffer(size);
-		b->size = size;
-		strcpy(b->data,str); 
+		buf = calloc(1,sizeof(*buf)+size);
+		strcpy(buf->buf,str); 
 	}else
 	{
 		lua_pushboolean(L,0);	
@@ -380,9 +474,6 @@ int lua_send(lua_State *L){
 		addr_remote = create_luaObj(L,3);
 	
 	release_luaObj(addr_remote);
-	
-	sendbuf *buf = calloc(1,sizeof(*buf));
-	buf->data = b;
 	//if(addr_remote)
 	//	buf->remote = *addr_remote;
 	kn_list_pushback(&l->send_list,(kn_list_node*)buf);
@@ -420,11 +511,11 @@ int lua_bind(lua_State *L){
 	return 1;
 }
 
-int lua_release_bytebuffer(lua_State *L){
+/*int lua_release_bytebuffer(lua_State *L){
 	bytebuffer_t b = (bytebuffer_t)lua_touserdata(L,1);
 	kn_ref_release(&b->ref); 
 	return 0; 
-}
+}*/
 
 void RegisterNet(lua_State *L){  
     
@@ -473,7 +564,7 @@ void RegisterNet(lua_State *L){
     lua_register(L,"_send",&lua_send);
 	lua_register(L,"close",&lua_closefd);
 	lua_register(L,"_bind",&lua_bind); 
-	lua_register(L,"release_bytebuffer",&lua_release_bytebuffer); 
+	//lua_register(L,"release_bytebuffer",&lua_release_bytebuffer); 
 	 
 	g_L = L;
 	kn_net_open();
