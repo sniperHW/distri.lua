@@ -16,14 +16,12 @@ s2name = {}
 local net = require "lua/net"
 local table2str = require "lua/table2str"
 
-local function Register(s,arg)
+local function Register(arg)
 	local name = arg.name
 	local coroidentity = arg.coroidentity
-	local ret = {coroidentity=coroidentity,
-				 err = nil}
+	local ret = {}
 	if all_service[name] then
-		ret.err = "name aready exist"
-		_send(s,ret,nil)
+		return "name aready exist",{}
 	end
 
 	local service_info = {
@@ -37,45 +35,43 @@ local function Register(s,arg)
 	local rfunc = arg.remote_func
 	if rfunc then
 		for k,v in pairs(rfunc) do
-			local tmp = service_remote_func[k]
+			local tmp = service_remote_func[v]
 			if not tmp then
 				tmp = {}
-				service_remote_func[k] = tmp
+				service_remote_func[v] = tmp
 			end
-			tmp[name] = k
+			tmp[name] = v
 		end
 	end
-	_send(s,ret,nil)
+	return nil,{}
 end
 local_remote_func["Register"] = Register
 
-local function GetInfo(s,arg)
+local function GetInfo(arg)
 	local name = arg.name
-	local coroidentity = arg.coroidentity
-	local ret = {coroidentity=coroidentity,
-				 err = nil}
-
+	local ret = nil
+	local err = nil
 	local info = all_service[name]
 	if info then
-		ret.addrinfo = info
+		ret = info
+	else
+		err = "cannot find " .. name
 	end
-	_send(s,ret,nil) 			 
+	return err,ret 			 
 end
 local_remote_func["GetInfo"] = GetInfo
 
-local function GetRemoteFunc(s,arg)
+local function GetRemoteFunc(arg)
 	local name = arg.name
-	local coroidentity = arg.coroidentity
-	local ret = {coroidentity=coroidentity,
-				 err = nil}
+	local ret = {}
 	local services = service_remote_func[name]
 	if services then
 		ret.services = {}
 		for k,v in pairs(services) do
-			table.insert(ret.services,k)
+			table.insert(ret,k)
 		end
 	end
-	_send(s,ret,nil) 			 
+	return nil,ret
 end
 local_remote_func["GetRemoteFunc"] = GetRemoteFunc
 
@@ -90,7 +86,7 @@ local function service_disconnect(s)
 		all_service[name] = nil
 		s2name[s] = nil	
 	end
-	close(s)
+	C.close(s)
 end
 
 local function on_data(s,data,err)
@@ -103,7 +99,15 @@ local function on_data(s,data,err)
 			if not argument.func then
 				local func = local_remote_func[argument.func]
 				if func then
-					func(s,argument.param)
+					local err,ret = func(s,argument.param)
+					local response = {
+										type = "rpc_response",
+										coroidentity=argument.coroidentity,
+										err = err,
+										ret = ret
+									  }
+					C.send(s,table2str.Table2Str(response),nil)				  
+					end					
 				end
 			end
 		elseif argument.type == "msg" and argument.cmd == "ping" then 
@@ -118,11 +122,11 @@ end
 
 local function on_newclient(s)
 	print("on_newclient")
-	if not _bind(s,{recvfinish = on_data})then
+	if not C.bind(s,{recvfinish = on_data})then
 		print("bind error")
-		close(s)
+		C.close(s)
 	end
 end
 
-listen(IPPROTO_TCP,SOCK_STREAM,net.netaddr_ipv4("127.0.0.1",8010),{onaccept=on_newclient})
+C.listen(IPPROTO_TCP,SOCK_STREAM,net.netaddr_ipv4("127.0.0.1",8010),{onaccept=on_newclient})
 

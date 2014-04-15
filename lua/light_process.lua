@@ -6,7 +6,7 @@ local light_process =
     timeout = 0,
     ud = nil,
     identity = 0,
-	  start_func = nil
+	start_func = nil
 }
 
 local function gen_identity()

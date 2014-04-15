@@ -135,6 +135,10 @@ local function GetCurrentLightProcess()
     return global_sc.current_lp
 end
 
+local function GetLightProcessByIdentity(identity)
+
+end
+
 local function Schedule()
 	global_sc:Schedule()
 end
