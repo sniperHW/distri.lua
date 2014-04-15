@@ -580,12 +580,36 @@ void RegisterNet(lua_State *L){
 	
 	lua_pop(L,1);
     
-	lua_register(L,"listen",&lua_listen);
+	lua_newtable(g_L);
+	
+	lua_pushstring(g_L,"listen");
+	lua_pushcfunction(g_L,&lua_listen);
+	lua_settable(g_L, -3);
+
+	lua_pushstring(g_L,"connect");
+	lua_pushcfunction(g_L,&lua_connect);
+	lua_settable(g_L, -3);
+
+	lua_pushstring(g_L,"send");
+	lua_pushcfunction(g_L,&lua_send);
+	lua_settable(g_L, -3);
+
+	lua_pushstring(g_L,"close");
+	lua_pushcfunction(g_L,&lua_closefd);
+	lua_settable(g_L, -3);
+
+	lua_pushstring(g_L,"bind");
+	lua_pushcfunction(g_L,&lua_bind);
+	lua_settable(g_L, -3);
+
+	lua_setglobal(L,"C");
+
+	/*lua_register(L,"listen",&lua_listen);
 	lua_register(L,"_connect",&lua_connect); 
     lua_register(L,"_send",&lua_send);
 	lua_register(L,"close",&lua_closefd);
 	lua_register(L,"_bind",&lua_bind);  
-	 
+	*/ 
 	g_L = L;
 	kn_net_open();
     signal(SIGINT,sig_int);
