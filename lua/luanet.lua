@@ -44,7 +44,7 @@ end
 local function rpc_call(remote,name,arguments)
 	local skeleton = skeleton_map[name]
 	if skeleton then
-		return skeleton_GetAddr(remote,arguments)
+		return skeleton(remote,arguments)
 	else
 		return nil,"unknow remote function"
 	end
@@ -67,6 +67,13 @@ local function skeleton_GetRemoteFunc(remote,arguments)
 end
 
 RemoteSkeleton("GetRemoteFunc")
+
+local function skeleton_Register(remote,arguments)
+
+end
+
+RemoteSkeleton("Register")
+
 
 local function on_disconnect(s)
 	local name = get_name(s)
@@ -97,25 +104,6 @@ local function on_name_data(s,data,err)
 		close(s)
 	end
 end
-
-local function connect2name()
-	local nservice = connect(NameServiceAddr,30000)
-	if nservice then
-		service_map["nameservice"] = nservice
-		set_name(nservice,"nameservice")
-		_bind(nservice,{recvfinish=on_name_data})
-		
-		--向nameservice发送本服务的信息
-		
-	end
-	return nservice
-end
-
-
-local function Register2Name()
-	return connect2name() ~= nil
-end
-
 
 local get_remote_by_name(name)
 	local remote = service_map[name]
@@ -165,6 +153,27 @@ local function RpcCall(name,funcname,arguments)
 		return rpc_call(remote,funcname,arguments)
 	end
 end
+
+local function connect2name(info)
+	local nservice = connect(NameServiceAddr,30000)
+	if nservice then
+		service_map["nameservice"] = nservice
+		set_name(nservice,"nameservice")
+		_bind(nservice,{recvfinish=on_name_data})		
+		local ret,err = rpc_call("remote",funcname,info)
+		if not err then
+			close(nservice)
+			nservice = nil
+		end
+	end
+	return nservice
+end
+
+
+local function Register2Name(info)
+	return connect2name(info) ~= nil
+end
+
 
 local function SendMsg(name,msg)
 	local remote = get_remote_by_name(name)

@@ -1,3 +1,4 @@
+local LightProcess = require "lua/light_process"
 local scheduler =
 {
     pending_add,  --等待添加到活动列表中的coObject
@@ -150,10 +151,7 @@ end
 
 local function Spawn(func,ud)
     print("node_spwan")
-    local lprocess = light_process:new()
-    lprocess.croutine = coroutine.create(lp_start_fun)
-    lprocess.ud = ud
-    lprocess.start_func = func
+    local lprocess = LightProcess.NewLightProcess(lp_start_fun,ud,func)
     global_sc:Add2Active(lprocess)
 end
 
