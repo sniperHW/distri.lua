@@ -509,20 +509,29 @@ int lua_send(lua_State *L){
 	return 1;
 }
 
-static void run(){
- 	uint64_t tick,now;
-    tick = now = kn_systemms64();	
-	while(!recv_sigint){
-		kn_proactor_run(g_proactor,50);
-        now = kn_systemms64();
-		if(now - tick > 1000)
-		{
-            uint32_t elapse = (uint32_t)(now-tick);
-            printf("count:%d/s\n",recv_count);
-			tick = now;
-			recv_count = 0;
-		}			
-	}	
+static void lua_run(lua_State *L){
+	if(!recv_sigint){
+		if(lua_isnumber(L,-1)){
+			uint32_t ms = lua_tonumber(L,-1);
+			kn_proactor_run(g_proactor,ms);
+		}else{
+		 	uint64_t tick,now;
+		    tick = now = kn_systemms64();	
+			while(!recv_sigint){
+				kn_proactor_run(g_proactor,50);
+		        now = kn_systemms64();
+				if(now - tick > 1000)
+				{
+		            uint32_t elapse = (uint32_t)(now-tick);
+		            printf("count:%d/s\n",recv_count);
+					tick = now;
+					recv_count = 0;
+				}			
+			}
+		}
+	}
+	lua_pushboolean(L,recv_sigint?0:1);
+	return 1;	
 }
 
 int lua_bind(lua_State *L){
@@ -602,6 +611,10 @@ void RegisterNet(lua_State *L){
 	lua_pushcfunction(L,&lua_bind);
 	lua_settable(L, -3);
 
+	lua_pushstring(L,"run");
+	lua_pushcfunction(L,&lua_run);
+	lua_settable(L, -3);	
+
 	lua_setglobal(L,"C");
 	g_L = L;
 	kn_net_open();
@@ -625,6 +638,5 @@ int main(int argc,char **argv)
 		printf("%s\n",error);
 	}
 	CALL_LUA_FUNC1(L,"start",0,argv[1]);
-	run();
 	return 0;
 } 

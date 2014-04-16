@@ -1,14 +1,17 @@
 local Sche = require "lua/scheduler"
+local Que =  require "lua/queue"
 --名字到连接的映射
 local name_associate_data = {}
 
-local name2socket = {}          --名字到套接口的映射
-local rpc_function = {}         --本服务提供的远程方法
-local remotefunc_provider = {}  --远程方法提供者
-local service_name              --本服务的名字
-local service_info              --本服务的基本信息
-local name_service              --名字服务地址信息
-local on_disconnected           --与一个服务的连接断开后回调
+local name2socket = {}               --名字到套接口的映射
+local rpc_function = {}              --本服务提供的远程方法
+local remotefunc_provider = {}       --远程方法提供者
+local service_name                   --本服务的名字
+local service_info                   --本服务的基本信息
+local name_service                   --名字服务地址信息
+local on_disconnected                --与一个服务的连接断开后回调
+local msgque = Queue()
+local lp_wait_on_msgque = Queue()    --阻塞在提取msg上的light process
 
 local function connect(remote_addr,timeout)
 	local proto =  remote_addr.proto
@@ -123,6 +126,10 @@ local function on_data(s,data,err)
 			end		
 		elseif msg.type == "msg" then
 			--投入到队列
+			msgque:push(msg)
+			if not lp_wait_on_msgque:is_empty() then
+				Sche.WakeUp(lp_wait_on_msgque:pop())
+			end
 		end
 	end
 end
@@ -251,8 +258,18 @@ local function StartLocalService(local_name,local_socktype,local_addr,cb_disconn
 	return C.listen(IPPROTO_TCP,local_socktype,local_addr,{onaccept=on_newclient})
 end
 
---remotefunc_map["GetRemoteFunc"] = {"nameservice"}
---remotefunc_map["GetInfo"] = {"nameservice"}
+--从消息队列提取消息
+local function GetMsg()
+	local lp = Sche.GetCurrentLightProcess()
+	if not lp then
+		return nil,"GetMsg can only be call in a light porcess context"
+	end
+	if msgque:is_empty() then
+		lp_wait_on_msgque:push(lp)
+		Sche.Block()
+	end
+	return msgque:pop()
+end	
 
 return {
 	StartMainListen = StartMainListen,            --启动主监听
@@ -261,5 +278,6 @@ return {
 	RPCCall = RPCCall,                            --调用一个远程方法
 	RegRPCFunction = RegRPCFunction,
 	StartLocalService = StartLocalService,
+	GetMsg = GetMsg,
 	GetRemoteFuncProvider = GetRemoteFuncProvider --获取提供远程方法的所有服务的名字
 }
