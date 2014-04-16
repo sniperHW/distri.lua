@@ -603,13 +603,6 @@ void RegisterNet(lua_State *L){
 	lua_settable(L, -3);
 
 	lua_setglobal(L,"C");
-
-	/*lua_register(L,"listen",&lua_listen);
-	lua_register(L,"_connect",&lua_connect); 
-    lua_register(L,"_send",&lua_send);
-	lua_register(L,"close",&lua_closefd);
-	lua_register(L,"_bind",&lua_bind);  
-	*/ 
 	g_L = L;
 	kn_net_open();
     signal(SIGINT,sig_int);
@@ -626,11 +619,12 @@ int main(int argc,char **argv)
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 	RegisterNet(L);
-	if (luaL_dofile(L,argv[1])) {
+	if (luaL_dofile(L,"start.lua")) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
 	}
-	run();	
+	CALL_LUA_FUNC1(L,"start",0,argv[1]);
+	run();
 	return 0;
 } 
