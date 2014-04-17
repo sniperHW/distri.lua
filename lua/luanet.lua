@@ -272,7 +272,6 @@ local function GetMsg()
 end	
 
 return {
-	StartMainListen = StartMainListen,            --启动主监听
 	Register2Name = Register2Name,
 	SendMsg = SendMsg,                            --向一个远程服务发送消息 
 	RPCCall = RPCCall,                            --调用一个远程方法
