@@ -58,11 +58,12 @@ local function rpc_call(remote,func,arguments)
 	return block.err,block.ret
 end
 
-local function on_disconnect(s)
+local function disconnect(s)
 	local name = get_name(s)
 	if name then
 		name2socket[name] = nil
 	end
+	--处理没有完成的远程调用
 	C.close(s)
 end
 
@@ -100,7 +101,7 @@ local function on_data(s,data,err)
 		if name then
 			on_disconnected(name)
 		end
-		on_disconnect(s)
+		disconnect(s)
 	else
 		local msg = table2str.Str2Table(data)
 		if msg.type == "rpc_response" then
