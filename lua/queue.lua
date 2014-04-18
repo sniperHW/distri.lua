@@ -15,10 +15,10 @@ function queue:new(o)
 end
 
 function queue:push(msg)
-        local node = { value = msg,next = nil}
-        if not self.tail then
-                self.head = node
-                self.tail = node
+    local node = { value = msg,next = nil}
+    if not self.tail then
+        self.head = node
+        self.tail = node
 	else
 		self.tail.next = node
 		self.tail = node
@@ -35,6 +35,8 @@ function queue:pop()
 		if next == nil then
 			self.head = nil
 			self.tail = nil
+		else
+			self.head = next
 		end
 		self.size = self.size - 1
 		return node.value

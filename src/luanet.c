@@ -675,11 +675,5 @@ int main(int argc,char **argv)
 		lua_pop(L,1);
 		printf("%s\n",error);
 	}
-	/*if(CALL_LUA_FUNC1(L,"start",0,lua_pushstring(L,argv[1])))
-	{
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("%s\n",error);
-	}*/
 	return 0;
 } 

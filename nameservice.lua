@@ -18,7 +18,6 @@ local function Register(arg)
 	print("Register")
 	local name = arg.name
 	print(name)
-	local coroidentity = arg.coroidentity
 	local ret = {}
 	if all_service[name] then
 		return "name aready exist",{}
