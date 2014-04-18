@@ -55,6 +55,7 @@ end
 luanet.RegRPCFunction("Register",Register)
 
 local function GetInfo(arg)
+	print("GetInfo")
 	local name = arg.service_name
 	local ret = nil
 	local err = nil
@@ -78,7 +79,7 @@ end
 luanet.RegRPCFunction("GetInfo",GetInfo)
 
 local function GetRemoteFunc(arg)
-	local name = arg.name
+	local name = arg[1]
 	local ret = {}
 	local services = service_remote_func[name]
 	if services then

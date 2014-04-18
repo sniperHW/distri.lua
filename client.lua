@@ -16,7 +16,7 @@ end
 print("register sucess")
 
 --启动一组lightprocess执行远程调用
-for i=1,5000 do	
+for i=1,20000 do	
 	Sche.Spawn(
 				function() 
 					while true do

@@ -13,6 +13,15 @@ local lp_wait_on_msgque = Que.Queue() --阻塞在提取msg上的light process
 local lp_wait_on_rpcque = Que.Queue()
 local rpcque = Que.Queue()
 
+--[[
+数据包结构
+t:类型,msg,rpc,rpc_rpc_response
+n:发送服务的名字
+i:rpc 请求者的发送light porcess id
+u:用户数据
+f:请求的远程方法名
+]]--
+
 --forword declare
 local get_remote_by_name
 local RPCCall
@@ -48,11 +57,11 @@ local pending_rpc = {} --尚未完成的rpc请求，记录下来，如果远程�
 local function rpc_call(remote,func,arguments)
 	local lp = Sche.GetCurrentLightProcess()
 	local msg = {
-		name = service_info.name,
-		coroidentity = lp.identity,
-		type = "rpc",
-		func = func,
-		param = arguments,
+		n = service_info.name,
+		i = lp.identity,
+		t = "rpc",
+		f = func,
+		u = arguments,
 	}
 	C.send(remote,Tb2Str.Table2Str(msg),nil)
 	local pending = pending_rpc[remote]
@@ -91,10 +100,10 @@ end
 
 --处理rpc响应
 local function on_rpc_response(response)
-	local lp = Sche.GetLightProcessByIdentity(response.coroidentity)
+	local lp = Sche.GetLightProcessByIdentity(response.i)
 	if lp and lp.block then
-	   lp.block.err = response.err
-	   lp.block.ret = response.ret
+	   lp.block.err = response.u.err
+	   lp.block.ret = response.u.ret
 	   Sche.WakeUp(lp)
 	end 
 end
@@ -104,29 +113,29 @@ local function process_rpc(request)
 	local msg = request.msg
 	--处理远程调用
 	local err,ret
-	if msg.func then
-		local func = rpc_function[msg.func]
+	local f = msg.f
+	if f then
+		local func = rpc_function[f]
 		if func then
-			err,ret = func(msg.param)
-			if not err and msg.func == "Register" then
-				C.set_name(remote,msg.param.name)
+			err,ret = func(msg.u)
+			if not err and f == "Register" then
+				C.set_name(remote,msg.n)
 			end
 		else
-			err = "cannot find remote function:" .. msg.func
+			err = "cannot find remote function:" .. f
 		end
 	else
 		err = "must privide function name"
 	end
 	
 	local response = {
-						type         = "rpc_response",
-						coroidentity = msg.coroidentity,
-						err          = err,
-						ret          = ret
+						t         = "rpc_response",
+						i         =  msg.i,
+						u         = {ret=ret,err=err}
 					  }
 	
 	if service_info.name ~= "nameservice" then
-		remote = get_remote_by_name(msg.name)
+		remote = get_remote_by_name(msg.n)
 	end			  
 	if remote then
 		C.send(remote,Tb2Str.Table2Str(response),nil)
@@ -161,7 +170,7 @@ local function on_data(s,data,err)
 		disconnect(s)
 	else
 		local msg = Tb2Str.Str2Table(data)
-		local type = msg.type
+		local type = msg.t
 		if type == "rpc_response" then
 			on_rpc_response(msg)
 		elseif type == "rpc" then
@@ -286,8 +295,8 @@ local function SendMsg(name,msg)
 	if not remote then
 		return "cannot communicate to " .. name
 	else
-		msg.name = service_info.name
-		if not C.send(remote,Tb2Str.Table2Str({type = "msg",msg = msg}),nil) then
+		local packet = {n=service_info.name,t = "msg", u = msg}
+		if not C.send(remote,Tb2Str.Table2Str(packet),nil) then
 			return "error on SendMsg"
 		else
 			return nil
@@ -330,7 +339,7 @@ local function StartLocalService(local_name,local_socktype,local_addr,cb_disconn
 		addrinfo = {type = local_socktype,addr = local_addr}
 	}
 	on_disconnected = cb_disconnected
-	for i=1,1024 do
+	for i=1,5000 do
 		Sche.Spawn(
 			function() 
 				while true do

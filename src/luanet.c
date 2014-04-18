@@ -8,6 +8,9 @@
 #include "kn_list.h"
 #include "kn_time.h"
 
+#define MAX_BUFSIZE  65536
+#define MAX_WSEND_SIZE  1024
+
 static kn_proactor_t g_proactor = NULL;
 static lua_State*    g_L = NULL;
 static int           recv_sigint = 0;
@@ -63,7 +66,7 @@ typedef struct lua_socket{
 	st_io        send_overlap;
 	st_io        recv_overlap;
 	struct       iovec wrecvbuf[2];
-	struct       iovec wsendbuf[1024];
+	struct       iovec wsendbuf[MAX_WSEND_SIZE];
 	uint8_t      status;	
 	kn_list      send_list;
 	uint32_t     unpack_size; //还未解包的数据大小
@@ -168,7 +171,7 @@ static int unpack(lua_socket_t c)
 	uint32_t pk_len = 0;
 	uint32_t pk_total_size;
 	char*    packet = NULL;
-	char     pk_buf[65536];
+	char     pk_buf[MAX_BUFSIZE];
 	uint32_t pos;
 	do{
 
@@ -179,7 +182,7 @@ static int unpack(lua_socket_t c)
 		if(pk_total_size > c->unpack_size)
 			return 1;
 		
-		if(pk_total_size < 65536)
+		if(pk_total_size < MAX_BUFSIZE)
 			packet = pk_buf;
 		else 
 			packet = calloc(1,sizeof(char)*pk_total_size);
@@ -221,11 +224,11 @@ static int unpack(lua_socket_t c)
 static void luasocket_post_recv(lua_socket_t l){
 	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
 		if(!l->recv_buf){
-			l->recv_buf = new_bytebuffer(65536);
+			l->recv_buf = new_bytebuffer(MAX_BUFSIZE);
 			l->recv_pos = 0;
 		}
 		
-		int size = 65536;
+		int size = MAX_BUFSIZE;
 		int c = 0;
 		bytebuffer_t buf = l->recv_buf;
 		int pos = l->recv_pos;
@@ -241,7 +244,7 @@ static void luasocket_post_recv(lua_socket_t l){
 			{
 				pos = 0;
 				if(!buf->next)
-					buf->next = new_bytebuffer(65536);
+					buf->next = new_bytebuffer(MAX_BUFSIZE);
 				buf = buf->next;
 			}
 			++c;
@@ -254,15 +257,20 @@ static void luasocket_post_recv(lua_socket_t l){
 }
 
 static void luasocket_post_send(lua_socket_t l){
+	//printf("luasocket_post_send\n");
 	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
 		int c = 0;
 		sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
-		while(c < 1024 && buf){
-			l->wsendbuf[c].iov_base = buf->buf + buf->index;//buf->buf+buf->index;
+		int size = 0;
+		int send_size = 0;
+		while(c < MAX_WSEND_SIZE && buf/* && send_size < MAX_BUFSIZE*/){
+			l->wsendbuf[c].iov_base = buf->buf + buf->index;
 			l->wsendbuf[c].iov_len  = buf->size;
+			send_size += size;
+			size += buf->size;
 			++c;
 			buf = (sendbuf*)buf->node.next;
-		}
+		}			
 		l->send_overlap.iovec_count = c;
 		l->send_overlap.iovec = l->wsendbuf;
 		kn_post_send(l->sock,&l->send_overlap);		
@@ -289,7 +297,7 @@ static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 	else{
 		while(bytestransfer > 0){
 			sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
-			int size = buf->size - buf->index;
+			int size = buf->size;
 			if(size <= bytestransfer)
 			{
 				bytestransfer -= size;
@@ -297,6 +305,7 @@ static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 				free(buf);
 			}else{
 				buf->index += bytestransfer;
+				buf->size -= bytestransfer;
 				break;
 			}
 		}
@@ -491,7 +500,8 @@ int lua_send(lua_State *L){
 		buf = calloc(1,sizeof(*buf)+size+sizeof(int));
 		*(int*)&buf->buf[0] = size;
 		strcpy(buf->buf+sizeof(int),str);
-		buf->size = size+sizeof(int); 
+		buf->index = 0;
+		buf->size = size+sizeof(int);
 	}else
 	{
 		lua_pushboolean(L,0);	
