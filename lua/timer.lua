@@ -1,4 +1,4 @@
-timer = {
+local timer = {
 	m_size = 0, --元素的数量
 	m_data = {}  --元素
 }
@@ -118,5 +118,13 @@ function timer:Clear()
     end
     self.m_size = 0
 end
+
+local function Timer()
+	return timer:new()
+end
+
+return {
+	Timer = Timer
+}
 
 

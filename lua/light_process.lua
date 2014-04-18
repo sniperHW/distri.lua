@@ -1,3 +1,6 @@
+
+local g_counter = 0
+
 local light_process =
 {
     index = 0,
@@ -10,10 +13,11 @@ local light_process =
 }
 
 local function gen_identity()
-
+	g_counter = g_counter + 1
+	return "" .. C.GetSysTick() .. "" .. g_counter
 end
 
-local function light_process:new(o)
+function light_process:new(o)
   o = o or {}
   setmetatable(o, self)
   self.__index = self

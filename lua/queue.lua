@@ -4,7 +4,7 @@ local queue = {
 	size = 0,
 }
 
-local function queue:new(o)
+function queue:new(o)
   o = o or {}   
   setmetatable(o, self)
   self.__index = self
@@ -14,7 +14,7 @@ local function queue:new(o)
   return o
 end
 
-local function queue:push(msg)
+function queue:push(msg)
         local node = { value = msg,next = nil}
         if not self.tail then
                 self.head = node
@@ -26,7 +26,7 @@ local function queue:push(msg)
 	self.size = self.size + 1
 end
 
-local function queue:pop()
+function queue:pop()
     if not self.head then
 		return nil
 	else
@@ -41,11 +41,11 @@ local function queue:pop()
 	end
 end
 
-local function queue:is_empty()
+function queue:is_empty()
 	return self.size == 0
 end
 
-local function queue:len()
+function queue:len()
 	return self.size
 end
 

@@ -1,4 +1,9 @@
 local LightProcess = require "lua/light_process"
+local Timer = require "lua/timer"
+
+
+local lightprocesses = {}
+
 local scheduler =
 {
     pending_add,  --等待添加到活动列表中的coObject
@@ -7,22 +12,22 @@ local scheduler =
     current_lp
 }
 
-local function scheduler:new(o)
+function scheduler:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
     return o
 end
 
-local function scheduler:init()
-    self.m_timer = timer:new()
+function scheduler:init()
+    self.m_timer = Timer.Timer()
     self.pending_add = {}
     self.current_lp = nil
     self.CoroCount = 0
 end
 
 --添加到活动列表中
-local function scheduler:Add2Active(lprocess)
+function scheduler:Add2Active(lprocess)
     if lprocess.status == "actived" then
         return
     end
@@ -30,7 +35,7 @@ local function scheduler:Add2Active(lprocess)
     table.insert(self.pending_add,lprocess)
 end
 
-local function scheduler:Block(ms)
+function scheduler:Block(ms)
     local lprocess = self.current_lp
     if ms and ms > 0 then
         local nowtick = GetSysTick()
@@ -53,7 +58,7 @@ end
 
 
 --睡眠ms
-local function scheduler:Sleep(ms)
+function scheduler:Sleep(ms)
     local lprocess = self.current_lp
     if ms and ms > 0 then
         lprocess.timeout = GetSysTick() + ms
@@ -70,13 +75,13 @@ local function scheduler:Sleep(ms)
 end
 
 --暂时释放执行权
-local function scheduler:Yield()
+function scheduler:Yield()
     self:Sleep(0)
 end
 
 
 --主调度循环
-local function scheduler:Schedule()
+function scheduler:Schedule()
     local runlist = {}
     --将pending_add中所有coObject添加到活动列表中
     for k,v in pairs(self.pending_add) do
@@ -84,7 +89,7 @@ local function scheduler:Schedule()
     end
 
     self.pending_add = {}
-    local now_tick = GetSysTick()
+    local now_tick = C.GetSysTick()
     for k,v in pairs(runlist) do
         self.current_lp = v
         coroutine.resume(v.croutine,v)
@@ -97,7 +102,7 @@ local function scheduler:Schedule()
     end
     runlist = {}
     --看看有没有timeout的纤程
-    local now = GetSysTick()
+    local now = C.GetSysTick()
     while self.m_timer:Min() ~=0 and self.m_timer:Min() <= now do
         local lprocess = self.m_timer:PopMin()
         if lprocess.status == "block" or lprocess.status == "sleep" then
@@ -108,12 +113,12 @@ local function scheduler:Schedule()
     return #self.pending_add
 end
 
-local function scheduler:WakeUp(lprocess)
+function scheduler:WakeUp(lprocess)
     self:Add2Active(lprocess)
 end
 
 local global_sc = scheduler:new()
-local global_sc:init()
+global_sc:init()
 
 local function Yield()
     global_sc:Yield()
@@ -136,7 +141,7 @@ local function GetCurrentLightProcess()
 end
 
 local function GetLightProcessByIdentity(identity)
-
+	return lightprocesses[identity]
 end
 
 local function Schedule()
@@ -144,22 +149,24 @@ local function Schedule()
 end
 
 local function lp_start_fun(lp)
-    print("lp_start_fun")
+    --print("lp_start_fun")
 	global_sc.CoroCount = global_sc.CoroCount + 1
 	
     local _,err = pcall(lp.start_func,lp.ud)
     if err then
         print(err)
     end
+    lightprocesses[lprocess.identity] = nil
 	lp.status = "dead"
 	lp.ud = nil
 	global_sc.CoroCount = global_sc.CoroCount - 1
-	print("end lp_start_fun")
+	--print("end lp_start_fun")
 end
 
 local function Spawn(func,ud)
-    print("node_spwan")
+    --print("node_spwan")
     local lprocess = LightProcess.NewLightProcess(lp_start_fun,ud,func)
+    lightprocesses[lprocess.identity] = lprocess
     global_sc:Add2Active(lprocess)
 end
 
@@ -170,6 +177,7 @@ return {
 		Block = Block,
 		WakeUp = WakeUp,
 		GetCurrentLightProcess = GetCurrentLightProcess,
+		GetLightProcessByIdentity = GetLightProcessByIdentity,
 		Schedule = Schedule
 }
 

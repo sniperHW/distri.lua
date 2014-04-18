@@ -1,20 +1,22 @@
 local Sche = require "lua/scheduler"
 local Que =  require "lua/queue"
+local Tb2Str = require "lua/table2str"
 
 local name2socket = {}               --名字到套接口的映射
 local rpc_function = {}              --本服务提供的远程方法
 local remotefunc_provider = {}       --远程方法提供者
-local service_name                   --本服务的名字
 local service_info                   --本服务的基本信息
 local name_service                   --名字服务地址信息
 local on_disconnected                --与一个服务的连接断开后回调
-local msgque = Queue()
-local lp_wait_on_msgque = Queue()    --阻塞在提取msg上的light process
+local msgque = Que.Queue()
+local lp_wait_on_msgque = Que.Queue()    --阻塞在提取msg上的light process
+
+--forword declare
+local get_remote_by_name
+local RPCCall
 
 local function connect(remote_addr,timeout)
-	local proto =  remote_addr.proto
-	local socktype = remote_addr.socktype
-	if proto == IPPROTO_TCP and socktype == SOCK_STREAM then
+	--if proto == IPPROTO_TCP and socktype == SOCK_STREAM then
 		local block = {}
 		block.lp = Sche.GetCurrentLightProcess()
 		block.sock = nil
@@ -24,7 +26,7 @@ local function connect(remote_addr,timeout)
 		end
 		block.onconnected = function (s)
 								block.flag = 1
-								if Sche.GetCurrentLightProcess() != block.lp then
+								if Sche.GetCurrentLightProcess() ~= block.lp then
 									block.sock = s
 									Sche.WakeUp(block.lp)
 								end
@@ -36,20 +38,21 @@ local function connect(remote_addr,timeout)
 			Sche.Block()
 		end
 		return block.sock	
-	end
-	return nil
+	--end
+	--return nil
 end
 
 local pending_rpc = {} --尚未完成的rpc请求，记录下来，如果远程连接断开，立刻唤醒
 local function rpc_call(remote,func,arguments)
 	local lp = Sche.GetCurrentLightProcess()
 	local msg = {
+		name = service_info.name,
 		coroidentity = lp.identity,
 		type = "rpc",
 		func = func,
 		param = arguments,
 	}
-	C.send(remote,msg,nil)
+	C.send(remote,Tb2Str.Table2Str(msg),nil)
 	local pending = pending_rpc[remote]
 	if not pending then
 		pending = {}
@@ -61,11 +64,11 @@ local function rpc_call(remote,func,arguments)
 	Sche.Block()
 	lp.block = nil
 	pending[lp] = nil
-	return block.err,block.ret
+	return block.ret,block.err
 end
 
 local function disconnect(s)
-	local name = get_name(s)
+	local name = C.get_name(s)
 	if name then
 		name2socket[name] = nil
 	end
@@ -94,53 +97,71 @@ local function on_rpc_response(response)
 	end 
 end
 
+local function process_rpc(request)
+	local remote = request.sock
+	local msg = request.msg
+	--处理远程调用
+	local err,ret
+	if msg.func then
+		local func = rpc_function[msg.func]
+		if func then
+			err,ret = func(msg.param)
+			if not err and msg.func == "Register" then
+				C.set_name(remote,msg.param.name)
+			end
+		else
+			err = "cannot find remote function:" .. msg.func
+		end
+	else
+		err = "must privide function name"
+	end
+	
+	local response = {
+						type         = "rpc_response",
+						coroidentity = msg.coroidentity,
+						err          = err,
+						ret          = ret
+					  }
+	
+	if service_info.name ~= "nameservice" then
+		remote = get_remote_by_name(msg.name)
+	end			  
+	if remote then
+		C.send(remote,Tb2Str.Table2Str(response),nil)
+	end		
+end
+
+
 --返回rpc响应
-local function rpc_response(name,s,coroidentity,ret,err)
+local function rpc_response(res)
 	local response = {
 						type = "rpc_response",
-						coroidentity=coroidentity,
-						err = err,
-						ret = ret
+						coroidentity=res.identity,
+						err = res.err,
+						ret = res.ret
 					  }
-	local remote = s
+	local remote = res.sock
 	if not remote then
-		remote = get_remote_by_name(name)
+		remote = get_remote_by_name(res.name)
 	end				  
 	if remote then
-		C.send(remote,response,nil)
+		C.send(remote,Tb2Str.Table2Str(response),nil)
 	end	
 end
 
 local function on_data(s,data,err)
 	if not data then
-		local name = get_name(s)
-		if name then
+		local name = C.get_name(s)
+		if name and on_disconnected then
 			on_disconnected(name)
 		end
 		disconnect(s)
 	else
-		local msg = table2str.Str2Table(data)
+		local msg = Tb2Str.Str2Table(data)
 		if msg.type == "rpc_response" then
 			on_rpc_response(msg)
 		elseif msg.type == "rpc" then
-			--处理远程调用
-			local err,ret
-			if not msg.func then
-				local func = rpc_function[msg.func]
-				if func then
-					err,ret = func(s,msg.param)
-				else
-					err = "cannot find remote function:" .. msg.func	
-				end
-			else
-				err = "must privide function name"
-			end
-			
-			if service_name == "nameservice" then
-				rpc_response(nil,s,msg.coroidentity,ret,err)
-			else
-				rpc_response(msg.name,nil,msg.coroidentity,ret,err)
-			end		
+			Sche.Spawn(process_rpc,{sock=s,msg=msg})
 		elseif msg.type == "msg" then
 			--投入到队列
 			msgque:push(msg)
@@ -155,7 +176,7 @@ local function bind(s,name)
 	local ret = C.bind(s,{recvfinish=on_data}) 
 	if ret and name then
 		name2socket[name] = s
-		set_name(s,name)
+		C.set_name(s,name)
 	end
 	return ret
 end
@@ -163,9 +184,18 @@ end
 local function connect_and_register2name()
 	local nservice = connect(name_service,30000)
 	if nservice then
-		bind(nservice,"nameservice")	
-		local ret,err = rpc_call(nservice,"Register",name_service)
-		if not err then
+		bind(nservice,"nameservice")
+		print("connect to nameservice sucess")
+		
+		local info = {}
+		info.name = service_info.name
+		info.info = service_info.addrinfo
+		info.remote_func = {}
+		for k,v in pairs(rpc_function) do
+			table.insert(info.remote_func,k)
+		end	
+		local ret,err = rpc_call(nservice,"Register",info)
+		if err then
 			C.close(nservice)
 			nservice = nil
 		end
@@ -184,47 +214,55 @@ local pending_getremote = {}
 连接，而是将自己也插入到pending_getremote[name]中.当第一个请求成功或失败，都将唤醒pending_getremote[name]
 中的所有coroutine(除自己外).
 ]]--
-local get_remote_by_name(name)
+get_remote_by_name = function(name)
 	local remote = name2socket[name]
+	local lp = Sche.GetCurrentLightProcess()
 	if not remote then
 		local pending = pending_getremote[name]
 		if not pending then
-			local tmp = {}
-			local self = Sche.GetCurrentLightProcess()
-			table.insert(tmp,self)
+			local pending = {}
+			table.insert(pending,lp)
+			pending_getremote[name] = pending
 			if name == "nameservice" then
 				remote = connect_and_register2name()
 			else
-				local remote_info,err = RpcCall("nameservice","GetInfo",{name})	
+				local remote_info,err = RPCCall("nameservice","GetInfo",{service_name=name})
+				print("return from GetInfo")	
 				if remote_info then
 					remote = connect(remote_info.addr,30000)
 					if remote then
-						C.bind(remote,name)
+						print("connect to " .. name .. "success")
+						bind(remote,name)
 					end
-				end	
-			end
-			
-			pending = pending_getremote[name]
-			for k,v in pairs(pending) do
-				if v ~= self then
-					v.remote = remote
-					Sche.WakeUp(v.lp)
+				else
+					print("can not find " .. name)
 				end
 			end
-			pending[name] = nil
+			
+			for k,v in pairs(pending) do
+				if v ~= lp then
+					v.block.remote = remote
+					Sche.WakeUp(v)
+				end
+			end
+			pending_getremote[name] = nil
 		else
+			print("already pending")
 			local block = {}
-			block.lp = Sche.GetCurrentLightProcess()
+			block.lp = lp
 			block.remote = nil
-			table.insert(pending,block)
+			lp.block = block
+			table.insert(pending,lp)
 			Sche.Block()
 			remote = block.remote
 		end
+	--else
+	--	print("get remote")
 	end
 	return remote
 end
 
-local function RPCCall(name,funcname,arguments)
+RPCCall = function(name,funcname,arguments)
 	
 	if not Sche.GetCurrentLightProcess() then
 		return nil,"RpcCall should be call in a coroutine"
@@ -249,8 +287,8 @@ local function SendMsg(name,msg)
 	if not remote then
 		return "cannot communicate to " .. name
 	else
-		msg.name = service_name
-		if not C.send(remote,{type = "msg",msg = msg},nil) then
+		msg.name = service_info.name
+		if not C.send(remote,Tb2Str.Table2Str({type = "msg",msg = msg}),nil) then
 			return "error on SendMsg"
 		else
 			return nil
@@ -271,12 +309,13 @@ local function GetRemoteFuncProvider(funcname)
 	return ret]]--
 end
 
-local function RegRPCFunction(name,func) 
+local function RegRPCFunction(name,func)
+	print("RegRPCFunction " .. name)
 	rpc_function[name] = func
 end
 
 local function on_newclient(s)
-	if not bind(nil,s) then
+	if not bind(s,nil) then
 		C.close(s)
 	end
 end
@@ -284,10 +323,10 @@ end
 local function StartLocalService(local_name,local_socktype,local_addr,cb_disconnected)
 	service_info = {
 		name = local_name,
-		addrinfo = {type = local_socktype,addr = local_addr},
-		remote_func = rpc_function
+		addrinfo = {type = local_socktype,addr = local_addr}
 	}
 	on_disconnected = cb_disconnected
+	print(on_disconnected)
 	return C.listen(IPPROTO_TCP,local_socktype,local_addr,{onaccept=on_newclient})
 end
 

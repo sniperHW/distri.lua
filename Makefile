@@ -1,9 +1,9 @@
-CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt -ltcmalloc -rdynamic -ldl -lm -lluajit-5.1
+CFLAGS = -O2 -g -Wall -fno-strict-aliasing
+LDFLAGS = -lpthread -lrt -llua -lm -ldl -ltcmalloc 
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -I../cproactor/include -I..
-DEFINE = -D_DEBUG -D_LINUX -DUSE_LUAJIT
+DEFINE = -D_DEBUG -D_LINUX
 
 kendynet.a: \
 		   ../cproactor/src/kn_connector.c \

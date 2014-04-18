@@ -40,7 +40,7 @@ local function Str2Table(str)
 	return assert(loadstring(str)())
 end
 
-
+--[[
 local tb = {name = "sniperHW",age = 32,address={"shanghai","shaoguan"}}
 local str = Table2Str(tb)
 print(str)
@@ -51,7 +51,7 @@ for k,v in pairs(tb) do
 		print(k .. ":" .. v)
 	end
 end
-
+]]--
 return {
 	Table2Str = Table2Str,
 	Str2Table = Str2Table

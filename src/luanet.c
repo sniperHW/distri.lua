@@ -6,6 +6,7 @@
 #include "kn_time.h"
 #include "kn_ref.h"
 #include "kn_list.h"
+#include "kn_time.h"
 
 static kn_proactor_t g_proactor = NULL;
 static lua_State*    g_L = NULL;
@@ -72,6 +73,7 @@ typedef struct lua_socket{
 	bytebuffer_t unpack_buf;
 	kn_socket_t  sock;
 	luaObject_t  callbackObj;//存放lua回调函数
+	char         name[512];  //use by lua
 }*lua_socket_t;
 
 typedef struct sendbuf{
@@ -281,6 +283,7 @@ static void stream_recv_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 
 static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,int32_t err)
 {
+	//printf("stream_send_finish %d ,%x\n",bytestransfer,(int)l);
 	if(bytestransfer <= 0)
 		l->status = lua_socket_writeclose;
 	else{
@@ -307,7 +310,7 @@ static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 
 static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer,int32_t err)
 {   
-	//printf("stream_transfer_finish\n");
+	//printf("stream_transfer_finish %d\n",bytestransfer);
     lua_socket_t l = (lua_socket_t)kn_socket_getud(s);
     kn_ref_acquire(&l->ref);
     //防止l在callback中被释放
@@ -502,14 +505,16 @@ int lua_send(lua_State *L){
 	release_luaObj(addr_remote);
 	//if(addr_remote)
 	//	buf->remote = *addr_remote;
-	kn_list_pushback(&l->send_list,(kn_list_node*)buf);
 	
-	luasocket_post_send(l);
+	int size = kn_list_size(&l->send_list);
+	kn_list_pushback(&l->send_list,(kn_list_node*)buf);
+	if(!size)
+		luasocket_post_send(l);
 	lua_pushboolean(L,1);	
 	return 1;
 }
 
-static void lua_run(lua_State *L){
+int lua_run(lua_State *L){
 	if(!recv_sigint){
 		if(lua_isnumber(L,-1)){
 			uint32_t ms = lua_tonumber(L,-1);
@@ -546,8 +551,25 @@ int lua_bind(lua_State *L){
 	return 1;
 }
 
+int lua_getsystick(lua_State *L){
+	lua_pushnumber(L,kn_systemms());
+	return 1;
+}
 
-void RegisterNet(lua_State *L){  
+int lua_setname(lua_State *L){
+	lua_socket_t l = lua_touserdata(L,1);
+	const char *name = lua_tostring(L,2);
+	strncpy(l->name,name,512);
+	return 0;
+}
+
+int lua_getname(lua_State *L){
+	lua_socket_t l = lua_touserdata(L,1);
+	lua_pushstring(L,l->name);
+	return 1;
+}
+
+void RegisterNet(lua_State *L,const char *lfile){  
     
     lua_getglobal(L,"_G");
 	if(!lua_istable(L, -1))
@@ -613,8 +635,24 @@ void RegisterNet(lua_State *L){
 
 	lua_pushstring(L,"run");
 	lua_pushcfunction(L,&lua_run);
-	lua_settable(L, -3);	
-
+	lua_settable(L, -3);
+	
+	lua_pushstring(L,"GetSysTick");
+	lua_pushcfunction(L,&lua_getsystick);
+	lua_settable(L, -3);
+	
+	lua_pushstring(L,"set_name");
+	lua_pushcfunction(L,&lua_setname);
+	lua_settable(L, -3);
+	
+	lua_pushstring(L,"get_name");
+	lua_pushcfunction(L,&lua_getname);
+	lua_settable(L, -3);		
+	
+	lua_pushstring(L,"startfile");
+	lua_pushstring(L,lfile);
+	lua_settable(L, -3);
+	
 	lua_setglobal(L,"C");
 	g_L = L;
 	kn_net_open();
@@ -631,17 +669,17 @@ int main(int argc,char **argv)
 	}
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
-	RegisterNet(L);
-	if (luaL_dofile(L,"start.lua")) {
+	RegisterNet(L,argv[1]);
+	if (luaL_dofile(L,"lua/start.lua")) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
 	}
-	if(CALL_LUA_FUNC1(L,"start",0,argv[1]))
+	/*if(CALL_LUA_FUNC1(L,"start",0,lua_pushstring(L,argv[1])))
 	{
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
-	}
+	}*/
 	return 0;
 } 
