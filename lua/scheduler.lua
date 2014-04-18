@@ -146,7 +146,11 @@ end
 local function lp_start_fun(lp)
     print("lp_start_fun")
 	global_sc.CoroCount = global_sc.CoroCount + 1
-	lp.start_func(lp.ud)
+	
+    local _,err = pcall(lp.start_func,lp.ud)
+    if err then
+        print(err)
+    end
 	lp.status = "dead"
 	lp.ud = nil
 	global_sc.CoroCount = global_sc.CoroCount - 1

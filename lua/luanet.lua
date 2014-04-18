@@ -1,7 +1,5 @@
 local Sche = require "lua/scheduler"
 local Que =  require "lua/queue"
---名字到连接的映射
-local name_associate_data = {}
 
 local name2socket = {}               --名字到套接口的映射
 local rpc_function = {}              --本服务提供的远程方法
@@ -42,19 +40,27 @@ local function connect(remote_addr,timeout)
 	return nil
 end
 
+local pending_rpc = {} --尚未完成的rpc请求，记录下来，如果远程连接断开，立刻唤醒
 local function rpc_call(remote,func,arguments)
 	local lp = Sche.GetCurrentLightProcess()
 	local msg = {
-		name = local_name,
 		coroidentity = lp.identity,
 		type = "rpc",
 		func = func,
 		param = arguments,
 	}
 	C.send(remote,msg,nil)
+	local pending = pending_rpc[remote]
+	if not pending then
+		pending = {}
+		pending_rpc[remote] = pending
+	end
+	pending[lp] = lp
 	local block = {}
 	lp.block = block
 	Sche.Block()
+	lp.block = nil
+	pending[lp] = nil
 	return block.err,block.ret
 end
 
@@ -64,6 +70,17 @@ local function disconnect(s)
 		name2socket[name] = nil
 	end
 	--处理没有完成的远程调用
+	local pending = pending_rpc[s]
+	if pending then
+		for _ , v in pairs(pending) do
+			if v.block then
+				v.block.ret = nil
+				v.block.err = "remote disconnect"
+				Sche.WakeUp(v)
+			end
+		end
+		pending_rpc[s] = nil
+	end
 	C.close(s)
 end
 
@@ -74,7 +91,6 @@ local function on_rpc_response(response)
 	   lp.block.err = response.err
 	   lp.block.ret = response.ret
 	   Sche.WakeUp(lp)
-	   lp.block = nil
 	end 
 end
 
@@ -157,11 +173,22 @@ local function connect_and_register2name()
 	return nservice
 end
 
+
+
+local pending_getremote = {}
+
+--[[
+当name2socket[name] == nil的时候，如果多个coroutine同时对同一个name调用get_remote_by_name
+会产生逻辑错误.所以当name2socket[name] == nil,coroutine请求对name建立连接时将当前的coroutine
+插入到pending_getremote[name]中,后面到来的请求发现pending_getremote[name]不为空则不再请求建立
+连接，而是将自己也插入到pending_getremote[name]中.当第一个请求成功或失败，都将唤醒pending_getremote[name]
+中的所有coroutine(除自己外).
+]]--
 local get_remote_by_name(name)
 	local remote = name2socket[name]
 	if not remote then
-		local associate_data = name_associate_data[name]
-		if not associate_data then
+		local pending = pending_getremote[name]
+		if not pending then
 			local tmp = {}
 			local self = Sche.GetCurrentLightProcess()
 			table.insert(tmp,self)
@@ -177,19 +204,19 @@ local get_remote_by_name(name)
 				end	
 			end
 			
-			associate_data = name_associate_data[name]
-			for k,v in associate_data do
+			pending = pending_getremote[name]
+			for k,v in pairs(pending) do
 				if v ~= self then
 					v.remote = remote
 					Sche.WakeUp(v.lp)
 				end
 			end
-			name_associate_data[name] = nil
+			pending[name] = nil
 		else
 			local block = {}
 			block.lp = Sche.GetCurrentLightProcess()
 			block.remote = nil
-			table.insert(associate_data,block)
+			table.insert(pending,block)
 			Sche.Block()
 			remote = block.remote
 		end
@@ -222,7 +249,12 @@ local function SendMsg(name,msg)
 	if not remote then
 		return "cannot communicate to " .. name
 	else
-		return C.send(remote,{type = "msg",msg  = msg},nil) 	
+		msg.name = service_name
+		if not C.send(remote,{type = "msg",msg = msg},nil) then
+			return "error on SendMsg"
+		else
+			return nil
+		end 	
 	end
 end
 
@@ -269,7 +301,7 @@ local function GetMsg()
 		lp_wait_on_msgque:push(lp)
 		Sche.Block()
 	end
-	return msgque:pop()
+	return msgque:pop(),nil
 end	
 
 return {
