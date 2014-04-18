@@ -61,7 +61,7 @@ end
 function scheduler:Sleep(ms)
     local lprocess = self.current_lp
     if ms and ms > 0 then
-        lprocess.timeout = GetSysTick() + ms
+        lprocess.timeout = C.GetSysTick() + ms
         if lprocess.index == 0 then
             self.m_timer:Insert(lprocess)
         else
@@ -125,7 +125,7 @@ local function Yield()
 end
 
 local function Sleep(ms)
-    global_sc:Yield(ms)
+    global_sc:Sleep(ms)
 end
 
 local function Block(ms)

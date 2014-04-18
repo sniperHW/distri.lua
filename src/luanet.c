@@ -63,7 +63,7 @@ typedef struct lua_socket{
 	st_io        send_overlap;
 	st_io        recv_overlap;
 	struct       iovec wrecvbuf[2];
-	struct       iovec wsendbuf[512];
+	struct       iovec wsendbuf[1024];
 	uint8_t      status;	
 	kn_list      send_list;
 	uint32_t     unpack_size; //还未解包的数据大小
@@ -257,7 +257,7 @@ static void luasocket_post_send(lua_socket_t l){
 	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
 		int c = 0;
 		sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
-		while(c < 512 && buf){
+		while(c < 1024 && buf){
 			l->wsendbuf[c].iov_base = buf->buf + buf->index;//buf->buf+buf->index;
 			l->wsendbuf[c].iov_len  = buf->size;
 			++c;
@@ -396,8 +396,7 @@ static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err
 		lua_settable(g_L, -3);			
 	}
 	lua_pushnumber(g_L,err);
-	
-	kn_ref_acquire(&l->ref);
+	if(l) kn_ref_acquire(&l->ref);
 	
 	if(0 != lua_pcall(g_L,3,0,0))
 	{
@@ -406,7 +405,7 @@ static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err
 		lua_pop(g_L,1);		
 	}
 	lua_pop(g_L,1);
-	kn_ref_release(&l->ref);
+	if(l) kn_ref_release(&l->ref);
 	release_luaObj(obj);
 }
 
