@@ -1,4 +1,4 @@
-local LightProcess = require "lua/light_process"
+local LightProcess = require "lua/lightprocess"
 local Timer = require "lua/timer"
 
 

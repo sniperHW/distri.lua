@@ -1,7 +1,7 @@
 
 local g_counter = 0
 
-local light_process =
+local lightprocess =
 {
     index = 0,
     status = nil,
@@ -17,7 +17,7 @@ local function gen_identity()
 	return "" .. C.GetSysTick() .. "" .. g_counter
 end
 
-function light_process:new(o)
+function lightprocess:new(o)
   o = o or {}
   setmetatable(o, self)
   self.__index = self
@@ -32,7 +32,7 @@ function light_process:new(o)
 end
 
 local function NewLightProcess(routine,ud,st_func)
-    local lprocess = light_process:new()
+    local lprocess = lightprocess:new()
     lprocess.croutine = coroutine.create(routine)
     lprocess.ud = ud
     lprocess.start_func = st_func
