@@ -77,6 +77,7 @@ typedef struct lua_socket{
 	kn_socket_t  sock;
 	luaObject_t  callbackObj;//存放lua回调函数
 	char         name[512];  //use by lua
+	char         packet[MAX_BUFSIZE];
 }*lua_socket_t;
 
 typedef struct sendbuf{
@@ -136,7 +137,7 @@ static void update_recv_pos(lua_socket_t c,int32_t _bytestransfer)
 		if(c->recv_pos >= c->recv_buf->cap)
 		{
 			if(!c->recv_buf->next)
-				c->recv_buf->next = new_bytebuffer(65536);
+				c->recv_buf->next = new_bytebuffer(MAX_BUFSIZE);
 			c->recv_buf = c->recv_buf->next;
 			c->recv_pos = 0;
 		}
@@ -170,8 +171,8 @@ static int unpack(lua_socket_t c)
 {
 	uint32_t pk_len = 0;
 	uint32_t pk_total_size;
-	char*    packet = NULL;
-	char     pk_buf[MAX_BUFSIZE];
+	//char*    packet = NULL;
+	//char     pk_buf[MAX_BUFSIZE];
 	uint32_t pos;
 	do{
 
@@ -179,19 +180,23 @@ static int unpack(lua_socket_t c)
 			return 1;
 		bytebuffer_read(c->unpack_buf,c->unpack_pos,(int8_t*)&pk_len,sizeof(pk_len));
 		pk_total_size = pk_len+sizeof(pk_len);
+		
+		if(pk_total_size > MAX_BUFSIZE)
+			return -1;
+		
 		if(pk_total_size > c->unpack_size)
 			return 1;
 		
-		if(pk_total_size < MAX_BUFSIZE)
-			packet = pk_buf;
-		else 
-			packet = calloc(1,sizeof(char)*pk_total_size);
+		//if(pk_total_size < MAX_BUFSIZE)
+		//	packet = pk_buf;
+		//else 
+		//	packet = calloc(1,sizeof(char)*pk_total_size);
 		pos = 0;
 		//调整unpack_buf和unpack_pos
 		do{
 			uint32_t size = c->unpack_buf->size - c->unpack_pos;
 			size = pk_total_size > size ? size:pk_total_size;
-			memcpy(packet+pos,&c->unpack_buf->data[c->unpack_pos],size);
+			memcpy(&c->packet[pos],&c->unpack_buf->data[c->unpack_pos],size);
 			pos += size;
 			c->unpack_pos  += size;
 			pk_total_size  -= size;
@@ -206,13 +211,13 @@ static int unpack(lua_socket_t c)
 			}
 		}while(pk_total_size);
 		
-		if(packet){
+		//if(packet){
 			//传递给应用
-			do_callback(c,&packet[sizeof(int)],0);
-			if(packet != pk_buf)
-				free(packet);
-			packet = NULL;
-		}
+		do_callback(c,&c->packet[sizeof(int)],0);
+			//if(packet != pk_buf)
+			//	free(packet);
+			//packet = NULL;
+		//}
 		
 		if(c->status == lua_socket_close)
 			return 0;
@@ -279,13 +284,18 @@ static void luasocket_post_send(lua_socket_t l){
 
 static void stream_recv_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,int32_t err)
 {
+	int ret;
 	if(bytestransfer <= 0){
 		do_callback(l,NULL,err);
 	}else{
 		update_recv_pos(l,bytestransfer);
 		l->unpack_size += bytestransfer;
-		if(!unpack(l)) return;
-		luasocket_post_recv(l);
+		ret = unpack(l);
+		if(ret > 0)
+			luasocket_post_recv(l);
+		else if(ret < 0){
+			do_callback(l,NULL,err);
+		}
 	}
 }
 
@@ -497,6 +507,12 @@ int lua_send(lua_State *L){
 	if(lua_isstring(L,2)){
 		str = lua_tostring(L,2);
 		int size = strlen(str)+1;
+		if(size > MAX_BUFSIZE - sizeof(int)){
+			//记录日志，包长度过长
+			lua_pushboolean(L,0);
+			lua_pushstring(L,"packet to lagre");	
+			return 2;
+		}
 		buf = calloc(1,sizeof(*buf)+size+sizeof(int));
 		*(int*)&buf->buf[0] = size;
 		strcpy(buf->buf+sizeof(int),str);
@@ -504,8 +520,9 @@ int lua_send(lua_State *L){
 		buf->size = size+sizeof(int);
 	}else
 	{
-		lua_pushboolean(L,0);	
-		return 1;
+		lua_pushboolean(L,0);
+		lua_pushstring(L,"can only send string");	
+		return 2;
 	}
 	luaObject_t  addr_remote = NULL;
 	if(!lua_isnil(L,3))
