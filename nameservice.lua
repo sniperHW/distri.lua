@@ -105,7 +105,7 @@ local function service_disconnected(name)
 	end
 end
 
+
 print("nameservice start listen on 8010")
 luanet.StartLocalService("nameservice",SOCK_STREAM,netaddr.netaddr_ipv4("127.0.0.1",8010),service_disconnected)
-
 

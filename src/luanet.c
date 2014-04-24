@@ -594,6 +594,31 @@ int lua_getname(lua_State *L){
 	lua_pushstring(L,l->name);
 	return 1;
 }
+/*
+int tab2str(luaObject_t tb,char *buf,int sizeremian){
+	
+
+}
+
+int lua_tab2str(lua_State *L){
+	luaObject_t tb = create_luaObj(L,1);
+	if(tb){
+		char buf[65536];
+		int sizeremian = 65536;
+		LUAOBJECT_ENUM(tb){
+			//process key
+			if(lua_isstring(L,-2){
+			}else if(lua_isinterget(L,-2)){
+				
+			}else if(lua_isnumber(L,-2)){
+				
+			}
+		
+		}
+	}else
+		lua_pushnil(L);
+	return 1;
+}*/
 
 void RegisterNet(lua_State *L,const char *lfile){  
     
@@ -692,6 +717,7 @@ int main(int argc,char **argv)
 {
 	if(argc < 2){
 		printf("usage luanet luafile\n");
+		return;
 	}
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
@@ -700,6 +726,6 @@ int main(int argc,char **argv)
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
-	}
+	}	
 	return 0;
 } 

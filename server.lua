@@ -20,4 +20,6 @@ while not luanet.Register2Name(netaddr.netaddr_ipv4("127.0.0.1",8010)) do
 	Sche.Sleep(1000)
 end
 
-print("register sucess")
+
+
+

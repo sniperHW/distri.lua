@@ -145,7 +145,7 @@ local function GetLightProcessByIdentity(identity)
 end
 
 local function Schedule()
-	global_sc:Schedule()
+	return global_sc:Schedule()
 end
 
 local function lp_start_fun(lp)

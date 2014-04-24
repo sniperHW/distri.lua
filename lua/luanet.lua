@@ -339,7 +339,7 @@ local function StartLocalService(local_name,local_socktype,local_addr,cb_disconn
 		addrinfo = {type = local_socktype,addr = local_addr}
 	}
 	on_disconnected = cb_disconnected
-	for i=1,5000 do
+	for i=1,1024 do
 		Sche.Spawn(
 			function() 
 				while true do
