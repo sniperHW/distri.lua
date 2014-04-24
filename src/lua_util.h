@@ -307,6 +307,6 @@ void        release_luaObj(luaObject_t);
 					int __result;\
 					do __result = lua_next(OBJ->L,-2);\
 					while(0);\
-					if(!__result)lua_pop(OBJ->L,2);\
+					if(!__result)lua_pop(OBJ->L,1);\
 					__result;});lua_pop(OBJ->L,1))
 #endif

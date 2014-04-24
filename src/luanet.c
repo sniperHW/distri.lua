@@ -595,26 +595,66 @@ int lua_getname(lua_State *L){
 	return 1;
 }
 /*
-int tab2str(luaObject_t tb,char *buf,int sizeremian){
-	
-
+int tab2str(luaObject_t tb,char **ptr,int* sizeremain){
+	lua_State *L = tb->L;
+	int s = 0;
+	//process key
+	if(lua_isnumber(L,-2)){
+		s = snprintf(*ptr,*sizeremain,"[%d]=",(int)lua_tonumber(L,-2));	
+		//s = snprintf(*ptr,*sizeremain,"[\"%s\"]=",lua_tostring(L,-2));
+	}else if(lua_isstring(L,-2)){
+		s = snprintf(*ptr,*sizeremain,"[\"%s\"]=",lua_tostring(L,-2));
+	}
+	*ptr += s;
+	*sizeremain -= s;
+	s = 0;		
+	//process value
+	if(lua_isnumber(L,-1)){
+		s = snprintf(*ptr,*sizeremain,"%d",(int)lua_tonumber(L,-1));
+		//s = snprintf(*ptr,*sizeremain,"\"%s\"",lua_tostring(L,-1));
+		*ptr += s;
+		*sizeremain -= s;	
+	}else if(lua_isstring(L,-1)){
+		s = snprintf(*ptr,*sizeremain,"\"%s\"",lua_tostring(L,-1));
+		*ptr += s;
+		*sizeremain -= s;	
+	} 
+	else if(lua_istable(L,-1)){
+		strcat(*ptr,"{");
+		*ptr += 1;
+		*sizeremain -= 1;
+		luaObject_t subtb = create_luaObj(L,-1);
+		LUAOBJECT_ENUM(subtb){
+			tab2str(subtb,ptr,sizeremain);
+			strcat(*ptr,",");
+			*ptr += 1;
+			*sizeremain -= 1;
+		}
+		release_luaObj(subtb);
+		strcat(*ptr,"}");
+		*ptr += 1;
+		*sizeremain -= 1;
+	}			
+	return 0;
 }
+
 
 int lua_tab2str(lua_State *L){
 	luaObject_t tb = create_luaObj(L,1);
 	if(tb){
-		char buf[65536];
-		int sizeremian = 65536;
+		char buf[65536] = "return {";
+		//strcpy(buf,"return {");
+		int sizeremain = 256-strlen(buf);
+		char *ptr = buf+strlen(buf);
 		LUAOBJECT_ENUM(tb){
-			//process key
-			if(lua_isstring(L,-2){
-			}else if(lua_isinterget(L,-2)){
-				
-			}else if(lua_isnumber(L,-2)){
-				
-			}
-		
+			tab2str(tb,&ptr,&sizeremain);
+			strcat(ptr,",");
+			ptr += 1;
+			sizeremain -= 1;
 		}
+		strcat(ptr,"}");
+		release_luaObj(tb);
+		lua_pushstring(L,buf);
 	}else
 		lua_pushnil(L);
 	return 1;
@@ -704,6 +744,10 @@ void RegisterNet(lua_State *L,const char *lfile){
 	lua_pushstring(L,lfile);
 	lua_settable(L, -3);
 	
+	/*lua_pushstring(L,"tab2str");
+	lua_pushcfunction(L,&lua_tab2str);
+	lua_settable(L, -3);	
+	*/
 	lua_setglobal(L,"C");
 	g_L = L;
 	kn_net_open();
@@ -717,7 +761,7 @@ int main(int argc,char **argv)
 {
 	if(argc < 2){
 		printf("usage luanet luafile\n");
-		return;
+		return 0;
 	}
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);

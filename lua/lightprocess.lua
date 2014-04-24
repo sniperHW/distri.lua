@@ -14,7 +14,7 @@ local lightprocess =
 
 local function gen_identity()
 	g_counter = g_counter + 1
-	return "" .. C.GetSysTick() .. "" .. g_counter
+	return "l" .. C.GetSysTick() .. "" .. g_counter
 end
 
 function lightprocess:new(o)

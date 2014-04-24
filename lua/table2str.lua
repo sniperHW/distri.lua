@@ -18,7 +18,7 @@ local function tostr(key,val)
 		end
 		str = str .. "}"
 	elseif type(val) == "string" then
-		str = str .. "'" .. val .. "'"
+		str = str .. "\"" .. val .. "\""
 	else
 		str = str .. val 
 	end
@@ -29,6 +29,7 @@ local function Table2Str(tb)
 	if type(tb) ~= "table" then
 		return nil
 	end
+	--return C.tab2str(tb)
 	local str = "return {"
 	for k,v in pairs(tb) do
 		str = str .. tostr(k,v) .. ","
@@ -40,7 +41,7 @@ local function Str2Table(str)
 	return assert(loadstring(str)())
 end
 
---[[
+
 local tb = {name = "sniperHW",age = 32,address={"shanghai","shaoguan"}}
 local str = Table2Str(tb)
 print(str)
@@ -51,7 +52,7 @@ for k,v in pairs(tb) do
 		print(k .. ":" .. v)
 	end
 end
-]]--
+
 return {
 	Table2Str = Table2Str,
 	Str2Table = Str2Table
