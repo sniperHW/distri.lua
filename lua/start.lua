@@ -1,4 +1,3 @@
---[[
 local Sche = require "lua/scheduler"
 
 --启动一个light process运行主文件
@@ -9,17 +8,7 @@ local ms = 5
 while C.run(ms) do
 	if Sche.Schedule() > 0 then
 		ms = 0
-<<<<<<< HEAD
 	else
 		ms = 5
 	end
-end]]--
-
-
-config = {
-	ip = "127.0.0.1"
-}
-=======
-	end
 end
->>>>>>> d902b23aff69aa820f52795c6ea388309ecace85
