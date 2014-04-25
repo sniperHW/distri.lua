@@ -7,14 +7,13 @@
 
 local luanet = require "lua/luanet"
 local netaddr = require "lua/netaddr"
-local table2str = require "lua/table2str"
 
 all_service = {} --注册上来的服务
 service_remote_func = {} --注册的远程方法
 
 
-
-local function Register(arg)
+luanet.RegRPCFunction("Register",
+function (arg)
 	print("Register")
 	local name = arg.name
 	print(name)
@@ -52,9 +51,10 @@ local function Register(arg)
 	end
 	return nil,{}
 end
-luanet.RegRPCFunction("Register",Register)
+)
 
-local function GetInfo(arg)
+luanet.RegRPCFunction("GetInfo",
+function (arg)
 	print("GetInfo")
 	local name = arg.service_name
 	local ret = nil
@@ -76,9 +76,10 @@ local function GetInfo(arg)
 	end
 	return err,ret 			 
 end
-luanet.RegRPCFunction("GetInfo",GetInfo)
+)
 
-local function GetRemoteFunc(arg)
+luanet.RegRPCFunction("GetRemoteFunc",
+function (arg)
 	local name = arg[1]
 	local ret = {}
 	local services = service_remote_func[name]
@@ -90,7 +91,8 @@ local function GetRemoteFunc(arg)
 	end
 	return nil,ret
 end
-luanet.RegRPCFunction("GetRemoteFunc",GetRemoteFunc)
+)
+
 
 local function service_disconnected(name)
 	print("service_disconnected " .. name)
