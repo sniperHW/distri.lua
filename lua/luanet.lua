@@ -1,7 +1,7 @@
 local Sche = require "lua/scheduler"
 local Que =  require "lua/queue"
-local Tb2Str = require "lua/table2str"
-
+--local Tb2Str = require "lua/table2str"
+local cjson = require "cjson"
 local name2socket = {}                --名字到套接口的映射
 local rpc_function = {}               --本服务提供的远程方法
 local remotefunc_provider = {}        --远程方法提供者
@@ -63,7 +63,7 @@ local function rpc_call(remote,func,arguments)
 		f = func,
 		u = arguments,
 	}
-	C.send(remote,Tb2Str.Table2Str(msg),nil)
+	C.send(remote,cjson.encode(msg),nil)--[[Tb2Str.Table2Str(msg)]]--,nil)
 	local pending = pending_rpc[remote]
 	if not pending then
 		pending = {}
@@ -138,7 +138,7 @@ local function process_rpc(request)
 		remote = get_remote_by_name(msg.n)
 	end			  
 	if remote then
-		C.send(remote,Tb2Str.Table2Str(response),nil)
+		C.send(remote,cjson.encode(response))--[[Table2Str(response),nil)]]--
 	end		
 end
 
@@ -169,7 +169,7 @@ local function on_data(s,data,err)
 		end
 		disconnect(s)
 	else
-		local msg = Tb2Str.Str2Table(data)
+		local msg = cjson.decode(data)--Tb2Str.Str2Table(data)
 		local type = msg.t
 		if type == "rpc_response" then
 			on_rpc_response(msg)
@@ -296,7 +296,7 @@ local function SendMsg(name,msg)
 		return "cannot communicate to " .. name
 	else
 		local packet = {n=service_info.name,t = "msg", u = msg}
-		if not C.send(remote,Tb2Str.Table2Str(packet),nil) then
+		if not C.send(remote,cjson.encode(packet),nil) then--Tb2Str.Table2Str(packet),nil) then
 			return "error on SendMsg"
 		else
 			return nil

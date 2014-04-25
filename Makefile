@@ -1,6 +1,6 @@
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing
+CFLAGS = -O2 -g -Wall -fno-strict-aliasing -rdynamic 
 LDFLAGS = -lpthread -lrt -llua -lm -ldl -ltcmalloc 
-SHARED = -fPIC --shared
+SHARED = -fPIC -shared
 CC = gcc
 INCLUDE = -I../cproactor/include -I..
 DEFINE = -D_DEBUG -D_LINUX

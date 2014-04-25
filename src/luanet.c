@@ -164,7 +164,6 @@ static void do_callback(lua_socket_t l,char *packet,int err){
 		printf("stream_recv_finish:%s\n",error);
 		lua_pop(g_L,1);
 	}
-	lua_pop(g_L,1);	
 }
 
 static int unpack(lua_socket_t c)
@@ -334,10 +333,12 @@ static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer
     kn_ref_acquire(&l->ref);
     //防止l在callback中被释放
     if(!io){
-		lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
+		do_callback(l,NULL,err);
+		/*lua_rawgeti(l->callbackObj->L,LUA_REGISTRYINDEX,l->callbackObj->rindex);
 		lua_pushstring(l->callbackObj->L,"recvfinish");
 		lua_gettable(l->callbackObj->L,-2);
 		if(l->callbackObj->L != g_L) lua_xmove(l->callbackObj->L,g_L,1);
+		lua_pop(l->callbackObj->L,1);
 		lua_pushlightuserdata(g_L,l);
 		lua_pushnil(g_L);
 		lua_pushnumber(g_L,err);				
@@ -347,7 +348,7 @@ static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer
 			printf("stream_transfer_finish:%s\n",error);
 			lua_pop(g_L,1);
 		}
-		lua_pop(g_L,1);                 		
+		lua_pop(g_L,1);*/                 		
 	}else if(io == &l->send_overlap)
 		stream_send_finish(l,io,bytestransfer,err);
 	else if(io == &l->recv_overlap)
@@ -373,7 +374,6 @@ static void on_accept(kn_socket_t s,void *ud){
 		printf("on_accept:%s\n",error);
 		lua_pop(g_L,1);		
 	}
-	lua_pop(g_L,1);
 	kn_ref_release(&c->ref);  		
 }
 
@@ -423,7 +423,6 @@ static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err
 		printf("on_connect:%s\n",error);
 		lua_pop(g_L,1);		
 	}
-	lua_pop(g_L,1);
 	if(l) kn_ref_release(&l->ref);
 	release_luaObj(obj);
 }

@@ -1,13 +1,13 @@
-local net = require "lua/net"
-local table2str = require "lua/table2str"
+local net = require "lua/netaddr"
+local cjson = require "cjson"
 
 function on_data(s,data,err)
 	if not data then
 		print("a client disconnected")
 		C.close(s)
 	else
-		local tb = table2str.Str2Table(data)
-		C.send(s,table2str.Table2Str(tb),nil)
+		local tb = cjson.decode(data)
+		C.send(s,cjson.encode(tb),nil)
 	end
 end
 

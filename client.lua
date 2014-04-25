@@ -1,20 +1,6 @@
 local netaddr = require "lua/netaddr"
-local table2str = require "lua/table2str"
 local Sche = require "lua/scheduler"
 local luanet = require "lua/luanet"
-
---local tick = C.GetSysTick()
---local str = table2str.Table2Str({1,2,3,4,5,6,7,8,9,10})
---for i = 1,100000 do
---	table2str.Table2Str({1,2,3,4,5,6,7,8,9,10})
-	--C.tab2str({1,2,3,4,5,6,7,8,9,10})
-	--table2str.Str2Table(str)
---end
---print(C.GetSysTick() - tick)
-
-
---print(C.tab2str({a=1,b=2,c=3,d=4,e={2,3}}))
-
 
 --启动本地服务
 luanet.StartLocalService("PlusClient",SOCK_STREAM,netaddr.netaddr_ipv4("127.0.0.1",8012))
@@ -46,11 +32,10 @@ local tick = C.GetSysTick()
 local now = C.GetSysTick()
 while true do 
 	now = C.GetSysTick()
-	if now - tick > 1000 then
-		print(count*1000/(now-tick))
+	if now - tick >= 1000 then
+		print(count*1000/(now-tick) .. " " .. now-tick)
 		tick = now
 		count = 0
 	end
-	Sche.Sleep(50)
+	Sche.Sleep(5)
 end
-

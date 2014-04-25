@@ -1,5 +1,4 @@
 local netaddr = require "lua/netaddr"
-local table2str = require "lua/table2str"
 local luanet = require "lua/luanet"
 local Sche = require "lua/scheduler"
 
