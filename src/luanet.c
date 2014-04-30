@@ -164,6 +164,7 @@ static void do_callback(lua_socket_t l,char *packet,int err){
 		printf("stream_recv_finish:%s\n",error);
 		lua_pop(g_L,1);
 	}
+	lua_pop(l->callbackObj->L,1);
 }
 
 static int unpack(lua_socket_t c)
@@ -374,6 +375,7 @@ static void on_accept(kn_socket_t s,void *ud){
 		printf("on_accept:%s\n",error);
 		lua_pop(g_L,1);		
 	}
+	lua_pop(callbackObj->L,1);
 	kn_ref_release(&c->ref);  		
 }
 
@@ -423,6 +425,7 @@ static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err
 		printf("on_connect:%s\n",error);
 		lua_pop(g_L,1);		
 	}
+	lua_pop(obj->L,1);
 	if(l) kn_ref_release(&l->ref);
 	release_luaObj(obj);
 }
