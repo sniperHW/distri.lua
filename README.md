@@ -27,6 +27,11 @@
 	GetRemoteFuncProvider(funcname)
 	返回所有提供funcname远程方法的服务的名字(自己除外)
 	
+###安装
+
+		make luanet
+
+	
 ###性能测试
 
 测试环境 intel-i5 双核 2.53HZ 服务器客户端均在本机运行
