@@ -177,7 +177,21 @@ luanet rpc测试：客户端调用服务端的Plus函数,函数只是把客户�
 平均每秒rpc调用次数在6,8000左右.而用C+协程实现的版本在70,0000左右.我试着用luajit来运行
 同样的测试,非常意外的是性能差了一大截,只有可怜的4,000次,具体原因还在调查中.
 
-测试代码:[server.lua](https://github.com/sniperHW/luanet/blob/master/server.lua),[client.lua](https://github.com/sniperHW/luanet/blob/master/client.lua)	
+测试代码:[server.lua](https://github.com/sniperHW/distri.lua/blob/master/server.lua),[client.lua](https://github.com/sniperHW/distri.lua/blob/master/client.lua)
+
+后续开发计划:
+
++ 增加新的二进制序列化机制
+
++ 异步日志系统
+
++ 异步磁盘文件IO
+
++ 多线程支持(通过Fork API创建一个新线程运行独立的虚拟机,各线程间通过channel通信)
+
++ 异步数据库访问(通过线程模块实现) 
+
+
 
 
 
