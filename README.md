@@ -179,7 +179,7 @@ luanet rpc测试：客户端调用服务端的Plus函数,函数只是把客户�
 
 测试代码:[server.lua](https://github.com/sniperHW/distri.lua/blob/master/server.lua),[client.lua](https://github.com/sniperHW/distri.lua/blob/master/client.lua)
 
-后续开发计划:
+###后续开发计划:
 
 + 增加新的二进制序列化机制
 
