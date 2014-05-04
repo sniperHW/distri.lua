@@ -7,14 +7,14 @@ int main(int argc,char **argv){
 	kn_net_open();	
 	kn_proactor_t p = kn_new_proactor();
 	kn_sockaddr local;
-	kn_socket_t l;
+	kn_fd_t l;
 	unlink(argv[1]);
 	kn_addr_init_un(&local,argv[1]);
 	//kn_addr_init_in(&local,argv[1],atoi(argv[2]));
 	l = kn_dgram_listen(p,0,SOCK_DGRAM,&local,transfer_finish);	
  	struct dgram_session *session = calloc(1,sizeof(*session));
 	session->s = l;  
- 	kn_socket_setud(l,session);
+ 	kn_fd_setud(l,session);
  	dgram_session_recv(session);    		
  	uint64_t tick,now;
     tick = now = kn_systemms64();	

@@ -4,7 +4,7 @@ struct dgram_session{
 	st_io recv_overlap;
 	struct iovec wbuf[1];
 	char   buf[65536];
-	kn_socket_t   s;
+	kn_fd_t   s;
 };
 
 void dgram_session_recv(struct dgram_session *s)
@@ -29,8 +29,8 @@ void dgram_session_send(struct dgram_session *s,int32_t size,kn_sockaddr *remote
 int      client_count = 0;
 uint64_t totalbytes   = 0; 
 
-void transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer,int32_t err){
-    struct dgram_session *session = kn_socket_getud(s);
+void transfer_finish(kn_fd_t s,st_io *io,int32_t bytestransfer,int32_t err){
+    struct dgram_session *session = kn_fd_getud(s);
     if(!io || bytestransfer <= 0)    
         return;
     if(io == &session->send_overlap){

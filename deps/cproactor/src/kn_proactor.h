@@ -6,15 +6,15 @@
 #include "kn_dlist.h"
 #include "kn_common_include.h"
 
-struct kn_socket;
+struct kn_fd;
 
 typedef struct kn_proactor
 {
     int32_t  (*Loop)(struct kn_proactor*,int32_t timeout);
-    int32_t  (*Register)(struct kn_proactor*,struct kn_socket*);
-    int32_t  (*UnRegister)(struct kn_proactor*,struct kn_socket*);
-    //int32_t  (*UnRegisterRecv)(struct kn_proactor*,struct kn_socket*);
-    //int32_t  (*UnRegisterSend)(struct kn_proactor*,struct kn_socket*);
+    int32_t  (*Register)(struct kn_proactor*,struct kn_fd*);
+    int32_t  (*UnRegister)(struct kn_proactor*,struct kn_fd*);
+    //int32_t  (*UnRegisterRecv)(struct kn_proactor*,struct kn_fd*);
+    //int32_t  (*UnRegisterSend)(struct kn_proactor*,struct kn_fd*);
     kn_dlist actived[2];
     int8_t   actived_index;
     kn_dlist connecting;
@@ -29,7 +29,7 @@ static inline kn_dlist* kn_proactor_activelist(kn_proactor_t p){
 	return &p->actived[p->actived_index];
 }
 
-static inline void kn_procator_putin_active(kn_proactor_t p,struct kn_socket *s)
+static inline void kn_procator_putin_active(kn_proactor_t p,struct kn_fd *s)
 {
     kn_dlist *current_active = &p->actived[p->actived_index];
     kn_dlist_push(current_active,(kn_dlist_node*)s);

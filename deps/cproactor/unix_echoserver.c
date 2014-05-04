@@ -4,12 +4,12 @@
 #include "session.h"
 
 
-void on_accept(kn_socket_t s,void *ud){
+void on_accept(kn_fd_t s,void *ud){
 	printf("on_accept\n");
 	kn_proactor_t p = (kn_proactor_t)ud;
 	struct session *session = calloc(1,sizeof(*session));
 	session->s = s;
-	kn_socket_setud(s,session);    	
+	kn_fd_setud(s,session);    	
 	kn_proactor_bind(p,s,transfer_finish);
 	session_recv(session);
 	++client_count;

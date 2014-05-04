@@ -1,6 +1,6 @@
 #include "kendynet.h"
 #include "kn_proactor.h"
-#include "kn_socket.h"
+#include "kn_fd.h"
 #include "kn_connector.h"
 #include "kn_acceptor.h"
 #include "kn_datasocket.h"
@@ -31,11 +31,11 @@ static int kn_bind(int fd,kn_sockaddr *addr_local){
 	return ret;	
 }
 
-kn_socket_t kn_listen(kn_proactor_t p,
+kn_fd_t     kn_listen(kn_proactor_t p,
 					  int protocol,
 					  int type,
 					  kn_sockaddr *addr_local,
-					  void (*cb_accept)(kn_socket_t,void *ud),
+					  void (*cb_accept)(kn_fd_t,void *ud),
 					  void *ud
 					  )
 {
@@ -68,15 +68,15 @@ kn_socket_t kn_listen(kn_proactor_t p,
 	}
 	
 	a = kn_new_acceptor(fd,addr_local,cb_accept,ud);
-    if(p->Register(p,(kn_socket_t)a) == 0)
-        return (kn_socket_t)a;
+    if(p->Register(p,(kn_fd_t)a) == 0)
+        return (kn_fd_t)a;
     else{
-        kn_closesocket((kn_socket_t)a);
+        kn_closefd((kn_fd_t)a);
         return NULL;
     }
 }
 
-kn_socket_t kn_dgram_listen(struct kn_proactor *p,
+kn_fd_t 	kn_dgram_listen(struct kn_proactor *p,
 					        int protocol,
 					        int type,
 					        kn_sockaddr *addr_local,
@@ -87,7 +87,7 @@ kn_socket_t kn_dgram_listen(struct kn_proactor *p,
 	assert(cb);
 	int family = addr_local->addrtype;
 	int fd;
-	kn_socket_t d;
+	kn_fd_t d;
 	if(type != SOCK_DGRAM)
 		return NULL;
 	if((fd = socket(family,type|SOCK_NONBLOCK|SOCK_CLOEXEC,protocol)) < 0) 
@@ -103,17 +103,17 @@ kn_socket_t kn_dgram_listen(struct kn_proactor *p,
 		 return NULL;
 	 }
 	 
-	 d = (kn_socket_t)kn_new_datasocket(fd,DGRAM_SOCKET,addr_local,NULL);
+	 d = (kn_fd_t)kn_new_datasocket(fd,DGRAM_SOCKET,addr_local,NULL);
 	 	 
 	 if(0 != kn_proactor_bind(p,d,cb)){
-		 kn_closesocket(d);
+		 kn_closefd(d);
 		 return NULL;
 	 }else
 		return d;
 	 	
 }
 
-kn_socket_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,struct kn_sockaddr *addr_remote){
+kn_fd_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,struct kn_sockaddr *addr_remote){
 	assert(addr_remote);
 	int ret;
 	int family = addr_remote->addrtype;
@@ -121,7 +121,7 @@ kn_socket_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,stru
     struct kn_sockaddr local;	
 	int fd;
 	int sock_type;
-	kn_socket_t s;
+	kn_fd_t s;
 	
 	if(type != SOCK_STREAM && type != SOCK_DGRAM)
 		return NULL;
@@ -177,7 +177,7 @@ int kn_asyn_connect(kn_proactor_t p,
 			   int type,
 			   struct kn_sockaddr *addr_local,
 			   struct kn_sockaddr *addr_remote,
-			   void (*cb_connect)(kn_socket_t,struct kn_sockaddr*,void*,int),
+			   void (*cb_connect)(kn_fd_t,struct kn_sockaddr*,void*,int),
 			   void *ud,
 			   uint64_t timeout)
 {
@@ -237,11 +237,11 @@ int kn_asyn_connect(kn_proactor_t p,
 		return 0;
 	}else{
 		c = kn_new_connector(fd,addr_remote,cb_connect,ud,kn_systemms64()+timeout);
-        if(p->Register(p,(kn_socket_t)c) == 0){
+        if(p->Register(p,(kn_fd_t)c) == 0){
             return 0;
 		}
         else{
-            kn_closesocket((kn_socket_t)c);
+            kn_closefd((kn_fd_t)c);
             return -1;
         }		
 	}
@@ -253,7 +253,7 @@ int32_t kn_proactor_run(kn_proactor_t p,int32_t timeout)
 	return p->Loop(p,timeout);
 }
 
-int32_t kn_proactor_bind(kn_proactor_t p ,kn_socket_t s,kn_cb_transfer cb){
+int32_t kn_proactor_bind(kn_proactor_t p ,kn_fd_t s,kn_cb_transfer cb){
 	assert(p);
 	assert(s);
 	assert(cb);
@@ -270,7 +270,7 @@ int32_t kn_proactor_bind(kn_proactor_t p ,kn_socket_t s,kn_cb_transfer cb){
 }
 
 
-void kn_closesocket(kn_socket_t s)
+void kn_closefd(kn_fd_t s)
 {
 	assert(s);
 	if(s->proactor)
@@ -278,36 +278,36 @@ void kn_closesocket(kn_socket_t s)
 	kn_ref_release(&s->ref);
 }
 
-void kn_shutdown_recv(kn_socket_t s)
+void kn_shutdown_recv(kn_fd_t s)
 {
 	assert(s);
 	shutdown(s->fd,SHUT_RD);
 }
 
-void kn_shutdown_send(kn_socket_t s)
+void kn_shutdown_send(kn_fd_t s)
 {
 	assert(s);
 	shutdown(s->fd,SHUT_WR);
 }
-kn_proactor_t kn_socket_getproactor(kn_socket_t s)
+kn_proactor_t kn_fd_getproactor(kn_fd_t s)
 {
 	assert(s);
 	return s->proactor;
 }
 
-void kn_socket_setud(kn_socket_t s,void *ud)
+void kn_fd_setud(kn_fd_t s,void *ud)
 {
 	assert(s);
 	s->ud = ud;
 }
 
-void* kn_socket_getud(kn_socket_t s)
+void* kn_fd_getud(kn_fd_t s)
 {
 	assert(s);
 	return s->ud;
 }
 
-int32_t kn_recv(kn_socket_t s,st_io *ioreq,uint32_t *err_code)
+int32_t kn_recv(kn_fd_t s,st_io *ioreq,uint32_t *err_code)
 {
 	assert(s);
 	assert(ioreq);
@@ -322,7 +322,7 @@ int32_t kn_recv(kn_socket_t s,st_io *ioreq,uint32_t *err_code)
 
 }
 
-int32_t kn_send(kn_socket_t s,st_io *ioreq,uint32_t *err_code)
+int32_t kn_send(kn_fd_t s,st_io *ioreq,uint32_t *err_code)
 {
 	assert(s);
 	assert(ioreq);	
@@ -337,7 +337,7 @@ int32_t kn_send(kn_socket_t s,st_io *ioreq,uint32_t *err_code)
 
 }
 
-int32_t kn_post_recv(kn_socket_t s,st_io *ioreq)
+int32_t kn_post_recv(kn_fd_t s,st_io *ioreq)
 {
 	assert(s);
 	assert(ioreq);		
@@ -349,7 +349,7 @@ int32_t kn_post_recv(kn_socket_t s,st_io *ioreq)
 	return 0;
 }
 
-int32_t kn_post_send(kn_socket_t s,st_io *ioreq)
+int32_t kn_post_send(kn_fd_t s,st_io *ioreq)
 {
 	assert(s);
 	assert(ioreq);		
@@ -361,7 +361,7 @@ int32_t kn_post_send(kn_socket_t s,st_io *ioreq)
 	return 0;
 }
 
-void kn_socket_set_stio_destroyer(kn_socket_t s,stio_destroyer d)
+void kn_fd_set_stio_destroyer(kn_fd_t s,stio_destroyer d)
 {
 	assert(s);
 	assert(d);
@@ -370,7 +370,7 @@ void kn_socket_set_stio_destroyer(kn_socket_t s,stio_destroyer d)
 	}
 }
 
-kn_sockaddr*  kn_socket_get_local_addr(kn_socket_t s){
+kn_sockaddr*  kn_fd_get_local_addr(kn_fd_t s){
 	assert(s);	
 	if(s->type == STREAM_SOCKET || s->type == DGRAM_SOCKET){
 		return &((kn_datasocket*)s)->addr_local;
@@ -378,7 +378,7 @@ kn_sockaddr*  kn_socket_get_local_addr(kn_socket_t s){
 	return NULL;
 }
 
-int kn_socket_get_type(kn_socket_t s)
+int kn_fd_get_type(kn_fd_t s)
 {
 	assert(s);	
 	return s->type;

@@ -4,7 +4,7 @@ struct session{
 	st_io recv_overlap;
 	struct iovec wbuf[1];
 	char   buf[65536];
-	kn_socket_t   s;
+	kn_fd_t   s;
 };
 
 void session_recv(struct session *s)
@@ -28,11 +28,11 @@ void session_send(struct session *s,int32_t size)
 int      client_count = 0;
 uint64_t totalbytes   = 0; 
 
-void transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer,int32_t err){
-    struct session *session = kn_socket_getud(s);
+void transfer_finish(kn_fd_t s,st_io *io,int32_t bytestransfer,int32_t err){
+    struct session *session = kn_fd_getud(s);
     if(!io || bytestransfer <= 0)
     {
-        kn_closesocket(s);
+        kn_closefd(s);
         free(session);
 		--client_count;           
         return;

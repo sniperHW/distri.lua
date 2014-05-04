@@ -1,13 +1,13 @@
 #include "kn_epoll.h"
 #include "kn_time.h"
-#include "kn_socket.h"
+#include "kn_fd.h"
 #include "kn_connector.h"
 #include "kn_datasocket.h"
 #include "kn_dlist.h"
 
 extern  int kn_max_proactor_fd; 
 
-int32_t  kn_epoll_register(kn_proactor_t p,kn_socket_t s){
+int32_t  kn_epoll_register(kn_proactor_t p,kn_fd_t s){
 	int ret;
 	int type = s->type;
 	struct epoll_event ev = {0};
@@ -42,7 +42,7 @@ int32_t  kn_epoll_register(kn_proactor_t p,kn_socket_t s){
 	return 0;
 }
 
-int32_t  kn_epoll_unregister(kn_proactor_t p ,kn_socket_t s){
+int32_t  kn_epoll_unregister(kn_proactor_t p ,kn_fd_t s){
 	kn_epoll *ep = (kn_epoll*)p;
 	struct epoll_event ev = {0};
 	int32_t ret;
@@ -56,7 +56,7 @@ int32_t  kn_epoll_unregister(kn_proactor_t p ,kn_socket_t s){
 }
 
 /*
-int32_t  kn_epoll_unregister_recv(kn_proactor_t p,kn_socket_t s){
+int32_t  kn_epoll_unregister_recv(kn_proactor_t p,kn_fd_t s){
 	kn_epoll *ep = (kn_epoll*)p;
 	struct epoll_event ev = {0};
 	int32_t   ret;
@@ -72,7 +72,7 @@ int32_t  kn_epoll_unregister_recv(kn_proactor_t p,kn_socket_t s){
     return ret;
 }
 
-int32_t  kn_epoll_unregister_send(kn_proactor_t p,kn_socket_t s){
+int32_t  kn_epoll_unregister_send(kn_proactor_t p,kn_fd_t s){
 	kn_epoll *ep = (kn_epoll*)p;
 	struct epoll_event ev = {0};
 	int32_t   ret;
@@ -117,9 +117,9 @@ static int8_t check_connect_timeout(kn_dlist_node *dln, void *ud)
 	kn_connector_t c = (kn_connector_t)dln;
 	uint64_t l_now = *((uint64_t*)ud);
     if(l_now >= c->timeout){
-        c->base.proactor->UnRegister(c->base.proactor,(kn_socket_t)c);
+        c->base.proactor->UnRegister(c->base.proactor,(kn_fd_t)c);
         c->cb_connected(NULL,&c->remote,c->base.ud,ETIMEDOUT);
-        kn_closesocket((kn_socket_t)c);
+        kn_closefd((kn_fd_t)c);
         return 1;
     }
     return 0;
@@ -134,7 +134,7 @@ int32_t kn_epoll_loop(kn_proactor_t p,int32_t ms)
 	int32_t     i;
 	uint64_t    l_now;
 	kn_dlist*   actived;
-	kn_socket_t s;
+	kn_fd_t     s;
 	kn_epoll*   ep = (kn_epoll*)p;
 	if(ms < 0) ms = 0;
 	do{
@@ -145,7 +145,7 @@ int32_t kn_epoll_loop(kn_proactor_t p,int32_t ms)
 		actived = kn_proactor_activelist(p);	
         if(!kn_dlist_empty(actived)){
             p->actived_index = (p->actived_index+1)%2;
-            while((s = (kn_socket_t)kn_dlist_pop(actived)) != NULL){
+            while((s = (kn_fd_t)kn_dlist_pop(actived)) != NULL){
                 if(s->process(s))
                     kn_procator_putin_active(p,s);
             }
@@ -162,7 +162,7 @@ int32_t kn_epoll_loop(kn_proactor_t p,int32_t ms)
 		
 		for(i=0; i < nfds ; ++i)
 		{
-			s = (kn_socket_t)ep->events[i].data.ptr;
+			s = (kn_fd_t)ep->events[i].data.ptr;
 			s->on_active(s,ep->events[i].events);
 		}
 		current_tick = kn_systemms64();

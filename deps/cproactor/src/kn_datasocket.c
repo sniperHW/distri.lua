@@ -97,7 +97,7 @@ static int32_t kn_stream_raw_send(kn_datasocket* d,st_io *io_req,uint32_t *err_c
 	return ret;
 }
 
-void kn_datasocket_on_active(kn_socket_t s,int event){
+void kn_datasocket_on_active(kn_fd_t s,int event){
 	kn_datasocket* t = (kn_datasocket*)s;
 	char buf[1];
 	if(event & (EPOLLERR | EPOLLHUP)){
@@ -131,7 +131,7 @@ static inline void _recv(kn_datasocket* t)
 		{
 			bytes_transfer = t->raw_recv(t,io_req,&err_code);
 			//if(bytes_transfer == 0) bytes_transfer = -1;
-			if(err_code != EAGAIN)  t->cb_transfer((kn_socket_t)t,io_req,bytes_transfer,err_code);
+			if(err_code != EAGAIN)  t->cb_transfer((kn_fd_t)t,io_req,bytes_transfer,err_code);
 		}
 	}
 }
@@ -147,12 +147,12 @@ static inline void _send(kn_datasocket* t)
 		{
 			bytes_transfer = t->raw_send(t,io_req,&err_code);
 			//if(bytes_transfer == 0) bytes_transfer = -1;
-			if(err_code != EAGAIN)  t->cb_transfer((kn_socket_t)t,io_req,bytes_transfer,err_code);
+			if(err_code != EAGAIN)  t->cb_transfer((kn_fd_t)t,io_req,bytes_transfer,err_code);
 		}
 	}	
 }
 
-int8_t  kn_datasocket_process(kn_socket_t s)
+int8_t  kn_datasocket_process(kn_fd_t s)
 {
 	kn_datasocket* t = (kn_datasocket *)s;
 	kn_ref_acquire(&s->ref);//防止s在_recv/_send中回调cb_transfer时被释放
@@ -179,7 +179,7 @@ void kn_datasocket_destroy(void *ptr){
 	free(t);
 }
 
-kn_socket_t kn_new_datasocket(int fd,int sock_type,struct kn_sockaddr *local,struct kn_sockaddr *remote)
+kn_fd_t kn_new_datasocket(int fd,int sock_type,struct kn_sockaddr *local,struct kn_sockaddr *remote)
 {
 	kn_datasocket*    d = calloc(1,sizeof(*d));
 	d->base.type = sock_type;
@@ -198,6 +198,6 @@ kn_socket_t kn_new_datasocket(int fd,int sock_type,struct kn_sockaddr *local,str
 		d->raw_recv = kn_dgram_raw_recv;
 	}
 	kn_ref_init(&d->base.ref,kn_datasocket_destroy);
-	return (kn_socket_t)d;
+	return (kn_fd_t)d;
 }
 

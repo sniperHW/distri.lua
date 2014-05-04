@@ -9,7 +9,7 @@ int main(int argc,char **argv){
 	kn_net_open();	
 	kn_proactor_t p = kn_new_proactor();
 	kn_sockaddr remote,local;
-	kn_socket_t c;
+	kn_fd_t c;
 	char path[128];
 	kn_addr_init_un(&remote,argv[1]);	
 	int client_count = atoi(argv[3]);
@@ -23,7 +23,7 @@ int main(int argc,char **argv){
 		c = kn_connect(0,SOCK_DGRAM,&local,&remote);
 		struct dgram_session *session = calloc(1,sizeof(*session));
 		session->s = c;  
-		kn_socket_setud(c,session);
+		kn_fd_setud(c,session);
 		kn_proactor_bind(p,c,transfer_finish);
 		dgram_session_send(session,send_size,&remote);
 	} 

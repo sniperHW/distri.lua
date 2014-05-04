@@ -41,11 +41,11 @@ again:
 	return fd;
 }
 
-int kn_set_noblock(kn_socket_t);
+int kn_set_noblock(kn_fd_t);
 
-static void kn_acceptor_on_active(struct kn_socket *s,int event){
+static void kn_acceptor_on_active(struct kn_fd *s,int event){
 	kn_acceptor_t a = (kn_acceptor_t)s;
-    kn_socket_t t;
+    kn_fd_t t;
     int fd;
     kn_sockaddr remote;
     while(1)
@@ -61,7 +61,7 @@ static void kn_acceptor_on_active(struct kn_socket *s,int event){
     }
 }
 
-kn_acceptor_t kn_new_acceptor(int fd,kn_sockaddr *local,void (*cb_accept)(kn_socket_t,void*),void *ud){
+kn_acceptor_t kn_new_acceptor(int fd,kn_sockaddr *local,void (*cb_accept)(kn_fd_t,void*),void *ud){
 	kn_acceptor_t a = calloc(1,sizeof(*a));
 	a->base.fd = fd;
 	kn_ref_init(&a->base.ref,kn_acceptor_destroy);

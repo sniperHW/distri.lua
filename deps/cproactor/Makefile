@@ -11,7 +11,7 @@ kendynet.a: \
 		   src/kn_proactor.c \
 		   src/kn_ref.c \
 		   src/kn_acceptor.c \
-		   src/kn_socket.c \
+		   src/kn_fd.c \
 		   src/kn_datasocket.c \
 		   src/kendynet.c \
 		   src/kn_time.c \

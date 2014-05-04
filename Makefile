@@ -12,7 +12,7 @@ kendynet.a: \
 		   ./deps/cproactor/src/kn_proactor.c \
 		   ./deps/cproactor/src/kn_ref.c \
 		   ./deps/cproactor/src/kn_acceptor.c \
-		   ./deps/cproactor/src/kn_socket.c \
+		   ./deps/cproactor/src/kn_fd.c \
 		   ./deps/cproactor/src/kn_datasocket.c \
 		   ./deps/cproactor/src/kendynet.c \
 		   ./deps/cproactor/src/kn_time.c \
@@ -22,11 +22,9 @@ kendynet.a: \
 	rm -f *.o
 
 cjson.so:
-	make ./deps/lua-cjson-2.1.0/Makefile
-	cp ./deps/lua-cjson-2.1.0/cjson.so .
+	cp deps/lua-cjson-2.1.0/cjson.so .
 		
 luanet:src/luanet.c src/lua_util.c kendynet.a cjson.so
-
 	$(CC) $(CFLAGS) -o luanet src/luanet.c src/lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
 
 	

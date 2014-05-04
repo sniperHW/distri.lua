@@ -74,7 +74,7 @@ typedef struct lua_socket{
 	uint32_t     recv_pos;
 	bytebuffer_t recv_buf;
 	bytebuffer_t unpack_buf;
-	kn_socket_t  sock;
+	kn_fd_t      sock;
 	luaObject_t  callbackObj;//存放lua回调函数
 	char         name[512];  //use by lua
 	char         packet[MAX_BUFSIZE];
@@ -90,7 +90,7 @@ typedef struct sendbuf{
 
 void luasocket_destroyer(void *ptr){
 	lua_socket_t l = (lua_socket_t)ptr;
-	kn_closesocket(l->sock);
+	kn_closefd(l->sock);
 	release_luaObj(l->callbackObj);
 	while(kn_list_size(&l->send_list)){
 		sendbuf *buf = (sendbuf*)kn_list_pop(&l->send_list);
@@ -98,7 +98,7 @@ void luasocket_destroyer(void *ptr){
 	}
 }
 
-lua_socket_t new_luasocket(kn_socket_t sock,luaObject_t callbackObj){
+lua_socket_t new_luasocket(kn_fd_t sock,luaObject_t callbackObj){
 	lua_socket_t l = calloc(1,sizeof(*l));
 	l->sock = sock;
 	l->callbackObj = callbackObj;
@@ -227,7 +227,7 @@ static int unpack(lua_socket_t c)
 }
 
 static void luasocket_post_recv(lua_socket_t l){
-	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
+	if(kn_fd_get_type(l->sock) == STREAM_SOCKET){
 		if(!l->recv_buf){
 			l->recv_buf = new_bytebuffer(MAX_BUFSIZE);
 			l->recv_pos = 0;
@@ -263,7 +263,7 @@ static void luasocket_post_recv(lua_socket_t l){
 
 static void luasocket_post_send(lua_socket_t l){
 	//printf("luasocket_post_send\n");
-	if(kn_socket_get_type(l->sock) == STREAM_SOCKET){
+	if(kn_fd_get_type(l->sock) == STREAM_SOCKET){
 		int c = 0;
 		sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
 		int size = 0;
@@ -327,10 +327,10 @@ static void stream_send_finish(lua_socket_t l,st_io *io,int32_t bytestransfer,in
 	}
 }
 
-static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer,int32_t err)
+static void stream_transfer_finish(kn_fd_t s,st_io *io,int32_t bytestransfer,int32_t err)
 {   
 	//printf("stream_transfer_finish %d\n",bytestransfer);
-    lua_socket_t l = (lua_socket_t)kn_socket_getud(s);
+    lua_socket_t l = (lua_socket_t)kn_fd_getud(s);
     kn_ref_acquire(&l->ref);
     //防止l在callback中被释放
     if(!io){
@@ -358,11 +358,11 @@ static void stream_transfer_finish(kn_socket_t s,st_io *io,int32_t bytestransfer
 }
 
 
-static void on_accept(kn_socket_t s,void *ud){
+static void on_accept(kn_fd_t s,void *ud){
 	printf("c on_accept\n");
 	lua_socket_t c = new_luasocket(s,NULL);
 	luaObject_t  callbackObj = (luaObject_t)ud;
-	kn_socket_setud(s,c);
+	kn_fd_setud(s,c);
 	kn_ref_acquire(&c->ref);
 	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
 	lua_pushstring(callbackObj->L,"onaccept");
@@ -387,13 +387,13 @@ static int lua_closefd(lua_State *L){
 }
 
 
-static void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err)
+static void on_connect(kn_fd_t s,struct kn_sockaddr *remote,void *ud,int err)
 {	
 	luaObject_t obj = (luaObject_t)ud;	
 	lua_socket_t l = NULL;
 	if(s){
 		l = new_luasocket(s,NULL);
-		kn_socket_setud(s,l);
+		kn_fd_setud(s,l);
 	}
 	lua_rawgeti(obj->L,LUA_REGISTRYINDEX,obj->rindex);
 	lua_pushstring(obj->L,"onconnected");

@@ -4,14 +4,14 @@
 
 int send_size;
 
-void on_connect(kn_socket_t s,struct kn_sockaddr *remote,void *ud,int err)
+void on_connect(kn_fd_t s,struct kn_sockaddr *remote,void *ud,int err)
 {
 	kn_proactor_t p = (kn_proactor_t)ud;
 	if(s){
 		printf("connect ok\n");
 		struct session *session = calloc(1,sizeof(*session));
 		session->s = s;
-		kn_socket_setud(s,session);    	
+		kn_fd_setud(s,session);    	
 		kn_proactor_bind(p,s,transfer_finish);
 		session_send(session,send_size);
 	}else{
