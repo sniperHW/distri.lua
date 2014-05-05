@@ -23,6 +23,8 @@ int32_t  kn_epoll_register(kn_proactor_t p,kn_fd_t s){
 		ev.events = EPOLLIN;
 	}else if(type == CONNECTOR){
 		ev.events = EPOLLIN | EPOLLOUT;
+	}else if(type == CHANNEL){
+		ev.events = EPOLLIN;
 	}else
 		return -1;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_ADD,s->fd,&ev));

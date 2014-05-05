@@ -43,10 +43,14 @@ kn_channel_t kn_new_channel(pthread_t owner,void(*cb_msg)(struct kn_channel*, st
 }
 
 static void kn_channel_on_active(kn_fd_t s,int event){
-	//struct channel_pth* c = (struct channel_pth*)s;
+	struct channel_pth* c = (struct channel_pth*)s;
 	char buf[4096];
 	int ret;
 	if(event & EPOLLIN){
+		/*kn_mutex_lock(c->channel->mtx);
+		kn_dlist_remove(&c->node);
+		kn_mutex_unlock(c->channel->mtx);
+		*/
 		while((ret = TEMP_FAILURE_RETRY(read(s->fd,buf,4096))) > 0);
 		if(ret == 0 || (ret < 0 && errno != EAGAIN)){
 			//channel被关闭
@@ -69,13 +73,16 @@ void kn_channel_putmsg(kn_channel_t to,kn_channel_t from,void *data)
 		tmp = kn_dlist_first(&to->waits);
 		if(tmp){
 			//有线程在等待消息，通知它有消息到了
-			struct channel_pth *pth = (struct channel_pth*)(tmp-sizeof(kn_fd));
+			struct channel_pth *pth = (struct channel_pth*)(((char*)tmp)-sizeof(kn_fd));
 			ret = write(pth->notifyfd,"",1);
-			if(ret == 0 || (ret < 0 && errno != EAGAIN)){
+			kn_dlist_pop(&to->waits);
+			if(!(ret == 0 || (ret < 0 && errno != EAGAIN)))
+				break;
+			/*if(ret == 0 || (ret < 0 && errno != EAGAIN)){
 				//对端关闭
 				kn_dlist_pop(&to->waits);
 			}else
-				break;
+				break;*/
 		}else
 			break;
 	};
@@ -107,7 +114,7 @@ static int8_t kn_channel_process(kn_fd_t s){
 		free(msg);
 		--n;
 	}
-	if(c == 0) 
+	if(n <= 0) 
 		return 1;
 	else 
 		return 0;	
@@ -122,10 +129,13 @@ static void channel_pth_destroy(void *ptr){
 		free(msg->data);
 		free(msg); 
 	}
+	if(pth->base.proactor)
+		pth->base.proactor->UnRegister(pth->base.proactor,&pth->base);	
 	kn_ref_release((kn_ref*)pth->channel);
 	free(ptr);
 }
 
+//int kn_set_noblock(kn_fd_t);
 int kn_channel_bind(struct kn_proactor *p,kn_channel_t c){
 	struct channel_pth *pth = (struct channel_pth*)pthread_getspecific(c->t_key);
 	if(pth) return -1;
@@ -141,6 +151,9 @@ int kn_channel_bind(struct kn_proactor *p,kn_channel_t c){
 	pth->notifyfd = tmp[1];
 	pth->base.on_active = kn_channel_on_active;		
 	pth->base.process = kn_channel_process;
+	pth->channel = c;
+	fcntl(tmp[0], F_SETFL, O_NONBLOCK | O_RDWR);
+	fcntl(tmp[1], F_SETFL, O_NONBLOCK | O_RDWR);
 	kn_ref_init(&pth->base.ref,channel_pth_destroy);		
 	if(0!= p->Register(p,(kn_fd_t)pth)){
 		kn_ref_release((kn_ref*)pth);

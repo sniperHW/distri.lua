@@ -30,13 +30,4 @@ struct channel_pth{
 	kn_channel_t  channel;	 
 };
 
-kn_channel_t kn_new_channel(pthread_t owner,void(*)(struct kn_channel*, struct kn_channel*,void*));
-void         kn_channel_close(kn_channel_t);
-
-int kn_channel_bind(struct kn_proactor*,kn_channel_t);
-/*
-*  from:如果不为空,表示如果要对这条消息作响应响应消息发往from. 
-*/ 
-void kn_channel_putmsg(kn_channel_t to,kn_channel_t from,void*);
-
 #endif

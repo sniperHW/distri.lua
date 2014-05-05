@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing -std=gnu99
+CFLAGS = -g -Wall -fno-strict-aliasing -std=gnu99
 LDFLAGS = -lpthread -lrt -lm -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
@@ -47,6 +47,9 @@ udpunix_echoclient:udpunix_echoclient.c kendynet.a
 	
 ringque:testmq.c kendynet.a						
 	$(CC) $(CFLAGS) -o ringque testmq.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	
+channel:channel.c kendynet.a						
+	$(CC) $(CFLAGS) -o channel channel.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 	
 	
 	
