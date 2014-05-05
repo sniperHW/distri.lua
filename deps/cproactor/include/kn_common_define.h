@@ -17,6 +17,7 @@ enum{
 	DGRAM_SOCKET   = 2,
 	ACCEPTOR       = 3,
 	CONNECTOR      = 4,
+	CHANNEL        = 5,
 };
 
 typedef struct

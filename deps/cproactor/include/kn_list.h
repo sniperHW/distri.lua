@@ -94,4 +94,19 @@ static inline int32_t kn_list_size(kn_list *l)
 	return l->size;
 }
 
+static inline static kn_list_swap(kn_list *to,kn_list *from)
+{
+	if(from->head && from->tail)
+	{
+		if(to->tail)
+			to->tail->next = from->head;
+		else
+			to->head = from->head;
+		to->tail = from ->tail;
+		from->head = from->tail = NULL;
+		to->size += from->size;
+		from->size = 0;
+	}
+}
+
 #endif

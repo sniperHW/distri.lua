@@ -22,9 +22,9 @@ typedef struct kn_datasocket{
     int32_t (*raw_recv)(struct kn_datasocket*,st_io *io_req,uint32_t *err_code);	
 }kn_datasocket,*kn_datasocket_t;
 
-void    kn_datasocket_on_active(kn_fd_t s,int event);
-int8_t  kn_datasocket_process(kn_fd_t s);
-void    kn_datasocket_destroy(void *ptr);
+//void    kn_datasocket_on_active(kn_fd_t s,int event);
+//int8_t  kn_datasocket_process(kn_fd_t s);
+//void    kn_datasocket_destroy(void *ptr);
 
 kn_fd_t kn_new_datasocket(int fd,int sock_type,struct kn_sockaddr *local,struct kn_sockaddr *remote);
 
