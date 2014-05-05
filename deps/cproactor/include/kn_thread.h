@@ -43,6 +43,9 @@ kn_thread_t kn_create_thread(int32_t);
 void        kn_thread_destroy(kn_thread_t);
 void*       kn_thread_join(kn_thread_t);
 void        kn_thread_start_run(kn_thread_t,kn_thread_routine,void*);
+static inline pthread_t   kn_thread_getid(kn_thread_t t){
+	return t->threadid;
+}
 
 #ifndef CREATE_THREAD_RUN
 #define CREATE_THREAD_RUN(JOINABLE,ROUTINE,ARG)\
