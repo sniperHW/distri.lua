@@ -7,12 +7,15 @@
 #include "kn_ref.h"
 #include "kn_list.h"
 #include "kn_time.h"
+#include "kn_thread.h"
 
 #define MAX_BUFSIZE  65536
 #define MAX_WSEND_SIZE  1024
 
-static kn_proactor_t g_proactor = NULL;
-static lua_State*    g_L = NULL;
+static __thread kn_proactor_t g_proactor = NULL;
+static __thread lua_State*    g_L = NULL;
+static __thread kn_channel_t  channel;
+
 static int           recv_sigint = 0;
 static int           recv_count = 0;
 
@@ -596,71 +599,85 @@ int lua_getname(lua_State *L){
 	lua_pushstring(L,l->name);
 	return 1;
 }
-/*
-int tab2str(luaObject_t tb,char **ptr,int* sizeremain){
-	lua_State *L = tb->L;
-	int s = 0;
-	//process key
-	if(lua_isnumber(L,-2)){
-		s = snprintf(*ptr,*sizeremain,"[%d]=",(int)lua_tonumber(L,-2));	
-		//s = snprintf(*ptr,*sizeremain,"[\"%s\"]=",lua_tostring(L,-2));
-	}else if(lua_isstring(L,-2)){
-		s = snprintf(*ptr,*sizeremain,"[\"%s\"]=",lua_tostring(L,-2));
+
+struct start_arg{
+	char start_file[256];
+	kn_channel_t channel;
+};
+
+void RegisterNet(lua_State *L,const char *lfile);
+void* thread_func(void *arg){
+	struct start_arg *start_arg = (struct start_arg*)arg;
+	lua_State *L = luaL_newstate();
+	luaL_openlibs(L);
+	channel = start_arg->channel;
+	free(arg);		
+	RegisterNet(L,start_arg->start_file);
+	if(luaL_dofile(L,"lua/start.lua")) {
+		const char * error = lua_tostring(L, -1);
+		lua_pop(L,1);
+		printf("thread_func:%s\n",error);
 	}
-	*ptr += s;
-	*sizeremain -= s;
-	s = 0;		
-	//process value
-	if(lua_isnumber(L,-1)){
-		s = snprintf(*ptr,*sizeremain,"%d",(int)lua_tonumber(L,-1));
-		//s = snprintf(*ptr,*sizeremain,"\"%s\"",lua_tostring(L,-1));
-		*ptr += s;
-		*sizeremain -= s;	
-	}else if(lua_isstring(L,-1)){
-		s = snprintf(*ptr,*sizeremain,"\"%s\"",lua_tostring(L,-1));
-		*ptr += s;
-		*sizeremain -= s;	
-	} 
-	else if(lua_istable(L,-1)){
-		strcat(*ptr,"{");
-		*ptr += 1;
-		*sizeremain -= 1;
-		luaObject_t subtb = create_luaObj(L,-1);
-		LUAOBJECT_ENUM(subtb){
-			tab2str(subtb,ptr,sizeremain);
-			strcat(*ptr,",");
-			*ptr += 1;
-			*sizeremain -= 1;
-		}
-		release_luaObj(subtb);
-		strcat(*ptr,"}");
-		*ptr += 1;
-		*sizeremain -= 1;
-	}			
+    kn_channel_close(channel);
+	lua_close(g_L);
+	return NULL;
+}
+
+//启动一个线程运行独立的lua虚拟机
+int lua_fork(lua_State *L){
+	const char *start_file = lua_tostring(L,1);
+	kn_thread_t t = kn_create_thread(THREAD_JOINABLE);
+	struct start_arg *arg = calloc(1,sizeof(*arg));
+	arg->channel = kn_new_channel(kn_thread_getid(t));
+	strncpy(arg->start_file,start_file,256);
+	kn_thread_start_run(t,thread_func,NULL);
+	lua_pushlightuserdata(g_L,channel);
+	lua_pushlightuserdata(g_L,t);
+	return 2;
+}
+
+static void channel_callback(struct kn_channel *c,
+							 struct kn_channel *sender,
+							 void*msg,void *ud){	
+	luaObject_t callbackObj = (luaObject_t)ud;
+	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
+	lua_pushstring(callbackObj->L,"on_channel_msg");
+	lua_gettable(callbackObj->L,-2);
+	if(callbackObj->L != g_L) lua_xmove(callbackObj->L,g_L,1);
+		
+	if(sender) lua_pushlightuserdata(g_L,sender);
+	else lua_pushnil(g_L);
+	lua_pushstring(g_L,(const char *)msg);
+	if(0 != lua_pcall(g_L,2,0,0)){
+		const char * error = lua_tostring(g_L, -1);
+		printf("stream_recv_finish:%s\n",error);
+		lua_pop(g_L,1);
+	}
+	lua_pop(callbackObj->L,1);
+}
+
+int lua_set_channel_callback(lua_State *L){
+	luaObject_t callbackObj = create_luaObj(L,1);
+	kn_channel_bind(g_proactor,channel,channel_callback,(void*)callbackObj);
 	return 0;
 }
 
+int lua_thread_join(lua_State *L){
+	kn_thread_t t = (kn_thread_t)lua_touserdata(L,1);
+	kn_thread_join(t);
+	kn_thread_destroy(t);
+	return 0;
+}
 
-int lua_tab2str(lua_State *L){
-	luaObject_t tb = create_luaObj(L,1);
-	if(tb){
-		char buf[65536] = "return {";
-		//strcpy(buf,"return {");
-		int sizeremain = 256-strlen(buf);
-		char *ptr = buf+strlen(buf);
-		LUAOBJECT_ENUM(tb){
-			tab2str(tb,&ptr,&sizeremain);
-			strcat(ptr,",");
-			ptr += 1;
-			sizeremain -= 1;
-		}
-		strcat(ptr,"}");
-		release_luaObj(tb);
-		lua_pushstring(L,buf);
-	}else
-		lua_pushnil(L);
-	return 1;
-}*/
+int lua_channel_send(lua_State *L){
+	kn_channel_t to = (kn_channel_t)lua_touserdata(L,1);
+	const char *tmp = lua_tostring(L,2);
+	size_t len = strlen(tmp);
+	char *msg = calloc(1,len+1);
+	strcpy(msg,tmp); 
+	kn_channel_putmsg(to,channel,msg);
+	return 0;
+}
 
 void RegisterNet(lua_State *L,const char *lfile){  
     
@@ -672,7 +689,6 @@ void RegisterNet(lua_State *L,const char *lfile){
 		lua_pushvalue(L,-1);
 		lua_setglobal(L,"_G");
 	}
-	
 
 	lua_pushstring(L, "AF_INET");
 	lua_pushinteger(L, AF_INET);
@@ -746,15 +762,20 @@ void RegisterNet(lua_State *L,const char *lfile){
 	lua_pushstring(L,lfile);
 	lua_settable(L, -3);
 	
-	/*lua_pushstring(L,"tab2str");
-	lua_pushcfunction(L,&lua_tab2str);
-	lua_settable(L, -3);	
-	*/
+	lua_pushstring(L,"fork");
+	lua_pushcfunction(L,&lua_fork);
+	lua_settable(L, -3);
+		
+	lua_pushstring(L,"set_channel_callback");
+	lua_pushcfunction(L,&lua_set_channel_callback);
+	lua_settable(L, -3);
+	
+	lua_pushstring(L,"thread_join");
+	lua_pushcfunction(L,&lua_thread_join);
+	lua_settable(L, -3);				
+
 	lua_setglobal(L,"C");
 	g_L = L;
-	kn_net_open();
-    signal(SIGINT,sig_int);
-    signal(SIGPIPE,SIG_IGN);
     g_proactor = kn_new_proactor();
     printf("load c function finish\n");  
 }
@@ -767,7 +788,11 @@ int main(int argc,char **argv)
 	}
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
+	kn_net_open();
+    signal(SIGINT,sig_int);
+    signal(SIGPIPE,SIG_IGN);	
 	RegisterNet(L,argv[1]);
+	channel = kn_new_channel(pthread_self());
 	if (luaL_dofile(L,"lua/start.lua")) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);

@@ -77,18 +77,18 @@ static inline atomic_32_t kn_ref_release(kn_ref *r)
 typedef struct ident
 {
     uint64_t identity;    
-    struct refbase *ptr;
+    kn_ref   *ptr;
 }ident;
 
-static inline ident make_ident(struct refbase *ptr)
+static inline ident make_ident(kn_ref *ptr)
 {
         ident _ident = {ptr->identity,ptr};
         return _ident;
 }
 
-static inline struct refbase *cast_2_refbase(ident _ident)
+static inline kn_ref *cast_2_refbase(ident _ident)
 {
-    struct refbase *ptr = NULL;
+    kn_ref *ptr = NULL;
     TRY{    
         while(_ident.identity == _ident.ptr->identity)
         {

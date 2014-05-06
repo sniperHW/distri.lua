@@ -17,9 +17,7 @@ typedef struct kn_channel{
 	kn_mutex_t    mtx;
 	kn_list       queue;
 	kn_dlist      waits;
-	pthread_t     owner;
-	//接收到消息后回调用
-	void  (*cb_msg)(struct kn_channel *, struct kn_channel *sender,void*);	
+	pthread_t     owner;	
 }kn_channel,*kn_channel_t;
 
 struct channel_pth{
@@ -27,7 +25,10 @@ struct channel_pth{
 	kn_dlist_node node;
 	int           notifyfd;	
 	kn_list       local_que;
-	kn_channel_t  channel;	 
+	kn_channel_t  channel;
+	void*         ud;
+	//接收到消息后回调用
+	void  (*cb_msg)(struct kn_channel *, struct kn_channel *sender,void*,void*);		 
 };
 
 #endif

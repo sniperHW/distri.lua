@@ -81,10 +81,12 @@ kn_sockaddr*  kn_fd_get_local_addr(kn_fd_t);
 typedef       void   (*stio_destroyer)(st_io*);
 void          kn_fd_set_stio_destroyer(kn_fd_t,stio_destroyer);
 
-kn_channel_t kn_new_channel(pthread_t owner,void(*)(struct kn_channel*, struct kn_channel*,void*));
+kn_channel_t kn_new_channel(pthread_t owner);
 void         kn_channel_close(kn_channel_t);
 
-int kn_channel_bind(struct kn_proactor*,kn_channel_t);
+int kn_channel_bind(struct kn_proactor*,kn_channel_t,
+				    void(*)(struct kn_channel*, struct kn_channel*,void*,void*),
+				    void*);
 /*
 *  from:如果不为空,表示如果要对这条消息作响应响应消息发往from. 
 */ 
