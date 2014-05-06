@@ -12,7 +12,7 @@
     
     6)淡化连接的概念，各服务之间通过名字通讯
     
- 整个框架在通讯方面只暴露3个函数:
+ 整个框架在通讯方面只暴露4个函数:
  
  	SendMsg(name,msg)
  	向远程服务name发送一条msg，如果与name还没有建立通讯连接，则由SendMsg函数内部向nameservice查询name的信息
@@ -24,6 +24,9 @@
 	
 	GetRemoteFuncProvider(funcname)
 	返回所有提供funcname远程方法的服务的名字(自己除外)
+	
+	GetMsg()
+	获取网络过来的普通消息
 	
 ###安装
 
