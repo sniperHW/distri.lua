@@ -73,22 +73,27 @@ static inline atomic_32_t kn_ref_release(kn_ref *r)
     return count;
 }
 
-/*
-typedef struct ident
-{
-    uint64_t identity;    
-    kn_ref   *ptr;
+
+typedef struct ident{
+	union{	
+		struct{ 
+			uint64_t identity;    
+			kn_ref   *ptr;
+		};
+		uint32_t _data[4];
+	};
 }ident;
 
 static inline ident make_ident(kn_ref *ptr)
 {
-        ident _ident = {ptr->identity,ptr};
-        return _ident;
+	ident _ident = {.identity=ptr->identity,.ptr=ptr};
+    return _ident;
 }
 
-static inline kn_ref *cast_2_refbase(ident _ident)
+static inline kn_ref *cast2ref(ident _ident)
 {
     kn_ref *ptr = NULL;
+    if(!_ident.ptr) return NULL;
     TRY{    
         while(_ident.identity == _ident.ptr->identity)
         {
@@ -96,7 +101,7 @@ static inline kn_ref *cast_2_refbase(ident _ident)
             {
                 
                 if(_ident.identity == _ident.ptr->identity &&
-                   ref_increase(_ident.ptr) > 0)
+                   kn_ref_acquire(_ident.ptr) > 0)
                         ptr = _ident.ptr;
                 _FENCE;
                 _ident.ptr->flag = 0;
@@ -109,7 +114,7 @@ static inline kn_ref *cast_2_refbase(ident _ident)
     }ENDTRY;
     return ptr; 
 }
-
+/*
 static inline void make_empty_ident(ident *_ident)
 {
     _ident->identity = 0;
@@ -134,9 +139,5 @@ static inline int8_t is_type(ident a,uint16_t type)
     if(low32 & _type) return 1;
     return 0;
 }
-
-#define TO_IDENT(OTHER_IDENT) (*(ident*)&OTHER_IDENT)
-#define EQ_IDENT(IDENT1,IDENT2) eq_ident(TO_IDENT(IDENT1),TO_IDENT(IDENT2))
-#define MAKE_EMPTY_IDENT(IDENT) make_empty_ident(&TO_IDENT(IDENT))
 */
 #endif

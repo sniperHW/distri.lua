@@ -625,7 +625,7 @@ void* thread_func(void *arg){
 
 //启动一个线程运行独立的lua虚拟机
 int lua_fork(lua_State *L){
-	const char *start_file = lua_tostring(L,1);
+	/*const char *start_file = lua_tostring(L,1);
 	kn_thread_t t = kn_create_thread(THREAD_JOINABLE);
 	struct start_arg *arg = calloc(1,sizeof(*arg));
 	arg->channel = kn_new_channel(kn_thread_getid(t));
@@ -633,13 +633,14 @@ int lua_fork(lua_State *L){
 	kn_thread_start_run(t,thread_func,NULL);
 	lua_pushlightuserdata(g_L,channel);
 	lua_pushlightuserdata(g_L,t);
+	*/
 	return 2;
 }
 
-static void channel_callback(struct kn_channel *c,
-							 struct kn_channel *sender,
+static void channel_callback(kn_channel_t c,
+							 kn_channel_t sender,
 							 void*msg,void *ud){	
-	luaObject_t callbackObj = (luaObject_t)ud;
+	/*luaObject_t callbackObj = (luaObject_t)ud;
 	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
 	lua_pushstring(callbackObj->L,"on_channel_msg");
 	lua_gettable(callbackObj->L,-2);
@@ -653,7 +654,7 @@ static void channel_callback(struct kn_channel *c,
 		printf("stream_recv_finish:%s\n",error);
 		lua_pop(g_L,1);
 	}
-	lua_pop(callbackObj->L,1);
+	lua_pop(callbackObj->L,1);*/
 }
 
 int lua_set_channel_callback(lua_State *L){
@@ -670,12 +671,13 @@ int lua_thread_join(lua_State *L){
 }
 
 int lua_channel_send(lua_State *L){
-	kn_channel_t to = (kn_channel_t)lua_touserdata(L,1);
+/*	kn_channel_t to = (kn_channel_t)lua_touserdata(L,1);
 	const char *tmp = lua_tostring(L,2);
 	size_t len = strlen(tmp);
 	char *msg = calloc(1,len+1);
 	strcpy(msg,tmp); 
 	kn_channel_putmsg(to,channel,msg);
+	*/
 	return 0;
 }
 

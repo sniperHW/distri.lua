@@ -36,6 +36,11 @@ typedef struct kn_list
     kn_list_node*  tail;
 }kn_list;
 
+static inline void kn_list_init(kn_list *l){
+	l->head = l->tail = NULL;
+	l->size = 0;
+}
+
 static inline kn_list_node* kn_list_head(kn_list *l)
 {
 	return l->head;

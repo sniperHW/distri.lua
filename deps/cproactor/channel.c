@@ -9,12 +9,12 @@ kn_channel_t channel1;
 kn_channel_t channel2;
 
 int count = 0;
-void  on_msg1(struct kn_channel *c, struct kn_channel *sender,void *msg,void *ud){
+void  on_msg1(kn_channel_t c, kn_channel_t sender,void *msg,void *ud){
 	++count;
 	kn_channel_putmsg(channel2,NULL,malloc(1));
 }
 
-void  on_msg2(struct kn_channel *c, struct kn_channel *sender,void *msg,void *ud){
+void  on_msg2(kn_channel_t c, kn_channel_t sender,void *msg,void *ud){
 	//printf("recv msg\n");
 	kn_channel_putmsg(channel1,NULL,malloc(1));
 }
@@ -25,7 +25,7 @@ void *routine1(void *arg)
 	kn_proactor_t p = kn_new_proactor();
 	kn_channel_bind(p,channel1,on_msg1,NULL);
 	int i = 0;
-	for(; i < 100; ++i){
+	for(; i < 10000; ++i){
 		kn_channel_putmsg(channel2,NULL,malloc(1));
 	}
  	uint64_t tick,now;
@@ -36,7 +36,7 @@ void *routine1(void *arg)
 		if(now - tick > 1000)
 		{
             uint32_t elapse = (uint32_t)(now-tick);
-			printf("count:%d\n",count);
+			printf("count:%d\n",count/elapse*1000);
 			tick = now;
 			count = 0;
 		}		

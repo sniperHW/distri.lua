@@ -9,10 +9,9 @@ struct msg{
 };
 
 static void channel_destroy(void *ptr){
-	kn_channel_t c = (kn_channel_t)ptr;
+	kn_channel* c = (kn_channel*)ptr;
 	struct msg* msg;
 	while((msg = (struct msg*)kn_list_pop(&c->queue)) != NULL){
-		if(msg->sender) kn_ref_release(&msg->sender->ref);
 		free(msg->data);
 		free(msg); 
 	}	
@@ -21,24 +20,29 @@ static void channel_destroy(void *ptr){
 	free(c);
 }
 
-void kn_channel_close(kn_channel_t c){
-	struct channel_pth_st *pth = (struct channel_pth_st*)pthread_getspecific(c->t_key);
-	if(pth){
-		pthread_setspecific(c->t_key,NULL);
-		kn_ref_release((kn_ref*)pth);
+void kn_channel_close(kn_channel_t channel){
+	kn_channel *c = (kn_channel*)cast2ref(channel);
+	if(c){	
+		struct channel_pth_st *pth = (struct channel_pth_st*)pthread_getspecific(c->t_key);
+		if(pth){
+			pthread_setspecific(c->t_key,NULL);
+			kn_ref_release((kn_ref*)pth);
+		}
+		if(pthread_self() == c->owner)
+			kn_ref_release((kn_ref*)c);
+		kn_ref_release((kn_ref*)c);	
 	}
-	if(pthread_self() == c->owner)
-		kn_ref_release((kn_ref*)c);
 }
 
 kn_channel_t kn_new_channel(pthread_t owner){
-	kn_channel_t c = calloc(1,sizeof(*c));
+	kn_channel *c = calloc(1,sizeof(*c));
 	c->mtx = kn_mutex_create();
 	pthread_key_create(&c->t_key,NULL);
 	kn_dlist_init(&c->waits);
 	kn_ref_init(&c->ref,channel_destroy);
 	c->owner = owner;
-	return c;
+	c->ident = make_ident((kn_ref*)c);
+	return c->ident;
 }
 
 static void kn_channel_on_active(kn_fd_t s,int event){
@@ -59,17 +63,16 @@ static void kn_channel_on_active(kn_fd_t s,int event){
 	}
 }
 
-void kn_channel_putmsg(kn_channel_t to,kn_channel_t from,void *data)
+void kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
 {
+	kn_channel *to = (kn_channel*)cast2ref(_to);
+	kn_channel *from = _from?(kn_channel*)cast2ref(*_from):NULL;
+	if(!to || (_from && !from)) return;
 	kn_dlist_node *tmp = NULL;
 	int ret = 0;
 	struct msg *msg = calloc(1,sizeof(*msg));
-	msg->sender = from;
+	if(from) msg->sender = *_from;
 	msg->data = data;
-	if(from){
-		//防止消息发送后from被释放掉
-		kn_ref_acquire(&from->ref);
-	}
 	kn_mutex_lock(to->mtx);
 	kn_list_pushback(&to->queue,&msg->node);
 	while(1){
@@ -89,7 +92,9 @@ void kn_channel_putmsg(kn_channel_t to,kn_channel_t from,void *data)
 		}else
 			break;
 	};
-	kn_mutex_unlock(to->mtx);		
+	kn_mutex_unlock(to->mtx);
+	kn_ref_release((kn_ref*)to);
+	if(from) kn_ref_release((kn_ref*)from);		
 }
 
 static inline struct msg* kn_channel_getmsg(struct channel_pth *c){
@@ -110,10 +115,9 @@ static inline struct msg* kn_channel_getmsg(struct channel_pth *c){
 static int8_t kn_channel_process(kn_fd_t s){
 	struct channel_pth* c = (struct channel_pth*)s;
 	struct msg *msg;
-	int n = 1024;
+	int n = 65536;//关键参数
 	while((msg = kn_channel_getmsg(c)) != NULL && n > 0){
-		c->cb_msg(c->channel,msg->sender,msg->data,c->ud);
-		if(msg->sender) kn_ref_release(&msg->sender->ref);
+		c->cb_msg(c->channel->ident,msg->sender,msg->data,c->ud);
 		free(msg->data);
 		free(msg);
 		--n;
@@ -130,7 +134,6 @@ static void channel_pth_destroy(void *ptr){
 	close(pth->base.fd);
 	close(pth->notifyfd);	
 	while((msg = (struct msg*)kn_list_pop(&pth->local_que)) != NULL){
-		if(msg->sender) kn_ref_release(&msg->sender->ref);
 		free(msg->data);
 		free(msg); 
 	}
@@ -140,11 +143,13 @@ static void channel_pth_destroy(void *ptr){
 	free(ptr);
 }
 
-int kn_channel_bind(struct kn_proactor *p,kn_channel_t c,
-					void(*cb_msg)(struct kn_channel*, struct kn_channel*,void*,void*),
+int kn_channel_bind(struct kn_proactor *p,kn_channel_t _c,
+					void(*cb_msg)(kn_channel_t, kn_channel_t,void*,void*),
 					void *ud)
 {
 	assert(cb_msg);
+	kn_channel *c = (kn_channel*)cast2ref(_c);
+	if(!c) return -1;
 	struct channel_pth *pth = (struct channel_pth*)pthread_getspecific(c->t_key);
 	if(pth) return -1;
 	pth = calloc(1,sizeof(*pth));

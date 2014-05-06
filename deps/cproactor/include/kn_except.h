@@ -137,7 +137,7 @@ extern void kn_exception_throw(int32_t code,const char *file,const char *func,in
     frame.func = __FUNCTION__;\
     frame.exception = 0;\
     frame.is_process = 1;\
-    llist_init(&frame.call_stack);\
+    kn_list_init(&frame.call_stack);\
     kn_expstack_push(&frame);\
     int savesigs= SIGSEGV | SIGBUS | SIGFPE;\
 	if(sigsetjmp(frame.jumpbuffer,savesigs) == 0)

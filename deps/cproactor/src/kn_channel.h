@@ -10,6 +10,7 @@
 
 
 struct kn_proactor;
+typedef ident kn_channel_t;
 
 typedef struct kn_channel{
 	kn_ref        ref;
@@ -17,18 +18,19 @@ typedef struct kn_channel{
 	kn_mutex_t    mtx;
 	kn_list       queue;
 	kn_dlist      waits;
-	pthread_t     owner;	
-}kn_channel,*kn_channel_t;
+	pthread_t     owner;
+	ident         ident;	
+}kn_channel;
 
 struct channel_pth{
 	kn_fd         base;
 	kn_dlist_node node;
 	int           notifyfd;	
 	kn_list       local_que;
-	kn_channel_t  channel;
+	kn_channel*   channel;
 	void*         ud;
 	//接收到消息后回调用
-	void  (*cb_msg)(struct kn_channel *, struct kn_channel *sender,void*,void*);		 
+	void  (*cb_msg)(kn_channel_t, kn_channel_t sender,void*,void*);		 
 };
 
 #endif
