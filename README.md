@@ -196,6 +196,8 @@ luanet rpc测试：客户端调用服务端的Plus函数,函数只是把客户�
 
 + 跨平台
 
++ websocket支持
+
 
 
 
