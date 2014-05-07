@@ -107,19 +107,16 @@ local function Call(thread,func,arguments)
 		f = func,
 		u = arguments,
 	}
-	--[[C.send(remote,cjson.encode(msg),nil)--[[Tb2Str.Table2Str(msg)]]--,nil)
-	local pending = pending_rpc[remote]
-	if not pending then
-		pending = {}
-		pending_rpc[remote] = pending
+	local err = C.channel_send(thread.channel,cjson.encode(msg),nil)
+	if not err then
+		local block = {}
+		lp.block = block
+		Sche.Block()
+		lp.block = nil
+		return block.ret,block.err
+	else
+		return nil,err
 	end
-	pending[lp] = lp
-	local block = {}
-	lp.block = block
-	Sche.Block()
-	lp.block = nil
-	pending[lp] = nil
-	return block.ret,block.err]]--	
 end
 
 local function getCallRequest()
