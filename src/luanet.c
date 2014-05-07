@@ -610,9 +610,9 @@ void* thread_func(void *arg){
 	struct start_arg *start_arg = (struct start_arg*)arg;
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
-	channel = start_arg->channel;
-	free(arg);		
+	channel = start_arg->channel;	
 	RegisterNet(L,start_arg->start_file);
+	free(arg);
 	if(luaL_dofile(L,"lua/start.lua")) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
@@ -629,14 +629,15 @@ int lua_fork(lua_State *L){
 	const char *start_file = lua_tostring(L,1);
 	kn_thread_t t = kn_create_thread(THREAD_JOINABLE);
 	struct start_arg *arg = calloc(1,sizeof(*arg));
-	arg->channel = kn_new_channel(kn_thread_getid(t));
+	kn_channel_t c = kn_new_channel(kn_thread_getid(t));
+	arg->channel = c;
 	strncpy(arg->start_file,start_file,256);
-	kn_thread_start_run(t,thread_func,NULL);
-	lua_pushlightuserdata(g_L,t);
-	PUSH_TABLE4(L,lua_pushunsigned(L,channel._data[0]),
-				  lua_pushunsigned(L,channel._data[1]),
-				  lua_pushunsigned(L,channel._data[2]),
-				  lua_pushunsigned(L,channel._data[3]));
+	kn_thread_start_run(t,thread_func,arg);
+	lua_pushlightuserdata(L,t);
+	PUSH_TABLE4(L,lua_pushunsigned(L,c._data[0]),
+				  lua_pushunsigned(L,c._data[1]),
+				  lua_pushunsigned(L,c._data[2]),
+				  lua_pushunsigned(L,c._data[3]));
 	return 2;
 }
 
@@ -662,7 +663,7 @@ static void channel_callback(kn_channel_t c,
 		printf("stream_recv_finish:%s\n",error);
 		lua_pop(g_L,1);
 	}
-	lua_pop(callbackObj->L,1);
+	//lua_pop(callbackObj->L,1);
 }
 
 int lua_setup_channel(lua_State *L){
@@ -679,12 +680,21 @@ int lua_thread_join(lua_State *L){
 
 int lua_channel_send(lua_State *L){
 	kn_channel_t to;
+	/*{
+		int len = lua_rawlen(L,1);
+		int i = 1;
+		for(; i <= len; ++i)
+		{
+			lua_rawgeti(L,1,i);
+			to._data[i-1] = lua_tounsigned(L,-1);
+		}
+	}*/
 	GET_ARRAY(L,1,to._data,lua_tounsigned);	
 	const char *tmp = lua_tostring(L,2);
 	size_t len = strlen(tmp);
 	char *msg = calloc(1,len+1);
 	strcpy(msg,tmp); 
-	if(0! = kn_channel_putmsg(to,channel,msg)){
+	if(0 != kn_channel_putmsg(to,&channel,msg)){
 		free(msg);
 		lua_pushstring(L,"invaild channel");
 	}else
