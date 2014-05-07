@@ -618,6 +618,7 @@ void* thread_func(void *arg){
 		lua_pop(L,1);
 		printf("thread_func:%s\n",error);
 	}
+	//kn_channel_bind(g_proactor,channel,channel_callback,NULL);
     kn_channel_close(channel);
 	lua_close(g_L);
 	return NULL;
@@ -625,28 +626,35 @@ void* thread_func(void *arg){
 
 //启动一个线程运行独立的lua虚拟机
 int lua_fork(lua_State *L){
-	/*const char *start_file = lua_tostring(L,1);
+	const char *start_file = lua_tostring(L,1);
 	kn_thread_t t = kn_create_thread(THREAD_JOINABLE);
 	struct start_arg *arg = calloc(1,sizeof(*arg));
 	arg->channel = kn_new_channel(kn_thread_getid(t));
 	strncpy(arg->start_file,start_file,256);
 	kn_thread_start_run(t,thread_func,NULL);
-	lua_pushlightuserdata(g_L,channel);
 	lua_pushlightuserdata(g_L,t);
-	*/
+	PUSH_TABLE4(L,lua_pushunsigned(L,channel._data[0]),
+				  lua_pushunsigned(L,channel._data[1]),
+				  lua_pushunsigned(L,channel._data[2]),
+				  lua_pushunsigned(L,channel._data[3]));
 	return 2;
 }
 
 static void channel_callback(kn_channel_t c,
 							 kn_channel_t sender,
 							 void*msg,void *ud){	
-	/*luaObject_t callbackObj = (luaObject_t)ud;
-	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
-	lua_pushstring(callbackObj->L,"on_channel_msg");
-	lua_gettable(callbackObj->L,-2);
-	if(callbackObj->L != g_L) lua_xmove(callbackObj->L,g_L,1);
-		
-	if(sender) lua_pushlightuserdata(g_L,sender);
+	//luaObject_t callbackObj = (luaObject_t)ud;
+	//lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
+	//lua_pushstring(callbackObj->L,"on_channel_msg");
+	//lua_gettable(callbackObj->L,-2);
+	//if(callbackObj->L != g_L) lua_xmove(callbackObj->L,g_L,1);
+	lua_getglobal(g_L,"channel_msg_callback");
+	if(sender.ptr){
+		PUSH_TABLE4(g_L,lua_pushunsigned(g_L,sender._data[0]),
+				    lua_pushunsigned(g_L,sender._data[1]),
+				    lua_pushunsigned(g_L,sender._data[2]),
+				    lua_pushunsigned(g_L,sender._data[3]));	
+	}
 	else lua_pushnil(g_L);
 	lua_pushstring(g_L,(const char *)msg);
 	if(0 != lua_pcall(g_L,2,0,0)){
@@ -654,12 +662,11 @@ static void channel_callback(kn_channel_t c,
 		printf("stream_recv_finish:%s\n",error);
 		lua_pop(g_L,1);
 	}
-	lua_pop(callbackObj->L,1);*/
+	lua_pop(callbackObj->L,1);
 }
 
-int lua_set_channel_callback(lua_State *L){
-	luaObject_t callbackObj = create_luaObj(L,1);
-	kn_channel_bind(g_proactor,channel,channel_callback,(void*)callbackObj);
+int lua_setup_channel(lua_State *L){
+	kn_channel_bind(g_proactor,channel,channel_callback,NULL);
 	return 0;
 }
 
@@ -671,14 +678,18 @@ int lua_thread_join(lua_State *L){
 }
 
 int lua_channel_send(lua_State *L){
-/*	kn_channel_t to = (kn_channel_t)lua_touserdata(L,1);
+	kn_channel_t to;
+	GET_ARRAY(L,1,to._data,lua_tounsigned);	
 	const char *tmp = lua_tostring(L,2);
 	size_t len = strlen(tmp);
 	char *msg = calloc(1,len+1);
 	strcpy(msg,tmp); 
-	kn_channel_putmsg(to,channel,msg);
-	*/
-	return 0;
+	if(0! = kn_channel_putmsg(to,channel,msg)){
+		free(msg);
+		lua_pushstring(L,"invaild channel");
+	}else
+		lua_pushnil(L);
+	return 1;
 }
 
 void RegisterNet(lua_State *L,const char *lfile){  
@@ -767,15 +778,19 @@ void RegisterNet(lua_State *L,const char *lfile){
 	lua_pushstring(L,"fork");
 	lua_pushcfunction(L,&lua_fork);
 	lua_settable(L, -3);
-		
-	lua_pushstring(L,"set_channel_callback");
-	lua_pushcfunction(L,&lua_set_channel_callback);
-	lua_settable(L, -3);
-	
+
 	lua_pushstring(L,"thread_join");
 	lua_pushcfunction(L,&lua_thread_join);
-	lua_settable(L, -3);				
-
+	lua_settable(L, -3);	
+		
+	lua_pushstring(L,"setup_channel");
+	lua_pushcfunction(L,&lua_setup_channel);
+	lua_settable(L, -3);
+	
+	lua_pushstring(L,"channel_send");
+	lua_pushcfunction(L,&lua_channel_send);
+	lua_settable(L, -3);
+		
 	lua_setglobal(L,"C");
 	g_L = L;
     g_proactor = kn_new_proactor();
@@ -799,6 +814,9 @@ int main(int argc,char **argv)
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
-	}	
+	}
+	//kn_channel_bind(g_proactor,channel,channel_callback,NULL);
+    //kn_channel_close(channel);
+	//lua_close(g_L);		
 	return 0;
 } 

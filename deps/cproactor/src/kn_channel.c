@@ -63,11 +63,11 @@ static void kn_channel_on_active(kn_fd_t s,int event){
 	}
 }
 
-void kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
+int kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
 {
 	kn_channel *to = (kn_channel*)cast2ref(_to);
 	kn_channel *from = _from?(kn_channel*)cast2ref(*_from):NULL;
-	if(!to || (_from && !from)) return;
+	if(!to || (_from && !from)) return -1;
 	kn_dlist_node *tmp = NULL;
 	int ret = 0;
 	struct msg *msg = calloc(1,sizeof(*msg));
@@ -94,7 +94,8 @@ void kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
 	};
 	kn_mutex_unlock(to->mtx);
 	kn_ref_release((kn_ref*)to);
-	if(from) kn_ref_release((kn_ref*)from);		
+	if(from) kn_ref_release((kn_ref*)from);
+	return 0;		
 }
 
 static inline struct msg* kn_channel_getmsg(struct channel_pth *c){
@@ -151,12 +152,16 @@ int kn_channel_bind(struct kn_proactor *p,kn_channel_t _c,
 	kn_channel *c = (kn_channel*)cast2ref(_c);
 	if(!c) return -1;
 	struct channel_pth *pth = (struct channel_pth*)pthread_getspecific(c->t_key);
-	if(pth) return -1;
+	if(pth){ 
+		kn_ref_release((kn_ref*)c);
+		return -1;
+	}
 	pth = calloc(1,sizeof(*pth));
 		
 	pth->base.type = CHANNEL;
 	int tmp[2];
-	if(pipe(tmp) != 0){ 
+	if(pipe(tmp) != 0){
+		kn_ref_release((kn_ref*)c); 
 		free(pth);
 		return -1;
 	}
@@ -171,10 +176,11 @@ int kn_channel_bind(struct kn_proactor *p,kn_channel_t _c,
 	kn_ref_init(&pth->base.ref,channel_pth_destroy);		
 	if(0!= p->Register(p,(kn_fd_t)pth)){
 		kn_ref_release((kn_ref*)pth);
+		kn_ref_release((kn_ref*)c);
 		return -1;
 	}
 	pth->cb_msg = cb_msg;	
-	kn_ref_acquire(&c->ref);
+	//kn_ref_acquire(&c->ref);这里不需要acquire了cast2ref已经执行了acquire
 	pthread_setspecific(c->t_key,(void*)pth);
 	kn_procator_putin_active(p,(kn_fd_t)pth);
 	return 0;

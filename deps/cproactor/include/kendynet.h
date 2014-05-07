@@ -85,13 +85,13 @@ void          kn_fd_set_stio_destroyer(kn_fd_t,stio_destroyer);
 kn_channel_t kn_new_channel(pthread_t owner);
 void         kn_channel_close(kn_channel_t);
 
-int kn_channel_bind(struct kn_proactor*,kn_channel_t,
-				    void(*)(kn_channel_t, kn_channel_t,void*,void*),
-				    void*);
+int          kn_channel_bind(struct kn_proactor*,kn_channel_t,
+				             void(*)(kn_channel_t, kn_channel_t,void*,void*),
+				             void*);
 /*
 *  from:如果不为空,表示如果要对这条消息作响应响应消息发往from. 
 */ 
-void kn_channel_putmsg(kn_channel_t to,kn_channel_t *from,void*);
+int  kn_channel_putmsg(kn_channel_t to,kn_channel_t *from,void*);
 
 
 #endif
