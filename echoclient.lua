@@ -28,7 +28,7 @@ function on_connected(s,remote_addr,err)
 end
 print("echoclient")
 for i=1,1 do
-	C.connect(IPPROTO_TCP,SOCK_STREAM,net.netaddr_ipv4("127.0.0.1",8010),nil,{onconnected = on_connected},3000)
+	C.connect(SOCK_STREAM,net.netaddr_ipv4("127.0.0.1",8010),nil,{onconnected = on_connected},3000)
 end
 
 local tick = C.GetSysTick()

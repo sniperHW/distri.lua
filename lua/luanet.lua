@@ -42,7 +42,7 @@ local function connect(remote_addr,timeout)
 									Sche.WakeUp(block.lp)
 								end
 							end	   
-		if not C.connect(IPPROTO_TCP,SOCK_STREAM,remote_addr,nil,block,timeout) then
+		if not C.connect(SOCK_STREAM,remote_addr,nil,block,timeout) then
 			return nil
 		end
 		if block.flag == 0 then	   
@@ -349,7 +349,7 @@ local function StartLocalService(local_name,local_socktype,local_addr,cb_disconn
 			end		
 		  )
 	end
-	return C.listen(IPPROTO_TCP,local_socktype,local_addr,{onaccept=on_newclient})
+	return C.stream_listen(local_addr,{onaccept=on_newclient})
 end
 
 --从消息队列提取消息

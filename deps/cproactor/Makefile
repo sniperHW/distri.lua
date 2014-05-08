@@ -23,6 +23,7 @@ kendynet.a: \
 		   src/kn_timer.c\
 		   src/kn_stream_conn.c\
 		   src/kn_stream_conn_server.c\
+		   src/kn_stream_conn_client.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o

@@ -329,6 +329,16 @@ void IoFinish(kn_fd_t fd,st_io *io,int32_t bytestransfer,int32_t err_code)
         RecvFinish(c,bytestransfer,err_code);	
 }
 
+void  kn_stream_conn_setud(kn_stream_conn_t conn,void *ud)
+{
+	conn->ud = ud;
+}
+
+void *kn_stream_conn_getud(kn_stream_conn_t conn)
+{
+	return conn->ud;
+}
+
 /*
 void active_close(struct connection *c)
 {

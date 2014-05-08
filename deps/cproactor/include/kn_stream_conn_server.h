@@ -15,7 +15,7 @@ typedef struct kn_stream_server* kn_stream_server_t;
 
 kn_stream_server_t kn_new_stream_server(kn_proactor_t,
 									    kn_sockaddr *serveraddr,
-									    void (*)(struct kn_stream_server*,kn_stream_conn_t)//on_connect	
+									    void (*)(kn_stream_server_t,kn_stream_conn_t)//on_connect	
 									    );
 
 void kn_destroy_stream_server(kn_stream_server_t);

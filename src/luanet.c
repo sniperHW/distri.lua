@@ -434,13 +434,12 @@ static void on_connect(kn_fd_t s,struct kn_sockaddr *remote,void *ud,int err)
 }
 
 int lua_connect(lua_State *L){
-	
-	int proto = lua_tonumber(L,1);
-	int sock_type = lua_tonumber(L,2);
-	luaObject_t remote = create_luaObj(L,3);
-	luaObject_t local = create_luaObj(L,4);
-	luaObject_t obj = create_luaObj(L,5);
-	int timeout = lua_tonumber(L,6);
+	//int proto = lua_tonumber(L,1);
+	int sock_type = lua_tonumber(L,1);
+	luaObject_t remote = create_luaObj(L,2);
+	luaObject_t local = create_luaObj(L,3);
+	luaObject_t obj = create_luaObj(L,4);
+	int timeout = lua_tonumber(L,5);
 	if(!remote || !obj){
 		release_luaObj(local);
 		release_luaObj(remote);
@@ -467,7 +466,7 @@ int lua_connect(lua_State *L){
 		}	
 	}
 			
-	if(0 != kn_asyn_connect(g_proactor,proto,sock_type,local?&addr_local:NULL,
+	if(0 != kn_asyn_connect(g_proactor,sock_type,local?&addr_local:NULL,
 					&addr_remote,on_connect,(void*)obj,(int64_t)timeout))
 	{
 		release_luaObj(obj);
@@ -482,9 +481,7 @@ int lua_connect(lua_State *L){
 
 
 int lua_listen(lua_State *L){
-	int proto = lua_tonumber(L,1);
-	int sock_type = lua_tonumber(L,2);
-	luaObject_t addr = create_luaObj(L,3);
+	luaObject_t addr = create_luaObj(L,1);
 	kn_sockaddr addr_local;
 	luaObject_t callbackObj;
 	int type = GET_OBJ_FIELD(addr,"type",int,lua_tonumber);
@@ -492,8 +489,8 @@ int lua_listen(lua_State *L){
 		kn_addr_init_in(&addr_local,
 						GET_OBJ_FIELD(addr,"ip",const char*,lua_tostring),
 						GET_OBJ_FIELD(addr,"port",int,lua_tonumber));
-		callbackObj =  create_luaObj(L,4);			 
-		lua_socket_t l = new_luasocket(kn_listen(g_proactor,proto,sock_type,&addr_local,on_accept,(void*)callbackObj),
+		callbackObj =  create_luaObj(L,2);			 
+		lua_socket_t l = new_luasocket(kn_listen(g_proactor,&addr_local,on_accept,(void*)callbackObj),
 									   callbackObj);
 		lua_pushlightuserdata(L,l);
 		release_luaObj(addr);
@@ -745,7 +742,7 @@ void RegisterNet(lua_State *L,const char *lfile){
     
 	lua_newtable(L);
 	
-	lua_pushstring(L,"listen");
+	lua_pushstring(L,"stream_listen");
 	lua_pushcfunction(L,&lua_listen);
 	lua_settable(L, -3);
 

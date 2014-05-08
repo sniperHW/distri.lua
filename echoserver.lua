@@ -19,7 +19,7 @@ function on_newclient(s)
 	end
 end
 
-C.listen(IPPROTO_TCP,SOCK_STREAM,net.netaddr_ipv4("127.0.0.1",8010),{onaccept=on_newclient})
+C.stream_listen(net.netaddr_ipv4("127.0.0.1",8010),{onaccept=on_newclient})
 
 
 
