@@ -175,8 +175,9 @@ int32_t kn_epoll_loop(kn_proactor_t p,int32_t ms)
 		struct service *last = (struct service*)kn_dlist_last(&p->service);
 		do{
 			cur->tick(cur);
+			if(cur == last) break;
 			cur = (struct service*)((kn_dlist_node*)cur)->next;
-		}while(cur != last); 
+		}while(1); 
 	}	
 	return 0;
 }

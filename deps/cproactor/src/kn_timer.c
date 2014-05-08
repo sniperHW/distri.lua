@@ -163,7 +163,7 @@ kn_timer_t kn_new_timer()
 	return t;
 }
 
-void   delete_timer(kn_timer_t t)
+void kn_delete_timer(kn_timer_t t)
 {
 	if(t){
 		minheap_destroy(&t->_minheap);

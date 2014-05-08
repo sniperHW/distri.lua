@@ -59,7 +59,8 @@ struct kn_stream_conn
 	uint8_t  raw;
 	uint8_t  doing_send;
 	uint32_t recv_bufsize;
-	void (*fd_destroy_fn)(void *arg);
+	void     (*fd_destroy_fn)(void *arg);
+	uint8_t  is_close;
 	
 	int  (*on_packet)(kn_stream_conn_t,rpacket_t);
 	void (*on_recv_timeout)(kn_stream_conn_t);

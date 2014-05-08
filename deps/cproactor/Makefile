@@ -24,10 +24,17 @@ kendynet.a: \
 		   src/kn_stream_conn.c\
 		   src/kn_stream_conn_server.c\
 		   src/kn_stream_conn_client.c\
+		   src/minheap.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
 		rm -f *.o
+
+stream_server:stream_server.c kendynet.a
+	$(CC) $(CFLAGS) -o stream_server stream_server.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+
+stream_client:stream_client.c kendynet.a
+	$(CC) $(CFLAGS) -o stream_client stream_client.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 		
 tcp_echoserver:tcp_echoserver.c kendynet.a
 	$(CC) $(CFLAGS) -o tcpechosever tcp_echoserver.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)

@@ -72,6 +72,7 @@ int bind_private(kn_proactor_t p,
 {
 	if(recvbuf_size == 0) recvbuf_size = 1024;
 	conn->raw = is_raw;
+	conn->on_disconnected = on_disconnected;
 	conn->recv_bufsize = recvbuf_size; 
 	conn->recv_timeout = recv_timeout;
 	conn->send_timeout = send_timeout;
