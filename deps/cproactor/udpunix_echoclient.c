@@ -20,7 +20,7 @@ int main(int argc,char **argv){
 		snprintf(path,128,"%s%i",argv[2],i);
 		unlink(path);
 		kn_addr_init_un(&local,path);
-		c = kn_connect(0,SOCK_DGRAM,&local,&remote);
+		c = kn_connect(SOCK_DGRAM,&local,&remote);
 		struct dgram_session *session = calloc(1,sizeof(*session));
 		session->s = c;  
 		kn_fd_setud(c,session);

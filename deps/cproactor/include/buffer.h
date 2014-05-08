@@ -51,7 +51,7 @@ static inline buffer_t buffer_acquire(buffer_t b1,buffer_t b2)
 {
     if(b1 == b2) return b1;
     if(b2) kn_ref_acquire(&b2->_refbase);
-    if(b1) kn_ref_release(&b1);
+    if(b1) kn_ref_release(&b1->_refbase);
 	return b2;
 }
 

@@ -22,7 +22,7 @@ static inline buffer_t buffer_create(uint32_t capacity)
 	{
 		b->size = 0;
 		b->capacity = capacity;
-		ref_init(&b->_refbase,buffer_destroy);
+		kn_ref_init(&b->_refbase,buffer_destroy);
 	}
 	return b;
 }

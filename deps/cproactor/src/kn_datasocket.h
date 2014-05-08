@@ -18,8 +18,8 @@ typedef struct kn_datasocket{
     void   (*cb_transfer)(kn_fd_t,st_io*,int32_t bytestransfer,int32_t err);
     //销毁时处理pending中的剩余元素
     void   (*destroy_stio)(st_io*);
-    int32_t (*raw_send)(struct kn_datasocket*,st_io *io_req,uint32_t *err_code);
-    int32_t (*raw_recv)(struct kn_datasocket*,st_io *io_req,uint32_t *err_code);	
+    int32_t (*raw_send)(struct kn_datasocket*,st_io *io_req,int32_t *err_code);
+    int32_t (*raw_recv)(struct kn_datasocket*,st_io *io_req,int32_t *err_code);	
 }kn_datasocket,*kn_datasocket_t;
 
 //void    kn_datasocket_on_active(kn_fd_t s,int event);

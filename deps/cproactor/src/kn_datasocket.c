@@ -19,7 +19,7 @@
     MSG.msg_iov = REQ->iovec;\
     MSG.msg_iovlen = REQ->iovec_count
 
-static int32_t kn_dgram_raw_recv(kn_datasocket* d,st_io *io_req,uint32_t *err_code)
+static int32_t kn_dgram_raw_recv(kn_datasocket* d,st_io *io_req,int32_t *err_code)
 {
 	int32_t        ret;
     int            family = d->addr_local.addrtype;
@@ -39,7 +39,7 @@ static int32_t kn_dgram_raw_recv(kn_datasocket* d,st_io *io_req,uint32_t *err_co
 	return ret;
 }
 
-static int32_t kn_dgram_raw_send(kn_datasocket* d,st_io *io_req,uint32_t *err_code)
+static int32_t kn_dgram_raw_send(kn_datasocket* d,st_io *io_req,int32_t *err_code)
 {
 	int32_t        ret;
     int            family = d->addr_local.addrtype;
@@ -60,7 +60,7 @@ static int32_t kn_dgram_raw_send(kn_datasocket* d,st_io *io_req,uint32_t *err_co
 }
 
 //用于已连接的数据报协议或流协议
-static int32_t kn_stream_raw_recv(kn_datasocket* d,st_io *io_req,uint32_t *err_code)
+static int32_t kn_stream_raw_recv(kn_datasocket* d,st_io *io_req,int32_t *err_code)
 {
 	int32_t ret;
 	*err_code = 0;
@@ -78,7 +78,7 @@ static int32_t kn_stream_raw_recv(kn_datasocket* d,st_io *io_req,uint32_t *err_c
 	return ret;
 }
 
-static int32_t kn_stream_raw_send(kn_datasocket* d,st_io *io_req,uint32_t *err_code)
+static int32_t kn_stream_raw_send(kn_datasocket* d,st_io *io_req,int32_t *err_code)
 {
 
 	int32_t ret;
@@ -123,7 +123,7 @@ void kn_datasocket_on_active(kn_fd_t s,int event){
 static inline void _recv(kn_datasocket* t)
 {
 	st_io* io_req = 0;
-	uint32_t err_code = 0;
+	int32_t err_code = 0;
 	int32_t bytes_transfer;
 	if(t->flag & readable)
 	{
@@ -139,7 +139,7 @@ static inline void _recv(kn_datasocket* t)
 static inline void _send(kn_datasocket* t)
 {
 	st_io* io_req = 0;
-	uint32_t err_code = 0;
+	int32_t err_code = 0;
 	int32_t bytes_transfer;
 	if(t->flag & writeable)
 	{
@@ -166,10 +166,9 @@ int8_t  kn_datasocket_process(kn_fd_t s)
 
 void kn_datasocket_destroy(void *ptr){
 	printf("kn_datasocket_destroy,%x\n",(int)ptr);
-	
 	kn_datasocket *t = (kn_datasocket *)((char*)ptr - sizeof(kn_dlist_node));
 	st_io *io_req;
-	close(t->base.fd);
+	if(t->base.proactor) t->base.proactor->UnRegister(t->base.proactor,&t->base);	
 	if(t->destroy_stio){
         while((io_req = (st_io*)kn_list_pop(&t->pending_send))!=NULL)
             t->destroy_stio(io_req);

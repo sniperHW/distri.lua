@@ -9,7 +9,7 @@ int main(int argc,char **argv){
 	kn_sockaddr local;
 	kn_fd_t l;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
-	l = kn_dgram_listen(p,IPPROTO_UDP,SOCK_DGRAM,&local,transfer_finish);	
+	l = kn_dgram_listen(p,SOCK_DGRAM,&local,transfer_finish);	
  	struct dgram_session *session = calloc(1,sizeof(*session));
 	session->s = l;  
  	kn_fd_setud(l,session);

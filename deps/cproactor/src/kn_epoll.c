@@ -169,6 +169,15 @@ int32_t kn_epoll_loop(kn_proactor_t p,int32_t ms)
 		}
 		current_tick = kn_systemms64();
 	}while(timeout > current_tick);
+	
+	if(!kn_dlist_empty(&p->service)){
+		struct service *cur = (struct service*)kn_dlist_first(&p->service);
+		struct service *last = (struct service*)kn_dlist_last(&p->service);
+		do{
+			cur->tick(cur);
+			cur = (struct service*)((kn_dlist_node*)cur)->next;
+		}while(cur != last); 
+	}	
 	return 0;
 }
 
@@ -185,6 +194,7 @@ kn_epoll* kn_epoll_new()
 	ep->events = calloc(1,(sizeof(*ep->events)*ep->maxevents));
 	kn_dlist_init(&ep->base.actived[0]);
 	kn_dlist_init(&ep->base.actived[1]);
+	kn_dlist_init(&ep->base.service);
 	ep->base.actived_index = 0;
 	kn_dlist_init(&ep->base.connecting);
 	ep->base.Loop = kn_epoll_loop;

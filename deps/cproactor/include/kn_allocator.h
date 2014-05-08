@@ -31,7 +31,7 @@ typedef struct kn_allocator
    ({ void *__result;\
        do \
 	   if(ALLOCATOR)\
-	     __result = ((kn_allocator_t*)ALLOCATOR)->_alloc(ALLOCATOR,SIZE);\
+	     __result = ((kn_allocator_t)ALLOCATOR)->_alloc(ALLOCATOR,SIZE);\
 	   else\
 	     __result = calloc(1,SIZE);\
 	   while(0);\
@@ -43,7 +43,7 @@ typedef struct kn_allocator
    ({\
        do \
 	   if(ALLOCATOR)\
-	     ((kn_allocator_t*)ALLOCATOR)->_dealloc(ALLOCATOR,PTR);\
+	     ((kn_allocator_t)ALLOCATOR)->_dealloc(ALLOCATOR,PTR);\
 	   else\
 	     free(PTR);\
 	   while(0);\
@@ -52,7 +52,7 @@ typedef struct kn_allocator
 
 #ifndef DESTROY
 #define DESTROY(ALLOCATOR)\
-	((kn_allocator_t*)(*(ALLOCATOR)))->_destroy((ALLOCATOR))
+	((kn_allocator_t)(*(ALLOCATOR)))->_destroy((ALLOCATOR))
 #endif
 	
 #endif

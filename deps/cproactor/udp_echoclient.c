@@ -15,7 +15,7 @@ int main(int argc,char **argv){
 	int send_size = atoi(argv[4]);
 	int i = 0;
 	for(; i < client_count; ++i){
-		c = kn_connect(IPPROTO_UDP,SOCK_DGRAM,NULL,&remote);
+		c = kn_connect(SOCK_DGRAM,NULL,&remote);
 		struct dgram_session *session = calloc(1,sizeof(*session));
 		session->s = c;  
 		kn_fd_setud(c,session);

@@ -39,9 +39,9 @@ typedef void (*CCB_SEND_TIMEOUT)(kn_stream_conn_t);
 
 struct kn_stream_conn
 {
-	kn_fd  fd;
-	struct iovec wsendbuf[MAX_WBAF];
-	struct iovec wrecvbuf[2];
+	kn_fd_t  fd;
+	struct   iovec wsendbuf[MAX_WBAF];
+	struct   iovec wrecvbuf[2];
 	
     st_io    send_overlap;
 	st_io    recv_overlap;
@@ -51,21 +51,25 @@ struct kn_stream_conn
 	uint32_t next_recv_pos;
 	buffer_t next_recv_buf;
 	buffer_t unpack_buf;
-
     kn_list  send_list;//待发送的包
-    CCB_PROCESS_PKT cb_process_packet;
 	uint64_t last_recv;
-	struct timer_item *_timer_item;
+	struct   kn_timer_item *_timer_item;
 	uint32_t recv_timeout;
     uint32_t send_timeout;
-    CCB_RECV_TIMEOUT cb_recv_timeout;
-    CCB_SEND_TIMEOUT cb_send_timeout;
 	uint8_t  raw;
-    volatile uint32_t status;
 	uint8_t  doing_send;
 	uint32_t recv_bufsize;
+	void (*fd_destroy_fn)(void *arg);
+	
+	int  (*on_packet)(kn_stream_conn_t,rpacket_t);
+	void (*on_recv_timeout)(kn_stream_conn_t);
+	void (*on_send_timeout)(kn_stream_conn_t);	
+	void (*on_disconnected)(kn_stream_conn_t,int err);
 };
 
+kn_stream_conn_t kn_new_stream_conn(kn_fd_t s);
+
+void kn_stream_conn_close(kn_stream_conn_t);
 
 /*
 struct connection *new_conn(SOCK s,uint8_t is_raw);

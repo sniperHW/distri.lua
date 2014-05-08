@@ -3,7 +3,7 @@
 #include <string.h>
 #include "kn_string.h"
 #include "kn_ref.h"
-#include "buffer.h"
+#include "kn_common_define.h"
 
 typedef struct string_holder
 {
@@ -32,7 +32,7 @@ static inline holder_t string_holder_create(const char *str,uint32_t len)
 		strncpy(h->str,str,len);
 		h->str[len] = 0;
 	}
-	ref_init(&h->ref,destroy_string_holder);
+	kn_ref_init(&h->ref,destroy_string_holder);
 	return h;
 }
 
@@ -105,9 +105,9 @@ void kn_string_copy(kn_string_t to,kn_string_t from,uint32_t n)
 			string_holder_acquire(to->holder);
 		}else if(n > kn_string_len(to)){
 			if(to->holder) string_holder_release(to->holder);
-			to->holder = string_holder_create(to_cstr(from),n);	
+			to->holder = string_holder_create(kn_to_cstr(from),n);	
 		}else{
-			strncpy(to->holder->str,to_cstr(from),n);	
+			strncpy(to->holder->str,kn_to_cstr(from),n);	
 		}
 	}
 }
@@ -115,7 +115,7 @@ void kn_string_copy(kn_string_t to,kn_string_t from,uint32_t n)
 void kn_string_append(kn_string_t s,const char *cstr)
 {
 	if(!s || !cstr) return;
-	int32_t len = string_len(s) + strlen(cstr);
+	int32_t len = kn_string_len(s) + strlen(cstr);
 	if(len <= MIN_STRING_LEN)
 		strcat(s->str,cstr);
 	else
@@ -124,7 +124,7 @@ void kn_string_append(kn_string_t s,const char *cstr)
 			strcat(s->holder->str,cstr);
 		else{
 			
-			holder_t h = string_holder_create(to_cstr(s),len*2);
+			holder_t h = string_holder_create(kn_to_cstr(s),len*2);
 			strcat(h->str,cstr);
 			string_holder_release(s->holder);
 			s->holder = h;

@@ -111,11 +111,10 @@ wpacket_t wpk_create_by_rpacket(struct rpacket *r/*,uint32_t dropsize*/)
     }*/
 }
 
-void wpk_destroy(wpacket_t *w)
+void wpk_destroy(wpacket_t w)
 {
-    buffer_release(&PACKET_BUF(*w));
-	buffer_release(&(*w)->writebuf);
-	FREE(wpacket_allocator,*w);
-	*w = NULL;
+    buffer_release(&PACKET_BUF(w));
+	buffer_release(&w->writebuf);
+	FREE(wpacket_allocator,w);
 }
 

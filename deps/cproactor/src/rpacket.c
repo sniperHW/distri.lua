@@ -136,14 +136,13 @@ rpacket_t rpk_create_skip(rpacket_t other,uint32_t skipsize)
     return r;
 }
 
-void rpk_destroy(rpacket_t *r)
+void rpk_destroy(rpacket_t r)
 {
 	//释放所有对buffer_t的引用
-    buffer_release(&PACKET_BUF(*r));//(*r)->base.buf);
-	buffer_release(&(*r)->readbuf);
-	buffer_release(&(*r)->binbuf);
-    FREE(rpacket_allocator,*r);
-	*r = 0;
+    buffer_release(&PACKET_BUF(r));//(*r)->base.buf);
+	buffer_release(&r->readbuf);
+	buffer_release(&r->binbuf);
+    FREE(rpacket_allocator,r);
 }
 
 

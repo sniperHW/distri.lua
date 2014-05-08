@@ -22,7 +22,7 @@ int main(int argc,char **argv){
 	kn_sockaddr local;
 	unlink(argv[1]);
 	kn_addr_init_un(&local,argv[1]);
-	kn_listen(p,0,SOCK_STREAM,&local,on_accept,(void*)p);
+	kn_listen(p,&local,on_accept,(void*)p);
  	uint64_t tick,now;
     tick = now = kn_systemms64();	
 	while(1){

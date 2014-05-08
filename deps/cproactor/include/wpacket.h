@@ -43,7 +43,7 @@ wpacket_t wpk_create_by_wpacket(struct wpacket *_w);
 wpacket_t wpk_create_by_rpacket(struct rpacket *r);//,uint32_t dropsize);
 
 //wpacket_t wpk_create_by_buffer(buffer_t,uint32_t begpos,uint32_t len,uint32_t is_raw);
-void      wpk_destroy(wpacket_t*);
+void      wpk_destroy(wpacket_t);
 
 //创建一个非原始包(单线程)
 #define NEW_WPK(__SIZE) wpk_create(__SIZE,0)

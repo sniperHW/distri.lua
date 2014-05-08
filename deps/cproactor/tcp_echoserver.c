@@ -21,7 +21,7 @@ int main(int argc,char **argv){
 	kn_proactor_t p = kn_new_proactor();
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
-	kn_listen(p,IPPROTO_TCP,SOCK_STREAM,&local,on_accept,(void*)p);
+	kn_listen(p,&local,on_accept,(void*)p);
  	uint64_t tick,now;
     tick = now = kn_systemms64();	
 	while(1){

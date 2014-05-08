@@ -32,8 +32,8 @@ static int kn_bind(int fd,kn_sockaddr *addr_local){
 }
 
 kn_fd_t     kn_listen(kn_proactor_t p,
-					  int protocol,
-					  int type,
+					  //int protocol,
+					  //int type,
 					  kn_sockaddr *addr_local,
 					  void (*cb_accept)(kn_fd_t,void *ud),
 					  void *ud
@@ -46,10 +46,13 @@ kn_fd_t     kn_listen(kn_proactor_t p,
 	int ret;
 	int family = addr_local->addrtype;
 	int fd;
+	int protocol;
 	
-	if(type != SOCK_STREAM)
-		return NULL;
-	if((fd = socket(family,type|SOCK_NONBLOCK|SOCK_CLOEXEC,protocol)) < 0) 
+	if(addr_local->addrtype == AF_INET)
+		protocol = IPPROTO_TCP;
+	else
+		protocol = 0;
+	if((fd = socket(family,SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC,protocol)) < 0) 
 		return NULL;
 	
 	if(kn_set_addrreuse(fd) < 0){
@@ -77,8 +80,8 @@ kn_fd_t     kn_listen(kn_proactor_t p,
 }
 
 kn_fd_t 	kn_dgram_listen(struct kn_proactor *p,
-					        int protocol,
-					        int type,
+					        //int protocol,
+					        //int type,
 					        kn_sockaddr *addr_local,
 					        kn_cb_transfer cb)
 {
@@ -88,9 +91,12 @@ kn_fd_t 	kn_dgram_listen(struct kn_proactor *p,
 	int family = addr_local->addrtype;
 	int fd;
 	kn_fd_t d;
-	if(type != SOCK_DGRAM)
-		return NULL;
-	if((fd = socket(family,type|SOCK_NONBLOCK|SOCK_CLOEXEC,protocol)) < 0) 
+	int protocol;
+	if(addr_local->addrtype == AF_INET)
+		protocol = IPPROTO_TCP;
+	else
+		protocol = 0;	
+	if((fd = socket(family,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,protocol)) < 0) 
 		return NULL;
 	
 	if(kn_set_addrreuse(fd) < 0){
@@ -113,7 +119,7 @@ kn_fd_t 	kn_dgram_listen(struct kn_proactor *p,
 	 	
 }
 
-kn_fd_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,struct kn_sockaddr *addr_remote){
+kn_fd_t kn_connect(int type,struct kn_sockaddr *addr_local,struct kn_sockaddr *addr_remote){
 	assert(addr_remote);
 	int ret;
 	int family = addr_remote->addrtype;
@@ -122,9 +128,17 @@ kn_fd_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,struct k
 	int fd;
 	int sock_type;
 	kn_fd_t s;
-	
+	int protocol;
+		
 	if(type != SOCK_STREAM && type != SOCK_DGRAM)
 		return NULL;
+	
+	if(addr_remote->addrtype == AF_INET){
+		if(type == SOCK_DGRAM) protocol = IPPROTO_UDP;
+		else protocol = IPPROTO_TCP;
+	}else{
+		protocol = 0;
+	}	
 	
 	if((fd = socket(family,type,protocol)) < 0) 
 		return NULL;
@@ -173,7 +187,6 @@ kn_fd_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,struct k
 }
 
 int kn_asyn_connect(kn_proactor_t p,
-			   int protocol,
 			   int type,
 			   struct kn_sockaddr *addr_local,
 			   struct kn_sockaddr *addr_remote,
@@ -190,8 +203,15 @@ int kn_asyn_connect(kn_proactor_t p,
     socklen_t len;
     struct kn_sockaddr local;	
 	int fd;
+	int protocol;
+			
 	if(type != SOCK_STREAM)
 		return -1;
+		
+	if(addr_remote->addrtype == AF_INET)
+		protocol = IPPROTO_TCP;
+	else
+		protocol = 0;		
 	
 	if((fd = socket(family,type|SOCK_NONBLOCK,protocol)) < 0) 
 		return -1;
@@ -273,9 +293,11 @@ int32_t kn_proactor_bind(kn_proactor_t p ,kn_fd_t s,kn_cb_transfer cb){
 void kn_closefd(kn_fd_t s)
 {
 	assert(s);
-	if(s->proactor)
-		s->proactor->UnRegister(s->proactor,s);
+	close(s->fd);
 	kn_ref_release(&s->ref);
+	/*if(s->proactor)
+		s->proactor->UnRegister(s->proactor,s);
+	kn_ref_release(&s->ref);*/
 }
 
 void kn_shutdown_recv(kn_fd_t s)
@@ -307,13 +329,13 @@ void* kn_fd_getud(kn_fd_t s)
 	return s->ud;
 }
 
-int32_t kn_recv(kn_fd_t s,st_io *ioreq,uint32_t *err_code)
+int32_t kn_recv(kn_fd_t s,st_io *ioreq,int32_t *err_code)
 {
 	assert(s);
 	assert(ioreq);
 	struct  kn_datasocket *d = (struct kn_datasocket*)s;
 	int32_t  ret;
-	uint32_t errcode;
+	int32_t errcode;
 	ret = d->raw_recv(d,ioreq,&errcode);
 	if(err_code) *err_code = errcode;
 	if(ret == 0) return -1;
@@ -322,13 +344,13 @@ int32_t kn_recv(kn_fd_t s,st_io *ioreq,uint32_t *err_code)
 
 }
 
-int32_t kn_send(kn_fd_t s,st_io *ioreq,uint32_t *err_code)
+int32_t kn_send(kn_fd_t s,st_io *ioreq,int32_t *err_code)
 {
 	assert(s);
 	assert(ioreq);	
 	struct  kn_datasocket *d = (struct kn_datasocket*)s;
 	int32_t ret;
-	uint32_t errcode;
+	int32_t errcode;
 	ret = d->raw_send(d,ioreq,&errcode);
 	if(err_code) *err_code = errcode;
 	if(ret == 0) return -1;

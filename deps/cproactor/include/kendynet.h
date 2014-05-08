@@ -17,11 +17,10 @@ void    kn_net_clean();
 kn_proactor_t kn_new_proactor();
 void          kn_close_proactor(kn_proactor_t);
 
-kn_fd_t kn_connect(int protocol,int type,struct kn_sockaddr *addr_local,struct kn_sockaddr *addr_remote);
+kn_fd_t kn_connect(int type,struct kn_sockaddr *addr_local,struct kn_sockaddr *addr_remote);
 
 //异步connect,只对SOCK_STREAM有效
 int kn_asyn_connect(struct kn_proactor*,
-			   int protocol,
 			   int type,
 			   struct kn_sockaddr *addr_local,				  
 			   struct kn_sockaddr *addr_remote,
@@ -31,8 +30,8 @@ int kn_asyn_connect(struct kn_proactor*,
 
 
 kn_fd_t kn_listen(struct kn_proactor*,
-					  int protocol,
-					  int type,
+					  //int protocol,
+					  //int type,
 					  kn_sockaddr *addr_local,
 					  void (*)(kn_fd_t,void*),
 					  void *ud);
@@ -40,8 +39,8 @@ kn_fd_t kn_listen(struct kn_proactor*,
 typedef void (*kn_cb_transfer)(kn_fd_t,st_io*,int32_t bytestransfer,int32_t err);
 					  
 kn_fd_t kn_dgram_listen(struct kn_proactor*,
-					        int protocol,
-					        int type,
+					        //int protocol,
+					        //int type,
 					        kn_sockaddr *addr_local,
 					        kn_cb_transfer);					  
 
@@ -56,8 +55,8 @@ void          kn_shutdown_send(kn_fd_t);
 int           kn_set_nodelay(kn_fd_t);
 int           kn_set_noblock(kn_fd_t);
 
-int32_t       kn_recv(kn_fd_t,st_io*,uint32_t *err_code);
-int32_t 	  kn_send(kn_fd_t,st_io*,uint32_t *err_code);
+int32_t       kn_recv(kn_fd_t,st_io*,int32_t *err_code);
+int32_t 	  kn_send(kn_fd_t,st_io*,int32_t *err_code);
 
 int32_t 	  kn_post_recv(kn_fd_t,st_io*);
 int32_t 	  kn_post_send(kn_fd_t,st_io*);

@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing -std=gnu99
+CFLAGS = -g -Wall -fno-strict-aliasing -std=gnu99
 LDFLAGS = -lpthread -lrt -lm -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
@@ -18,6 +18,11 @@ kendynet.a: \
 		   src/kn_thread.c\
 		   src/buffer.c\
 		   src/kn_string.c\
+		   src/wpacket.c\
+		   src/rpacket.c\
+		   src/kn_timer.c\
+		   src/kn_stream_conn.c\
+		   src/kn_stream_conn_server.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
