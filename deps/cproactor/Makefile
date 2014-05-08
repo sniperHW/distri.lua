@@ -16,6 +16,8 @@ kendynet.a: \
 		   src/kendynet.c \
 		   src/kn_time.c \
 		   src/kn_thread.c\
+		   src/buffer.c\
+		   src/kn_string.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
