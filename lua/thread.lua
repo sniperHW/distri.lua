@@ -9,6 +9,8 @@ local callque = Que.Queue()
 local lp_wait_on_msgque =  Que.Queue() --阻塞在提取msg上的light process
 local lp_wait_on_callque = Que.Queue()
 
+local thread_function = {}             --本线程提供的线程异步方法
+
 local function Fork(start_file)
 	local thread = {}
 	thread.thread,thread.channel = C.fork(start_file)
@@ -53,11 +55,11 @@ local function process_call(request)
 	local err,ret
 	local f = msg.f
 	if f then
-		local func = call_function[f]
+		local func = thread_function[f]
 		if func then
 			err,ret = func(msg.u)
 		else
-			err = "cannot find remote function:" .. f
+			err = "cannot find thd function:" .. f
 		end
 	else
 		err = "must privide function name"
@@ -78,7 +80,7 @@ local function On_channel_msg(channel,data)
 	if type == "call_response" then
 		on_call_response(msg)
 	elseif type == "call" then
-		quepush(rpcque,lp_wait_on_rpcque,{from=channel,msg=msg})
+		quepush(callque,lp_wait_on_callque,{from=channel,msg=msg})
 	elseif msg.t == "msg" then
 		quepush(msgque,lp_wait_on_msgque,{from=channel,msg=msg})		
 	end
@@ -95,7 +97,7 @@ end
 
 --向线程发消息
 local function SendMsg(thread,msg)
-	return C.channel_send(thread.channel,cjson.encode(t = "msg", u = msg))
+	return C.channel_send(thread.channel,cjson.encode({t = "msg", u = msg}))
 end
 
 --调用其它线程的方法
@@ -107,7 +109,7 @@ local function Call(thread,func,arguments)
 		f = func,
 		u = arguments,
 	}
-	local err = C.channel_send(thread.channel,cjson.encode(msg),nil)
+	local err = C.channel_send(thread.channel,cjson.encode(msg))
 	if not err then
 		local block = {}
 		lp.block = block
@@ -139,6 +141,12 @@ local function Setup()
 	end	
 end
 
+local function RegThdFunction(name,func)
+	print("RegThdFunction " .. name)
+	thread_function[name] = func
+	print(thread_function[name])
+end
+
 return {
 	On_channel_msg = On_channel_msg,
 	GetMsg = GetMsg,
@@ -146,5 +154,6 @@ return {
 	Call = Call,
 	Fork = Fork,
 	Setup = Setup,
+	RegThdFunction = RegThdFunction,
 	Join = Join
 }

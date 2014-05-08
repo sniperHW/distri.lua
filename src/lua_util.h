@@ -156,10 +156,11 @@
 			
 #define GET_ARRAY(LUASTATE,IDX,ARRAY,POP)\
 			do{\
-				int len = lua_objlen(LUASTATE,IDX);\
-				for(int i = 1; i <= len; ++i)\
+				int len = lua_rawlen(LUASTATE,IDX);\
+				int i = 1;\
+				for(; i <= len; ++i)\
 				{\
-					lua_rawgeti(LUASTATE,IDX-i+1,i);\
+					lua_rawgeti(LUASTATE,1,i);\
 					ARRAY[i-1] = POP(LUASTATE,-1);\
 				}\
 			}while(0);	

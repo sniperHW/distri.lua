@@ -25,8 +25,8 @@ kendynet.a: \
 cjson.so:
 	cp deps/lua-cjson-2.1.0/cjson.so .
 		
-luanet:src/luanet.c src/lua_util.c kendynet.a cjson.so
-	$(CC) $(CFLAGS) -o luanet src/luanet.c src/lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
+distri:src/luanet.c src/lua_util.c kendynet.a cjson.so
+	$(CC) $(CFLAGS) -o distri src/luanet.c src/lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
 
 	
 	
