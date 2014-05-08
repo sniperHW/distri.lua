@@ -338,8 +338,8 @@ int32_t kn_recv(kn_fd_t s,st_io *ioreq,int32_t *err_code)
 	int32_t errcode;
 	ret = d->raw_recv(d,ioreq,&errcode);
 	if(err_code) *err_code = errcode;
-	if(ret == 0) return -1;
-	if(ret < 0 && errcode == EAGAIN) return 0;
+	//if(ret == 0) return -1;
+	//if(ret < 0 && errcode == EAGAIN) return 0;
 	return ret;
 
 }
@@ -353,8 +353,8 @@ int32_t kn_send(kn_fd_t s,st_io *ioreq,int32_t *err_code)
 	int32_t errcode;
 	ret = d->raw_send(d,ioreq,&errcode);
 	if(err_code) *err_code = errcode;
-	if(ret == 0) return -1;
-	if(ret < 0 && errcode == EAGAIN) return 0;
+	//if(ret == 0) return -1;
+	//if(ret < 0 && errcode == EAGAIN) return 0;
 	return ret;
 
 }

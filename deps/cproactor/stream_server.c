@@ -9,6 +9,7 @@ uint32_t recvcount;
 int  on_packet(kn_stream_conn_t conn,rpacket_t rpk){
 	++recvcount;
 	kn_stream_conn_send(conn,wpk_create_by_rpacket(rpk));
+	kn_stream_conn_close(conn);
 	return 1;
 }
 
@@ -19,7 +20,7 @@ void on_disconnected(kn_stream_conn_t conn,int err){
 
 void new_client(kn_stream_server_t server,kn_stream_conn_t conn){
 	++client_count;
-	kn_stream_server_bind(server,conn,0,65536,on_packet,on_disconnected,
+	kn_stream_server_bind(server,conn,1,65536,on_packet,on_disconnected,
 						  0,NULL,0,NULL);
 }
 

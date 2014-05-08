@@ -183,9 +183,10 @@ kn_stream_conn_t kn_new_stream_conn(kn_fd_t s)
 
 void kn_stream_conn_close(kn_stream_conn_t c){
 	if(c->is_close) return;
-	if(!c->doing_send) 
+	if(!c->doing_send){
+		if(c->on_disconnected) c->on_disconnected(c,0);
 		kn_closefd(c->fd);
-	else{
+	}else{
 		/*
 		*  确保待发送数据发送完毕或发送超时才调用kn_closefd
 		*/
@@ -233,9 +234,7 @@ void RecvFinish(kn_stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 	uint32_t pos;
 	int32_t i = 0;
 	do{
-		if(bytestransfer == 0)
-			return;
-		else if(bytestransfer < 0 && err_code != EAGAIN){
+		if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
 			//不处理半关闭的情况，如果读到流的结尾直接关闭连接
 			if(!c->is_close && c->on_disconnected)
 				c->on_disconnected(c,err_code);
@@ -286,44 +285,42 @@ void RecvFinish(kn_stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 				else
 					bytestransfer = kn_recv(c->fd,&c->recv_overlap,&err_code);
 			}while(bytestransfer > 0);
-		}
+		}else
+			break;
 	}while(1);
 }
 
 void SendFinish(kn_stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 {
 	do{
-		if(bytestransfer == 0)
-		    return;
-		else if(bytestransfer < 0 && err_code != EAGAIN){
+		if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
 			//不处理半关闭的情况，如果对端关闭读直接关闭连接
 			if(!c->is_close && c->on_disconnected)
 				c->on_disconnected(c,err_code);
 			kn_closefd(c->fd);	
 			return;
-		}else if(bytestransfer > 0)
-		{
+		}else if(bytestransfer > 0){
 			do{
                 update_send_list(c,bytestransfer);
 				st_io *io = prepare_send(c);
 				if(!io) {
 				    c->doing_send = 0;
 				    if(c->is_close){
-						//数据发送完毕且收到关闭请求，可以安全关闭了 
+						//数据发送完毕且收到关闭请求，可以安全关闭了
+						c->on_disconnected(c,0); 
 						kn_closefd(c->fd);
 					}
 					return;
 				}
 				bytestransfer = kn_send(c->fd,io,&err_code);
 			}while(bytestransfer > 0);
-		}
+		}else 
+			break;
 	}while(1);
 }
 
 void IoFinish(kn_fd_t fd,st_io *io,int32_t bytestransfer,int32_t err_code)
 {
-	if(bytestransfer < 0 && err_code != EAGAIN)
-		printf("here\n");
 	kn_stream_conn_t c = kn_fd_getud(fd);
     if(io == (st_io*)&c->send_overlap)
         SendFinish(c,bytestransfer,err_code);
