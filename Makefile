@@ -17,6 +17,7 @@ kendynet.a: \
 		   ./deps/cproactor/src/kendynet.c \
 		   ./deps/cproactor/src/kn_time.c \
 		   ./deps/cproactor/src/kn_thread.c\
+		   ./deps/cproactor/src/spinlock.c\
 		   ./deps/cproactor/src/kn_channel.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o

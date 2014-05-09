@@ -1,6 +1,8 @@
-#include "kn_channel.h"
 #include "kn_proactor.h"
 #include <assert.h>
+
+//#define USE_MUTEX
+#include "kn_channel.h"
 
 struct msg{
 	kn_list_node node;
@@ -15,7 +17,7 @@ static void channel_destroy(void *ptr){
 		free(msg->data);
 		free(msg); 
 	}	
-	kn_mutex_destroy(c->mtx);
+	LOCK_DESTROY(c->lock);
 	pthread_key_delete(c->t_key);
 	free(c);
 }
@@ -36,7 +38,7 @@ void kn_channel_close(kn_channel_t channel){
 
 kn_channel_t kn_new_channel(pthread_t owner){
 	kn_channel *c = calloc(1,sizeof(*c));
-	c->mtx = kn_mutex_create();
+	c->lock = LOCK_CREATE();
 	pthread_key_create(&c->t_key,NULL);
 	kn_dlist_init(&c->waits);
 	kn_ref_init(&c->ref,channel_destroy);
@@ -73,7 +75,7 @@ int kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
 	struct msg *msg = calloc(1,sizeof(*msg));
 	if(from) msg->sender = *_from;
 	msg->data = data;
-	kn_mutex_lock(to->mtx);
+	LOCK(to->lock);
 	kn_list_pushback(&to->queue,&msg->node);
 	while(1){
 		tmp = kn_dlist_first(&to->waits);
@@ -92,7 +94,7 @@ int kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
 		}else
 			break;
 	};
-	kn_mutex_unlock(to->mtx);
+	UNLOCK(to->lock);
 	kn_ref_release((kn_ref*)to);
 	if(from) kn_ref_release((kn_ref*)from);
 	return 0;		
@@ -101,15 +103,15 @@ int kn_channel_putmsg(kn_channel_t _to,kn_channel_t* _from,void *data)
 static inline struct msg* kn_channel_getmsg(struct channel_pth *c){
 	struct msg *msg = (struct msg*)kn_list_pop(&c->local_que);
 	if(msg) return msg;
-	kn_mutex_lock(c->channel->mtx);
+	LOCK(c->channel->lock);
 	if(!kn_list_size(&c->channel->queue)){
 		kn_dlist_push(&c->channel->waits,&c->node);
-		kn_mutex_unlock(c->channel->mtx);
+		UNLOCK(c->channel->lock);
 		return NULL;
 	}else{
 		kn_list_swap(&c->local_que,&c->channel->queue);
 	}
-	kn_mutex_unlock(c->channel->mtx);
+	UNLOCK(c->channel->lock);
 	return (struct msg*)kn_list_pop(&c->local_que);
 }
 
@@ -186,4 +188,4 @@ int kn_channel_bind(struct kn_proactor *p,kn_channel_t _c,
 	return 0;
 }
 
-
+//#undef USE_MUTEX

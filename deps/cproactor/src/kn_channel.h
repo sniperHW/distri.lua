@@ -5,9 +5,10 @@
 
 #include "kn_fd.h"
 #include "kn_thread_sync.h"
+#include "spinlock.h"
 #include "kn_list.h"
 #include "kn_dlist.h"
-
+#include "kn_common_define.h"
 
 struct kn_proactor;
 typedef ident kn_channel_t;
@@ -15,7 +16,7 @@ typedef ident kn_channel_t;
 typedef struct kn_channel{
 	kn_ref        ref;
 	pthread_key_t t_key;
-	kn_mutex_t    mtx;
+	LOCK_TYPE     lock;
 	kn_list       queue;
 	kn_dlist      waits;
 	pthread_t     owner;

@@ -76,6 +76,20 @@ static inline uint8_t get_pow2(uint32_t size)
 		size = size >> 1;
 	}
 	return pow2;
-}	
+}
+
+#ifdef USE_MUTEX
+#define LOCK_TYPE kn_mutex_t
+#define LOCK(L) kn_mutex_lock(L)
+#define UNLOCK(L) kn_mutex_unlock(L)
+#define LOCK_CREATE kn_mutex_create
+#define LOCK_DESTROY(L) kn_mutex_destroy(L) 
+#else
+#define LOCK_TYPE spinlock_t
+#define LOCK(L) spin_lock(L)
+#define UNLOCK(L) spin_unlock(L)
+#define LOCK_CREATE spin_create 
+#define LOCK_DESTROY(L) spin_destroy(L) 
+#endif	
 
 #endif
