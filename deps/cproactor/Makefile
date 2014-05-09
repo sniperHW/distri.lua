@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing -std=gnu99
+CFLAGS = -g -Wall -fno-strict-aliasing -std=gnu99
 LDFLAGS = -lpthread -lrt -lm -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
@@ -29,6 +29,7 @@ kendynet.a: \
 		   src/rbtree.c\
 		   src/spinlock.c\
 		   src/obj_allocator.c\
+		   src/log.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
@@ -68,7 +69,10 @@ ringque:testmq.c kendynet.a
 	$(CC) $(CFLAGS) -o ringque testmq.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	
 channel:channel.c kendynet.a						
-	$(CC) $(CFLAGS) -o channel channel.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+	$(CC) $(CFLAGS) -o channel channel.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+
+log:testlog.c kendynet.a						
+	$(CC) $(CFLAGS) -o log testlog.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)		
 	
 	
 	
