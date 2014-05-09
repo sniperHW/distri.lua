@@ -28,6 +28,7 @@ kendynet.a: \
 		   src/hash_map.c\
 		   src/rbtree.c\
 		   src/spinlock.c\
+		   src/obj_allocator.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
