@@ -3,7 +3,7 @@ LDFLAGS = -lpthread -lrt -llua -lm -ldl -ltcmalloc
 SHARED = -fPIC -shared
 CC = gcc
 INCLUDE = -I./deps/cproactor/include -I..
-DEFINE = -D_DEBUG -D_LINUX
+DEFINE = -D_DEBUG -D_LINUX 
 
 kendynet.a: \
 		   ./deps/cproactor/src/kn_connector.c \

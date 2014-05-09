@@ -635,10 +635,10 @@ int lua_fork(lua_State *L){
 	strncpy(arg->start_file,start_file,256);
 	kn_thread_start_run(t,thread_func,arg);
 	lua_pushlightuserdata(L,t);
-	PUSH_TABLE4(L,lua_pushunsigned(L,c._data[0]),
-				  lua_pushunsigned(L,c._data[1]),
-				  lua_pushunsigned(L,c._data[2]),
-				  lua_pushunsigned(L,c._data[3]));
+	PUSH_TABLE4(L,lua_pushinteger(L,c._data[0]),
+				  lua_pushinteger(L,c._data[1]),
+				  lua_pushinteger(L,c._data[2]),
+				  lua_pushinteger(L,c._data[3]));
 	return 2;
 }
 
@@ -652,10 +652,10 @@ static void channel_callback(kn_channel_t c,
 	//if(callbackObj->L != g_L) lua_xmove(callbackObj->L,g_L,1);
 	lua_getglobal(g_L,"channel_msg_callback");
 	if(sender.ptr){
-		PUSH_TABLE4(g_L,lua_pushunsigned(g_L,sender._data[0]),
-				    lua_pushunsigned(g_L,sender._data[1]),
-				    lua_pushunsigned(g_L,sender._data[2]),
-				    lua_pushunsigned(g_L,sender._data[3]));	
+		PUSH_TABLE4(g_L,lua_pushinteger(g_L,sender._data[0]),
+				    lua_pushinteger(g_L,sender._data[1]),
+				    lua_pushinteger(g_L,sender._data[2]),
+				    lua_pushinteger(g_L,sender._data[3]));	
 	}
 	else lua_pushnil(g_L);
 	lua_pushstring(g_L,(const char *)msg);
@@ -690,7 +690,7 @@ int lua_channel_send(lua_State *L){
 			to._data[i-1] = lua_tounsigned(L,-1);
 		}
 	}*/
-	GET_ARRAY(L,1,to._data,lua_tounsigned);	
+	GET_ARRAY(L,1,to._data,lua_tointeger);	
 	const char *tmp = lua_tostring(L,2);
 	size_t len = strlen(tmp);
 	char *msg = calloc(1,len+1);

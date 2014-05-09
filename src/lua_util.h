@@ -153,6 +153,21 @@
 				VAL4;\
 				lua_rawseti(LUASTATE,-2,4);\
 			}while(0);
+
+#ifdef USE_LUAJIT
+
+#define GET_ARRAY(LUASTATE,IDX,ARRAY,POP)\
+			do{\
+				int len = lua_objlen(LUASTATE,IDX);\
+				int i = 1;\
+				for(; i <= len; ++i)\
+				{\
+					lua_rawgeti(LUASTATE,1,i);\
+					ARRAY[i-1] = POP(LUASTATE,-1);\
+				}\
+			}while(0);
+
+#else
 			
 #define GET_ARRAY(LUASTATE,IDX,ARRAY,POP)\
 			do{\
@@ -165,7 +180,7 @@
 				}\
 			}while(0);	
 
-
+#endif
 			
 //#include "core/refbase.h"
 

@@ -97,6 +97,7 @@ doc: manual.html performance.html
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) $(CJSON_LDFLAGS) -o $@ $(OBJS)
+	cp cjson.so ../../
 
 install: $(TARGET)
 	mkdir -p $(DESTDIR)/$(LUA_CMODULE_DIR)

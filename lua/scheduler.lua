@@ -1,12 +1,12 @@
 local LightProcess = require "lua/lightprocess"
 local Timer = require "lua/timer"
-
+local Que =  require "lua/queue"
 
 local lightprocesses = {}
 
 local scheduler =
 {
-    pending_add,  --等待添加到活动列表中的coObject
+    runable,
     timer,
     CoroCount,
     current_lp
@@ -21,18 +21,17 @@ end
 
 function scheduler:init()
     self.m_timer = Timer.Timer()
-    self.pending_add = {}
+    self.runable = Que.Queue()
     self.current_lp = nil
     self.CoroCount = 0
 end
 
---添加到活动列表中
 function scheduler:Add2Active(lprocess)
     if lprocess.status == "actived" then
         return
     end
     lprocess.status = "actived"
-    table.insert(self.pending_add,lprocess)
+    self.runable:push(lprocess)
 end
 
 function scheduler:Block(ms)
@@ -48,7 +47,6 @@ function scheduler:Block(ms)
     end
     lprocess.status = "block"
     coroutine.yield(lprocess.croutine)
-    --被唤醒了，如果还有超时在队列中，这里需要将这个结构放到队列头，并将其删除
     if lprocess.index ~= 0 then
         lprocess.timeout = 0		
         self.m_timer:Change(lprocess)
@@ -56,8 +54,6 @@ function scheduler:Block(ms)
     end
 end
 
-
---睡眠ms
 function scheduler:Sleep(ms)
     local lprocess = self.current_lp
     if ms and ms > 0 then
@@ -74,34 +70,28 @@ function scheduler:Sleep(ms)
     coroutine.yield(lprocess.croutine)
 end
 
---暂时释放执行权
 function scheduler:Yield()
     self:Sleep(0)
 end
 
 
---主调度循环
 function scheduler:Schedule()
-    local runlist = {}
-    --将pending_add中所有coObject添加到活动列表中
-    for k,v in pairs(self.pending_add) do
-        table.insert(runlist,v)
-    end
-
-    self.pending_add = {}
-    local now_tick = C.GetSysTick()
-    for k,v in pairs(runlist) do
-        self.current_lp = v
-        coroutine.resume(v.croutine,v)
-        self.current_lp = nil
-        if v.status == "yield" then
-            self:Add2Active(v)
-        elseif v.status == "dead" then
+	--local endtick = C.GetSysTick() + 5
+    local size = self.runable:len()
+	for i=1,size do
+		local v = self.runable:pop()
+		self.current_lp = v
+		coroutine.resume(v.croutine,v)
+		self.current_lp = nil
+		if v.status == "yield" then
+			self:Add2Active(v)
+		elseif v.status == "dead" then
 			print("a light process dead")
 		end
-    end
-    runlist = {}
-    --看看有没有timeout的纤程
+		--if C.GetSysTick() > endtick then
+		--	break
+		--end		
+	end
     local now = C.GetSysTick()
     while self.m_timer:Min() ~=0 and self.m_timer:Min() <= now do
         local lprocess = self.m_timer:PopMin()
@@ -109,8 +99,7 @@ function scheduler:Schedule()
             self:Add2Active(lprocess)
         end
     end
-    
-    return #self.pending_add
+    return self.runable:len()
 end
 
 function scheduler:WakeUp(lprocess)
@@ -180,4 +169,3 @@ return {
 		GetLightProcessByIdentity = GetLightProcessByIdentity,
 		Schedule = Schedule
 }
-
