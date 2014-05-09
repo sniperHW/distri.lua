@@ -606,20 +606,47 @@ struct start_arg{
 	kn_channel_t channel;
 };
 
-void RegisterNet(lua_State *L,const char *lfile);
+void RegisterNet();
+static void start(const char *start_file)
+{
+	printf("start\n");
+	char buf[4096];
+	snprintf(buf,4096,"\
+		local Sche = require \"lua/scheduler\"\
+		local Thread = require \"lua/thread\"\
+		function channel_msg_callback(from,msg)\
+		  Thread.On_channel_msg(from,msg)\
+		end\
+		local main = loadfile(\"%s\")\
+		Sche.Spawn(function ()\
+					Thread.Setup()\
+					main()\
+				  end)\
+		local ms = 5\
+		while C.run(ms) do\
+			if Sche.Schedule() > 0 then\
+				ms = 0\
+			else\
+				ms = 5\
+			end\
+		end",start_file);
+	    luaL_loadstring(g_L,buf);
+	    if(0 != lua_pcall(g_L,0,0,0)){
+			const char * error = lua_tostring(g_L, -1);
+			lua_pop(g_L,1);
+			printf("%s\n",error);
+		}
+}
+
+
 void* thread_func(void *arg){
 	struct start_arg *start_arg = (struct start_arg*)arg;
-	lua_State *L = luaL_newstate();
-	luaL_openlibs(L);
+	g_L = luaL_newstate();
+	luaL_openlibs(g_L);
 	channel = start_arg->channel;	
-	RegisterNet(L,start_arg->start_file);
+	RegisterNet(g_L);		
+	start(start_arg->start_file);
 	free(arg);
-	if(luaL_dofile(L,"lua/start.lua")) {
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("thread_func:%s\n",error);
-	}
-	//kn_channel_bind(g_proactor,channel,channel_callback,NULL);
     kn_channel_close(channel);
 	lua_close(g_L);
 	return NULL;
@@ -644,12 +671,7 @@ int lua_fork(lua_State *L){
 
 static void channel_callback(kn_channel_t c,
 							 kn_channel_t sender,
-							 void*msg,void *ud){	
-	//luaObject_t callbackObj = (luaObject_t)ud;
-	//lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
-	//lua_pushstring(callbackObj->L,"on_channel_msg");
-	//lua_gettable(callbackObj->L,-2);
-	//if(callbackObj->L != g_L) lua_xmove(callbackObj->L,g_L,1);
+							 void*msg,void *ud){
 	lua_getglobal(g_L,"channel_msg_callback");
 	if(sender.ptr){
 		PUSH_TABLE4(g_L,lua_pushinteger(g_L,sender._data[0]),
@@ -661,7 +683,7 @@ static void channel_callback(kn_channel_t c,
 	lua_pushstring(g_L,(const char *)msg);
 	if(0 != lua_pcall(g_L,2,0,0)){
 		const char * error = lua_tostring(g_L, -1);
-		printf("stream_recv_finish:%s\n",error);
+		printf("channel_callback:%s\n",error);
 		lua_pop(g_L,1);
 	}
 	//lua_pop(callbackObj->L,1);
@@ -681,15 +703,6 @@ int lua_thread_join(lua_State *L){
 
 int lua_channel_send(lua_State *L){
 	kn_channel_t to;
-	/*{
-		int len = lua_rawlen(L,1);
-		int i = 1;
-		for(; i <= len; ++i)
-		{
-			lua_rawgeti(L,1,i);
-			to._data[i-1] = lua_tounsigned(L,-1);
-		}
-	}*/
 	GET_ARRAY(L,1,to._data,lua_tointeger);	
 	const char *tmp = lua_tostring(L,2);
 	size_t len = strlen(tmp);
@@ -703,107 +716,102 @@ int lua_channel_send(lua_State *L){
 	return 1;
 }
 
-void RegisterNet(lua_State *L,const char *lfile){  
+void RegisterNet(){  
     
-    lua_getglobal(L,"_G");
-	if(!lua_istable(L, -1))
+    lua_getglobal(g_L,"_G");
+	if(!lua_istable(g_L, -1))
 	{
-		lua_pop(L,1);
-		lua_newtable(L);
-		lua_pushvalue(L,-1);
-		lua_setglobal(L,"_G");
+		lua_pop(g_L,1);
+		lua_newtable(g_L);
+		lua_pushvalue(g_L,-1);
+		lua_setglobal(g_L,"_G");
 	}
 
-	lua_pushstring(L, "AF_INET");
-	lua_pushinteger(L, AF_INET);
-	lua_settable(L, -3);
+	lua_pushstring(g_L, "AF_INET");
+	lua_pushinteger(g_L, AF_INET);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L, "AF_INET6");
-	lua_pushinteger(L, AF_INET6);
-	lua_settable(L, -3);
+	lua_pushstring(g_L, "AF_INET6");
+	lua_pushinteger(g_L, AF_INET6);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L, "AF_LOCAL");
-	lua_pushinteger(L, AF_LOCAL);
-	lua_settable(L, -3);
+	lua_pushstring(g_L, "AF_LOCAL");
+	lua_pushinteger(g_L, AF_LOCAL);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L, "IPPROTO_TCP");
-	lua_pushinteger(L, IPPROTO_TCP);
-	lua_settable(L, -3);
+	lua_pushstring(g_L, "IPPROTO_TCP");
+	lua_pushinteger(g_L, IPPROTO_TCP);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L, "IPPROTO_UDP");
-	lua_pushinteger(L, IPPROTO_UDP);
-	lua_settable(L, -3);			
+	lua_pushstring(g_L, "IPPROTO_UDP");
+	lua_pushinteger(g_L, IPPROTO_UDP);
+	lua_settable(g_L, -3);			
 	
-	lua_pushstring(L, "SOCK_STREAM");
-	lua_pushinteger(L, SOCK_STREAM);
-	lua_settable(L, -3);
+	lua_pushstring(g_L, "SOCK_STREAM");
+	lua_pushinteger(g_L, SOCK_STREAM);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L, "SOCK_DGRAM");
-	lua_pushinteger(L, SOCK_DGRAM);
-	lua_settable(L, -3);	
+	lua_pushstring(g_L, "SOCK_DGRAM");
+	lua_pushinteger(g_L, SOCK_DGRAM);
+	lua_settable(g_L, -3);	
 	
-	lua_pop(L,1);
+	lua_pop(g_L,1);
     
-	lua_newtable(L);
+	lua_newtable(g_L);
 	
-	lua_pushstring(L,"stream_listen");
-	lua_pushcfunction(L,&lua_listen);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"stream_listen");
+	lua_pushcfunction(g_L,&lua_listen);
+	lua_settable(g_L, -3);
 
-	lua_pushstring(L,"connect");
-	lua_pushcfunction(L,&lua_connect);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"connect");
+	lua_pushcfunction(g_L,&lua_connect);
+	lua_settable(g_L, -3);
 
-	lua_pushstring(L,"send");
-	lua_pushcfunction(L,&lua_send);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"send");
+	lua_pushcfunction(g_L,&lua_send);
+	lua_settable(g_L, -3);
 
-	lua_pushstring(L,"close");
-	lua_pushcfunction(L,&lua_close_socket);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"close");
+	lua_pushcfunction(g_L,&lua_close_socket);
+	lua_settable(g_L, -3);
 
-	lua_pushstring(L,"bind");
-	lua_pushcfunction(L,&lua_bind);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"bind");
+	lua_pushcfunction(g_L,&lua_bind);
+	lua_settable(g_L, -3);
 
-	lua_pushstring(L,"run");
-	lua_pushcfunction(L,&lua_run);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"run");
+	lua_pushcfunction(g_L,&lua_run);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L,"GetSysTick");
-	lua_pushcfunction(L,&lua_getsystick);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"GetSysTick");
+	lua_pushcfunction(g_L,&lua_getsystick);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L,"set_name");
-	lua_pushcfunction(L,&lua_setname);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"set_name");
+	lua_pushcfunction(g_L,&lua_setname);
+	lua_settable(g_L, -3);
 	
-	lua_pushstring(L,"get_name");
-	lua_pushcfunction(L,&lua_getname);
-	lua_settable(L, -3);		
-	
-	lua_pushstring(L,"startfile");
-	lua_pushstring(L,lfile);
-	lua_settable(L, -3);
-	
-	lua_pushstring(L,"fork");
-	lua_pushcfunction(L,&lua_fork);
-	lua_settable(L, -3);
-
-	lua_pushstring(L,"thread_join");
-	lua_pushcfunction(L,&lua_thread_join);
-	lua_settable(L, -3);	
+	lua_pushstring(g_L,"get_name");
+	lua_pushcfunction(g_L,&lua_getname);
+	lua_settable(g_L, -3);		
 		
-	lua_pushstring(L,"setup_channel");
-	lua_pushcfunction(L,&lua_setup_channel);
-	lua_settable(L, -3);
-	
-	lua_pushstring(L,"channel_send");
-	lua_pushcfunction(L,&lua_channel_send);
-	lua_settable(L, -3);
+	lua_pushstring(g_L,"fork");
+	lua_pushcfunction(g_L,&lua_fork);
+	lua_settable(g_L, -3);
+
+	lua_pushstring(g_L,"thread_join");
+	lua_pushcfunction(g_L,&lua_thread_join);
+	lua_settable(g_L, -3);	
 		
-	lua_setglobal(L,"C");
-	g_L = L;
+	lua_pushstring(g_L,"setup_channel");
+	lua_pushcfunction(g_L,&lua_setup_channel);
+	lua_settable(g_L, -3);
+	
+	lua_pushstring(g_L,"channel_send");
+	lua_pushcfunction(g_L,&lua_channel_send);
+	lua_settable(g_L, -3);
+		
+	lua_setglobal(g_L,"C");
     g_proactor = kn_new_proactor();
     printf("load c function finish\n");  
 }
@@ -814,19 +822,14 @@ int main(int argc,char **argv)
 		printf("usage luanet luafile\n");
 		return 0;
 	}
-	lua_State *L = luaL_newstate();
-	luaL_openlibs(L);
+	g_L = luaL_newstate();
+	luaL_openlibs(g_L);
 	kn_net_open();
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);	
-	RegisterNet(L,argv[1]);
+	RegisterNet();
 	channel = kn_new_channel(pthread_self());
-	if (luaL_dofile(L,"lua/start.lua")) {
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("%s\n",error);
-	}
-	//kn_channel_bind(g_proactor,channel,channel_callback,NULL);
+	start(argv[1]);
     //kn_channel_close(channel);
 	//lua_close(g_L);		
 	return 0;
