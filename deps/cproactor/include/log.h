@@ -71,9 +71,8 @@ int32_t write_prefix(char *buf,uint8_t loglev);
         	tmp->_logfile = create_logfile(LOGFILENAME);\
         	return tmp;\
         }\
-        DECLARE_SINGLETON(LOGNAME)
-
-#define IMP_LOG(LOGNAME) IMPLEMENT_SINGLETON(LOGNAME,LOGNAME##create_function,NULL)        
+        DECLARE_SINGLETON(LOGNAME);\
+        IMPLEMENT_SINGLETON(LOGNAME,LOGNAME##create_function,NULL)
 
 #define GET_LOGFILE(LOGNAME) GET_INSTANCE(LOGNAME)->_logfile           
 

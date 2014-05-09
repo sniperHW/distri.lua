@@ -6,7 +6,6 @@
 
 
 DEF_LOG(testlog,"testlog");
-IMP_LOG(testlog);
 
 #define LOG_TEST(LOGLEV,...) LOG(GET_LOGFILE(testlog),LOGLEV,__VA_ARGS__)
 
