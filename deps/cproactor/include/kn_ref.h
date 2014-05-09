@@ -25,6 +25,7 @@
 #include "kn_atomic.h"
 #include "kn_except.h"  
   
+typedef  void (*kn_ref_destroyer)(void*);
 
 typedef struct kn_ref
 {

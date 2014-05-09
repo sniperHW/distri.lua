@@ -27,7 +27,7 @@ function on_connected(s,remote_addr,err)
 	end	
 end
 print("echoclient")
-for i=1,1 do
+for i=1,10 do
 	C.connect(SOCK_STREAM,net.netaddr_ipv4("127.0.0.1",8010),nil,{onconnected = on_connected},3000)
 end
 

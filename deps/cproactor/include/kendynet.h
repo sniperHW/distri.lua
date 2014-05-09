@@ -77,6 +77,11 @@ int           kn_fd_get_type(kn_fd_t);
 
 kn_sockaddr*  kn_fd_get_local_addr(kn_fd_t);
 
+
+//用于替换fd的默认销毁函数
+kn_ref_destroyer kn_fd_get_destroyer(kn_fd_t);
+void          kn_fd_set_destroyer(kn_fd_t,void (*)(void*));
+
 //设置销毁函数，用于在kn_fd_t被销毁时销毁pending list中的st_io
 typedef       void   (*stio_destroyer)(st_io*);
 void          kn_fd_set_stio_destroyer(kn_fd_t,stio_destroyer);

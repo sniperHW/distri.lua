@@ -21,7 +21,6 @@ typedef struct kn_fd{
 	uint8_t             type;
 	int32_t             fd;
 	void*               ud;
-	//uint8_t             status;
 	struct kn_proactor* proactor;		
 	void (*on_active)(struct kn_fd*,int event);
 	int8_t (*process)(struct kn_fd*);//如果process返回非0,则需要重新投入到activedlist中

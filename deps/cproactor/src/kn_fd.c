@@ -9,4 +9,12 @@ int  kn_set_noblock(kn_fd_t s){
 	return 0;
 }
 
+kn_ref_destroyer kn_fd_get_destroyer(kn_fd_t fd){
+	return fd->ref.destroyer;
+}
+
+void kn_fd_set_destroyer(kn_fd_t fd,void (*f)(void*)){
+	fd->ref.destroyer = f; 
+}
+
 
