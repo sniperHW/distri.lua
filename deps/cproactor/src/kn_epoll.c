@@ -116,10 +116,11 @@ static int32_t _epoll_wait(int epfd, struct epoll_event *events,int maxevents, i
 
 static int8_t check_connect_timeout(kn_dlist_node *dln, void *ud)
 {
+	//printf("check_connect_timeout\n");
 	kn_connector_t c = (kn_connector_t)dln;
 	uint64_t l_now = *((uint64_t*)ud);
     if(l_now >= c->timeout){
-        c->base.proactor->UnRegister(c->base.proactor,(kn_fd_t)c);
+        //c->base.proactor->UnRegister(c->base.proactor,(kn_fd_t)c);
         c->cb_connected(NULL,&c->remote,c->base.ud,ETIMEDOUT);
         kn_closefd((kn_fd_t)c);
         return 1;

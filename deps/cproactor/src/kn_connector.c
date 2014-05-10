@@ -6,6 +6,7 @@
 static void kn_connector_destroy(void *ptr){
 	kn_connector_t c = (kn_connector_t)((char*)ptr - sizeof(kn_dlist_node));
 	if(c->base.fd >= 0) close(c->base.fd);
+	kn_dlist_remove((kn_dlist_node*)c);
 	free(c);
 }
 
@@ -15,13 +16,11 @@ static void kn_connector_on_active(struct kn_fd *s,int event){
     socklen_t len = sizeof(err);
     struct kn_sockaddr local;
     kn_fd_t    datasock;
-
     if (getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
         c->cb_connected(NULL,&c->remote,s->ud,err);
         kn_closefd(s);
         return;
     }
-
     if(err){
         errno = err;
         c->cb_connected(NULL,&c->remote,s->ud,errno);
@@ -29,7 +28,7 @@ static void kn_connector_on_active(struct kn_fd *s,int event){
         return;
     }
     //connect success
-    s->proactor->UnRegister(s->proactor,s);
+	c->base.proactor->UnRegister(c->base.proactor,(kn_fd_t)c);   
 	local.addrtype = c->remote.addrtype;
 	if(local.addrtype == AF_INET){
 		len = sizeof(local.in);

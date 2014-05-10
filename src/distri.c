@@ -572,7 +572,7 @@ int lua_bind(lua_State *L){
 		lua_pushboolean(L,0);
 		return 1;
 	}
-	lua_pushboolean(L,1);
+	//lua_pushboolean(L,1);
 	if(0 == kn_proactor_bind(g_proactor,s->sock,stream_transfer_finish)){
 		s->callbackObj = create_luaObj(L,2);
 		luasocket_post_recv((lua_data_socket_t)s);	
@@ -617,7 +617,8 @@ static void start(const char *start_file)
 		function channel_msg_callback(from,msg)\
 		  Thread.On_channel_msg(from,msg)\
 		end\
-		local main = loadfile(\"%s\")\
+		local main,err= loadfile(\"%s\")\
+		if err then print(err) end\
 		Sche.Spawn(function ()\
 					Thread.Setup()\
 					main()\
