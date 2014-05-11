@@ -5,29 +5,31 @@ local count = 0
 
 function on_data(s,data,err)
 	if not data then
-		print("a client disconnected")
-		Socket.close(s)
+		--print("a client disconnected")
+		Socket.Close(s)
 	else
+		--print(data[1])
 		count = count + 1
-		Tcp.Send(s,data)
+		Tcp.Connect4({ip="127.0.0.1",port=8010},nil,on_connected,3000)
+		--Tcp.Send(s,data)
 	end
 end
 
 
 function on_connected(s,remote_addr,err)
-	print("on_connected")
+	--print("on_connected")
 	if s then
 		if not Socket.Bind(s,on_data) then
-			print("bind error")
+			--print("bind error")
 			Socket.Close(s)
 		else
-			print("bind success")
+			--print("bind success")
 			Tcp.Send(s,{"hahahha"})
 		end
 	end
 end
 print("echoclient")
-for i=1,1 do
+for i=1,100 do
 	Tcp.Connect4({ip="127.0.0.1",port=8010},nil,on_connected,3000)
 end
 

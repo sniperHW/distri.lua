@@ -293,7 +293,6 @@ int32_t kn_proactor_bind(kn_proactor_t p ,kn_fd_t s,kn_cb_transfer cb){
 void kn_closefd(kn_fd_t s)
 {
 	assert(s);
-	close(s->fd);
 	kn_ref_release(&s->ref);
 	/*if(s->proactor)
 		s->proactor->UnRegister(s->proactor,s);

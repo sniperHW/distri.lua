@@ -5,8 +5,8 @@
 
 static void kn_connector_destroy(void *ptr){
 	kn_connector_t c = (kn_connector_t)((char*)ptr - sizeof(kn_dlist_node));
-	if(c->base.fd >= 0) close(c->base.fd);
 	kn_dlist_remove((kn_dlist_node*)c);
+	if(c->base.fd >= 0) close(c->base.fd);
 	free(c);
 }
 

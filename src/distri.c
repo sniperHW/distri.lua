@@ -11,7 +11,7 @@
 #include "kn_timer.h"
 #include "kn_thread.h"
 
-#define MAX_BUFSIZE  65536
+#define MAX_BUFSIZE  1024
 #define MAX_WSEND_SIZE  1024
 
 static __thread kn_proactor_t g_proactor = NULL;
@@ -25,11 +25,11 @@ static void sig_int(int sig){
 	recv_sigint = 1;
 }
 
-enum{
+/*enum{
 	lua_socket_close = 1,
 	lua_socket_writeclose,
 	lua_socket_waitclose,//等send_list中的数据发送完成自动close
-};
+};*/
 
 typedef struct bytebuffer{
 	struct bytebuffer *next;
@@ -85,7 +85,8 @@ typedef struct lua_data_socket{
 	st_io        recv_overlap;
 	struct       iovec wrecvbuf[2];
 	struct       iovec wsendbuf[MAX_WSEND_SIZE];
-	uint8_t      status;	
+	uint8_t      is_close;
+	//uint8_t      status;	
 	kn_list      send_list;
 	uint32_t     unpack_size; //还未解包的数据大小
 	uint32_t     unpack_pos;
@@ -116,6 +117,11 @@ static void datasocket_destroyer(void *ptr){
 		sendbuf *buf = (sendbuf*)kn_list_pop(&l->send_list);
 		free(buf);
 	}
+	while(l->unpack_buf){
+		bytebuffer_t tmp = l->unpack_buf;
+		l->unpack_buf = l->unpack_buf->next;
+		free(tmp);
+	}		
 	l->fd_destroy_fn(ptr);
 	free(l);
 }
@@ -140,18 +146,12 @@ static lua_data_socket_t new_data_socket(kn_fd_t sock){
 
 static void data_socket_close(lua_data_socket_t l)
 {
-	if(l->status == 0 && kn_list_size(&l->send_list))
-	{
-		l->status = lua_socket_waitclose;
-		return;		
-	}
-	while(l->unpack_buf){
-		bytebuffer_t tmp = l->unpack_buf;
-		l->unpack_buf = l->unpack_buf->next;
-		free(tmp);
-	}		
-	l->status = lua_socket_close;
-	kn_closefd(l->base.sock);
+	if(l->is_close != 0) return;
+	l->is_close = 1;
+	if(!kn_list_size(&l->send_list)){
+		//没有数据等待发送，直接关闭
+		kn_closefd(l->base.sock);
+	}	
 }
 
 
@@ -177,7 +177,7 @@ static void update_recv_pos(lua_data_socket_t c,int32_t _bytestransfer)
 }
 
 
-static void do_callback(lua_data_socket_t l,char *packet,int err){
+static void do_recv_callback(lua_data_socket_t l,char *packet,int err){
 	//callbackObj只是一个普通的表所以不能直接使用CALL_OBJ_FUNC
 	luaObject_t callbackObj = l->base.callbackObj;
 	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
@@ -236,8 +236,8 @@ static int unpack(lua_data_socket_t c)
 				free(tmp);
 			}
 		}while(pk_total_size);
-		do_callback(c,&c->packet[sizeof(int)],0);
-		if(c->status == lua_socket_close)
+		do_recv_callback(c,&c->packet[sizeof(int)],0);
+		if(c->is_close)
 			return 0;
 	}while(1);
 
@@ -303,16 +303,13 @@ static void stream_recv_finish(lua_data_socket_t l,st_io *io,int32_t bytestransf
 {
 	int ret;
 	if(bytestransfer <= 0){
-		do_callback(l,NULL,err);
+		do_recv_callback(l,NULL,err);
 	}else{
 		update_recv_pos(l,bytestransfer);
 		l->unpack_size += bytestransfer;
 		ret = unpack(l);
 		if(ret > 0)
 			luasocket_post_recv(l);
-		else if(ret < 0){
-			do_callback(l,NULL,err);
-		}
 	}
 }
 
@@ -320,7 +317,7 @@ static void stream_send_finish(lua_data_socket_t l,st_io *io,int32_t bytestransf
 {
 	//printf("stream_send_finish %d ,%x\n",bytestransfer,(int)l);
 	if(bytestransfer <= 0)
-		l->status = lua_socket_writeclose;
+		do_recv_callback(l,NULL,err);
 	else{
 		while(bytestransfer > 0){
 			sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
@@ -338,9 +335,10 @@ static void stream_send_finish(lua_data_socket_t l,st_io *io,int32_t bytestransf
 		}
 		if(kn_list_size(&l->send_list)){
 			luasocket_post_send(l);
-		}else if(l->status == lua_socket_waitclose)
+		}else if(l->is_close)
 			//关闭lua_socket
-			data_socket_close(l);
+			kn_closefd(l->base.sock);
+			//data_socket_close(l);
 	}
 }
 
@@ -349,7 +347,7 @@ static void stream_transfer_finish(kn_fd_t s,st_io *io,int32_t bytestransfer,int
     lua_data_socket_t l = (lua_data_socket_t)kn_fd_getud(s);
     //防止l在callback中被释放
     if(!io){
-		do_callback(l,NULL,err);              		
+		do_recv_callback(l,NULL,err);              		
 	}else if(io == &l->send_overlap)
 		stream_send_finish(l,io,bytestransfer,err);
 	else if(io == &l->recv_overlap)
@@ -358,7 +356,7 @@ static void stream_transfer_finish(kn_fd_t s,st_io *io,int32_t bytestransfer,int
 
 
 static void on_accept(kn_fd_t s,void *ud){
-	printf("c on_accept\n");
+	//printf("c on_accept\n");
 	lua_data_socket_t c = new_data_socket(s);
 	luaObject_t  callbackObj = (luaObject_t)ud;
 	lua_rawgeti(callbackObj->L,LUA_REGISTRYINDEX,callbackObj->rindex);
@@ -503,6 +501,10 @@ int lua_send(lua_State *L){
 		return 2;
 	}
 	lua_data_socket_t l = (lua_data_socket_t)s;
+	if(l->is_close){
+		lua_pushboolean(L,0);
+		lua_pushstring(L,"socket is close");		
+	}
 	sendbuf *buf;
 	const char* str = NULL;	
 	if(lua_isstring(L,2)){

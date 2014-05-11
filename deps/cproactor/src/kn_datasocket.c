@@ -165,7 +165,7 @@ int8_t  kn_datasocket_process(kn_fd_t s)
 }
 
 void kn_datasocket_destroy(void *ptr){
-	printf("kn_datasocket_destroy,%x\n",(int)ptr);
+	//printf("kn_datasocket_destroy,%x\n",(int)ptr);
 	kn_datasocket *t = (kn_datasocket *)((char*)ptr - sizeof(kn_dlist_node));
 	st_io *io_req;
 	if(t->base.proactor) t->base.proactor->UnRegister(t->base.proactor,&t->base);	
@@ -175,6 +175,7 @@ void kn_datasocket_destroy(void *ptr){
         while((io_req = (st_io*)kn_list_pop(&t->pending_recv))!=NULL)
             t->destroy_stio(io_req);
 	}
+	close(t->base.fd);
 	free(t);
 }
 

@@ -3,15 +3,16 @@ local Tcp = require "lua/tcp"
 
 function on_data(s,data,err)
 	if not data then
-		print("a client disconnected")
+		--print("a client disconnected")
 		Socket.Close(s)
 	else
 		Tcp.Send(s,data)
+		Socket.Close(s)
 	end
 end
 
 function on_newclient(s)
-	print("on_newclient")
+	--print("on_newclient")
 	if not Socket.Bind(s,on_data)then
 		print("bind error")
 		Socket.Close(s)
