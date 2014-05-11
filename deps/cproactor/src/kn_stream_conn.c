@@ -18,7 +18,7 @@ static inline void update_next_recv_pos(kn_stream_conn_t c,int32_t _bytestransfe
 		if(c->next_recv_pos >= c->next_recv_buf->capacity)
 		{
 			if(!c->next_recv_buf->next)
-				c->next_recv_buf->next = buffer_create_and_acquire(NULL,c->recv_bufsize);
+				c->next_recv_buf->next = buffer_create(c->recv_bufsize);
 			c->next_recv_buf = buffer_acquire(c->next_recv_buf,c->next_recv_buf->next);
 			c->next_recv_pos = 0;
 		}
@@ -216,7 +216,7 @@ int32_t kn_stream_conn_send(kn_stream_conn_t c,wpacket_t w)
 
 void start_recv(kn_stream_conn_t c)
 {
-	c->unpack_buf = buffer_create_and_acquire(NULL,c->recv_bufsize);
+	c->unpack_buf = buffer_create(c->recv_bufsize);
 	c->next_recv_buf = buffer_acquire(NULL,c->unpack_buf);
 	c->wrecvbuf[0].iov_len = c->recv_bufsize;
 	c->wrecvbuf[0].iov_base = c->next_recv_buf->buf;
@@ -271,7 +271,7 @@ void RecvFinish(kn_stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 					{
 						pos = 0;
 						if(!buf->next)
-							buf->next = buffer_create_and_acquire(NULL,c->recv_bufsize);
+							buf->next = buffer_create(c->recv_bufsize);
 						buf = buf->next;
 					}
 					++i;

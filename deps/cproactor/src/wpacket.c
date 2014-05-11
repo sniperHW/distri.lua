@@ -15,7 +15,7 @@ wpacket_t wpk_create(uint32_t size,uint8_t is_raw)
     if(size < 64) size = 64;
     wpacket_t w = (wpacket_t)ALLOC(wpacket_allocator,sizeof(*w));
     PACKET_RAW(w) = is_raw;
-    PACKET_BUF(w) = buffer_create_and_acquire(NULL,size);
+    PACKET_BUF(w) = buffer_create(size);
     w->writebuf = buffer_acquire(NULL,PACKET_BUF(w));
     PACKET_BEGINPOS(w)= 0;
     MSG_NEXT(w) = NULL;

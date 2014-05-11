@@ -164,7 +164,7 @@ static const void* rpk_raw_read_binary(rpacket_t r,uint32_t *len)
 		if(!r->binbuf)
 		{
 			r->binbufpos = 0;
-			r->binbuf = buffer_create_and_acquire(NULL,r->len);
+			r->binbuf = buffer_create(r->len);
 		}
 		addr = r->binbuf->buf + r->binbufpos;
 		size = r->data_remain;
@@ -223,7 +223,7 @@ const void* rpk_read_binary(rpacket_t r,uint32_t *len)
 		if(!r->binbuf)
 		{
 			r->binbufpos = 0;
-			r->binbuf = buffer_create_and_acquire(NULL,r->len);
+			r->binbuf = buffer_create(r->len);
 		}
 		addr = r->binbuf->buf + r->binbufpos;
 		while(size)

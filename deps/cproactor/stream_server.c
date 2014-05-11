@@ -39,7 +39,7 @@ int main(int argc,char **argv)
 		{
             uint32_t elapse = (uint32_t)(now-tick);
             recvcount = (recvcount/elapse)*1000;
-			printf("client_count:%d,recvcount:%d/s\n",client_count,recvcount);
+			printf("client_count:%d,recvcount:%d/s,buffer_count:%u\n",client_count,recvcount,buffer_count);
 			tick = now;
 			recvcount = 0;
 		}		

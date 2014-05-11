@@ -122,7 +122,7 @@ static inline void wpk_expand(wpacket_t w,uint32_t size)
 {
     size = size_of_pow2(size);
     if(size < 64) size = 64;
-    w->writebuf->next = buffer_create_and_acquire(NULL,size);
+    w->writebuf->next = buffer_create(size);
 	w->writebuf = buffer_acquire(w->writebuf,w->writebuf->next);
 	w->wpos = 0;
 }
@@ -154,7 +154,7 @@ static inline void do_write_copy(wpacket_t w)
 	*/
     uint32_t size = size_of_pow2(w->data_size);
     if(size < 64) size = 64;
-    buffer_t tmp = buffer_create_and_acquire(NULL,size);
+    buffer_t tmp = buffer_create(size);
 	wpk_copy(w,tmp);
     PACKET_BEGINPOS(w) = 0;
     if(!PACKET_RAW(w))

@@ -26,6 +26,8 @@
 #include "kn_list.h"
 #include "kn_allocator.h"
 
+extern uint32_t buffer_count;
+
 typedef struct buffer
 {
 	kn_ref    _refbase;
@@ -37,7 +39,7 @@ typedef struct buffer
 
 
 extern kn_allocator_t buffer_allocator;
-buffer_t buffer_create_and_acquire(buffer_t,uint32_t);
+//buffer_t buffer_create_and_acquire(buffer_t,uint32_t);
 
 static inline void buffer_release(buffer_t *b)
 {
@@ -46,6 +48,31 @@ static inline void buffer_release(buffer_t *b)
         *b = NULL;
 	}
 }
+
+static void buffer_destroy(void *b)
+{
+	buffer_t _b = (buffer_t)b;
+	if(_b->next)
+		buffer_release(&(_b)->next);
+    FREE(buffer_allocator,_b);
+    --buffer_count;
+	b = 0;
+}
+
+static inline buffer_t buffer_create(uint32_t capacity)
+{
+	uint32_t size = sizeof(struct buffer) + capacity;
+    buffer_t b = (buffer_t)ALLOC(buffer_allocator,size);
+	if(b)
+	{
+		b->size = 0;
+		b->capacity = capacity;
+		kn_ref_init(&b->_refbase,buffer_destroy);
+		++buffer_count;
+	}
+	return b;
+}
+
 
 static inline buffer_t buffer_acquire(buffer_t b1,buffer_t b2)
 {
