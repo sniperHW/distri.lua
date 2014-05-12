@@ -18,6 +18,7 @@ enum{
 	ACCEPTOR       = 3,
 	CONNECTOR      = 4,
 	CHANNEL        = 5,
+	REDISCONN      = 6,
 };
 
 typedef struct

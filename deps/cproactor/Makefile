@@ -2,7 +2,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing -std=gnu99
 LDFLAGS = -lpthread -lrt -lm -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE =  -I./include
+INCLUDE =  -I./include -I../
 
 kendynet.a: \
 		   src/kn_connector.c \
@@ -30,6 +30,7 @@ kendynet.a: \
 		   src/spinlock.c\
 		   src/obj_allocator.c\
 		   src/log.c\
+		   src/redisconn.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
@@ -72,7 +73,10 @@ channel:channel.c kendynet.a
 	$(CC) $(CFLAGS) -o channel channel.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 
 log:testlog.c kendynet.a						
-	$(CC) $(CFLAGS) -o log testlog.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)		
+	$(CC) $(CFLAGS) -o log testlog.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	
+testredis:testredis.c kendynet.a						
+	$(CC) $(CFLAGS) -o testredis testredis.c kendynet.a ../hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)				
 	
 	
 	

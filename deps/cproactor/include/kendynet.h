@@ -97,5 +97,16 @@ int          kn_channel_bind(struct kn_proactor*,kn_channel_t,
 */ 
 int  kn_channel_putmsg(kn_channel_t to,kn_channel_t *from,void*);
 
+typedef struct redisconn *redisconn_t;
+
+int kn_redisAsynConnect(kn_proactor_t p,
+						const char *ip,unsigned short port,
+						void (*cb_connect)(redisconn_t,int err));
+
+struct redisReply;						
+int kn_redisCommand(redisconn_t,const char *cmd,
+					void (*cb)(redisconn_t,struct redisReply*,void *pridata),void *pridata);					
+
+void kn_redisDisconnect(redisconn_t);
 
 #endif
