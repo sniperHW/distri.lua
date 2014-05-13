@@ -21,3 +21,5 @@ cscope*.
 cscope.files
 *.tags*.
 tags
+*.txt
+*.geany

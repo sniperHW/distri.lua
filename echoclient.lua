@@ -10,8 +10,8 @@ function on_data(s,data,err)
 	else
 		--print(data[1])
 		count = count + 1
-		Tcp.Connect4({ip="127.0.0.1",port=8010},nil,on_connected,3000)
-		--Tcp.Send(s,data)
+		--Tcp.Connect4({ip="127.0.0.1",port=8010},nil,on_connected,3000)
+		Tcp.Send(s,data)
 	end
 end
 

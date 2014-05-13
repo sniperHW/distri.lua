@@ -71,6 +71,12 @@ enum{
 	LUA_LISTENER,
 };
 
+enum{
+	NET_DATA = 1,
+	AFTER_ACCEPT,
+	CONNECT
+};
+
 typedef struct lua_socket{
 	uint8_t type;
 	kn_fd_t sock;
@@ -719,6 +725,29 @@ int lua_channel_send(lua_State *L){
 	return 1;
 }
 
+void kn_fd_addref(kn_fd_t);
+void kn_fd_subref(kn_fd_t);
+
+int lua_socket_addref(lua_State *L){
+	lua_socket_t s = lua_touserdata(L,1);
+	if(s->type != LUA_DATASOCKET){
+		return 0;
+	}
+	kn_fd_addref(s->sock);
+	//kn_ref_acquire((kn_ref*)s->sock);
+	return 0;	
+}
+
+int lua_socket_subref(lua_State *L){
+	lua_socket_t s = lua_touserdata(L,1);
+	if(s->type != LUA_DATASOCKET){
+		return 0;
+	}
+	kn_fd_subref(s->sock);
+	//kn_ref_release((kn_ref*)s->sock);
+	return 0;	
+}
+
 void RegisterNet(){  
     
     lua_getglobal(g_L,"_G");
@@ -813,7 +842,15 @@ void RegisterNet(){
 	lua_pushstring(g_L,"channel_send");
 	lua_pushcfunction(g_L,&lua_channel_send);
 	lua_settable(g_L, -3);
-		
+	
+	lua_pushstring(g_L,"socket_addref");
+	lua_pushcfunction(g_L,&lua_socket_addref);
+	lua_settable(g_L, -3);
+	
+	lua_pushstring(g_L,"socket_subref");
+	lua_pushcfunction(g_L,&lua_socket_subref);
+	lua_settable(g_L, -3);		
+			
 	lua_setglobal(g_L,"C");
     g_proactor = kn_new_proactor();
     printf("load c function finish\n");  

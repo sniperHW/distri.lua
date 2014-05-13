@@ -7,7 +7,7 @@ function on_data(s,data,err)
 		Socket.Close(s)
 	else
 		Tcp.Send(s,data)
-		Socket.Close(s)
+		--Socket.Close(s)
 	end
 end
 

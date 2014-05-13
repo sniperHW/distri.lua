@@ -29,4 +29,8 @@ typedef struct kn_fd{
 
 void kn_closefd(kn_fd_t);
 
+void kn_fd_addref(kn_fd_t fd);
+
+void kn_fd_subref(kn_fd_t fd);
+
 #endif

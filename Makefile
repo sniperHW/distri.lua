@@ -2,7 +2,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic
 LDFLAGS = -lpthread -lrt -llua -lm -ldl -ltcmalloc 
 SHARED = -fPIC -shared
 CC = gcc
-INCLUDE = -I./deps/cproactor/include -I..
+INCLUDE = -I./deps/cproactor/include -I.. -I./deps
 DEFINE = -D_DEBUG -D_LINUX 
 
 kendynet.a: \

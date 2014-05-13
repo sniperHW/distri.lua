@@ -17,4 +17,12 @@ void kn_fd_set_destroyer(kn_fd_t fd,void (*f)(void*)){
 	fd->ref.destroyer = f; 
 }
 
+void kn_fd_addref(kn_fd_t fd){
+	kn_ref_acquire(&fd->ref);
+}
+
+void kn_fd_subref(kn_fd_t fd){
+	kn_ref_release(&fd->ref);
+}
+
 

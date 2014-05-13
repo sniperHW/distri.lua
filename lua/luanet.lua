@@ -1,6 +1,5 @@
 local Sche = require "lua/scheduler"
 local Que =  require "lua/queue"
---local Tb2Str = require "lua/table2str"
 local cjson = require "cjson"
 local name2socket = {}                --名字到套接口的映射
 local rpc_function = {}               --本服务提供的远程方法
@@ -8,10 +7,8 @@ local remotefunc_provider = {}        --远程方法提供者
 local service_info                    --本服务的基本信息
 local name_service                    --名字服务地址信息
 local on_disconnected                 --与一个服务的连接断开后回调
-local msgque = Que.Queue()
-local lp_wait_on_msgque = Que.Queue() --阻塞在提取msg上的light process
-local lp_wait_on_rpcque = Que.Queue()
-local rpcque = Que.Queue()
+local Socket = require "lua/socket"
+local Tcp = require "lua/tcp"
 
 --[[
 数据包结构
@@ -36,13 +33,14 @@ local function connect(remote_addr,timeout)
 			return nil
 		end
 		block.onconnected = function (s)
+								print(s)
 								block.flag = 1
 								if Sche.GetCurrentLightProcess() ~= block.lp then
 									block.sock = s
 									Sche.WakeUp(block.lp)
 								end
-							end	   
-		if not C.connect(SOCK_STREAM,remote_addr,nil,block,timeout) then
+							end
+		if not Tcp.Connect4({ip=remote_addr.ip,port=remote_addr.port},nil,block.onconnected,timeout) then
 			return nil
 		end
 		if block.flag == 0 then	   
@@ -63,7 +61,7 @@ local function rpc_call(remote,func,arguments)
 		f = func,
 		u = arguments,
 	}
-	C.send(remote,cjson.encode(msg),nil)--[[Tb2Str.Table2Str(msg)]]--,nil)
+	Tcp.Send(remote,msg)
 	local pending = pending_rpc[remote]
 	if not pending then
 		pending = {}
@@ -95,7 +93,7 @@ local function disconnect(s)
 		end
 		pending_rpc[s] = nil
 	end
-	C.close(s)
+	Socket.Close(s)
 end
 
 --处理rpc响应
@@ -138,27 +136,8 @@ local function process_rpc(request)
 		remote = get_remote_by_name(msg.n)
 	end			  
 	if remote then
-		C.send(remote,cjson.encode(response))--[[Table2Str(response),nil)]]--
+		Tcp.Send(remote,response)
 	end		
-end
-
-
-local function quepush(que,waitque,ele)
-	que:push(ele)
-	local lp = waitque:pop()
-	if lp then
-		Sche.WakeUp(lp)
-	end
-end
-
-local function quepop(lp,que,waitque)
-	local request = que:pop()
-	while not request do
-		waitque:push(lp)
-		Sche.Block()
-		request = que:pop()
-	end
-	return request	
 end
 
 local function on_data(s,data,err)
@@ -169,20 +148,18 @@ local function on_data(s,data,err)
 		end
 		disconnect(s)
 	else
-		local msg = cjson.decode(data)--Tb2Str.Str2Table(data)
-		local type = msg.t
+		local type = data.t
 		if type == "rpc_response" then
-			on_rpc_response(msg)
+			on_rpc_response(data)
 		elseif type == "rpc" then
-			quepush(rpcque,lp_wait_on_rpcque,{sock=s,msg=msg})
+			process_rpc({sock=s,msg=data})
 		elseif type == "msg" then
-			quepush(msgque,lp_wait_on_msgque,{sock=s,msg=msg})
 		end
 	end
 end
 
 local function bind(s,name)
-	local ret = C.bind(s,{recvfinish=on_data}) 
+	local ret = Socket.Bind(s,on_data)--C.bind(s,{recvfinish=on_data}) 
 	if ret and name then
 		name2socket[name] = s
 		C.set_name(s,name)
@@ -205,7 +182,7 @@ local function connect_and_register2name()
 		end	
 		local ret,err = rpc_call(nservice,"Register",info)
 		if err then
-			C.close(nservice)
+			Socket.Close(nservice)--C.close(nservice)
 			nservice = nil
 		end
 	end
@@ -296,7 +273,7 @@ local function SendMsg(name,msg)
 		return "cannot communicate to " .. name
 	else
 		local packet = {n=service_info.name,t = "msg", u = msg}
-		if not C.send(remote,cjson.encode(packet),nil) then--Tb2Str.Table2Str(packet),nil) then
+		if not Tcp.Send(s,packet) then
 			return "error on SendMsg"
 		else
 			return nil
@@ -324,14 +301,9 @@ end
 
 local function on_newclient(s)
 	if not bind(s,nil) then
-		C.close(s)
+		Socket.Close(s)
 	end
 end
-
-local function getRpcRequest()
-	local lp = Sche.GetCurrentLightProcess()
-	return quepop(lp,rpcque,lp_wait_on_rpcque)	
-end	
 
 local function StartLocalService(local_name,local_socktype,local_addr,cb_disconnected)
 	service_info = {
@@ -339,27 +311,17 @@ local function StartLocalService(local_name,local_socktype,local_addr,cb_disconn
 		addrinfo = {type = local_socktype,addr = local_addr}
 	}
 	on_disconnected = cb_disconnected
-	for i=1,8192 do
-		Sche.Spawn(
-			function() 
-				while true do
-					local rpcrequest = getRpcRequest()
-					process_rpc(rpcrequest)
-				end	
-			end		
-		  )
-	end
-	return C.stream_listen(local_addr,{onaccept=on_newclient})
+	return Tcp.Listen4({ip=local_addr.ip,port=local_addr.port},on_newclient)
 end
 
 --从消息队列提取消息
-local function GetMsg()
+--[[local function GetMsg()
 	local lp = Sche.GetCurrentLightProcess()
 	if not lp then
 		return nil,"GetMsg can only be call in a light porcess context"
 	end
 	return quepop(lp,msgque,lp_wait_on_msgque)
-end
+end]]--
 
 return {
 	Register2Name = Register2Name,
@@ -367,6 +329,6 @@ return {
 	RPCCall = RPCCall,                            --调用一个远程方法
 	RegRPCFunction = RegRPCFunction,
 	StartLocalService = StartLocalService,
-	GetMsg = GetMsg,
+	--GetMsg = GetMsg,
 	GetRemoteFuncProvider = GetRemoteFuncProvider --获取提供远程方法的所有服务的名字
 }

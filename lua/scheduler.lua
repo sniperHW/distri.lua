@@ -75,27 +75,37 @@ function scheduler:Yield()
 end
 
 
-function scheduler:Schedule()
-    local yields = {}
-    self.current_lp = self.runable:pop()
-	while self.current_lp do
-		coroutine.resume(self.current_lp.croutine,self.current_lp)
+function scheduler:Schedule(lp)
+	if lp then
+		local prelp = self.current_lp
+		self.current_lp = lp
+		coroutine.resume(lp.croutine,lp)
 		if self.current_lp.status == "yield" then
-			table.insert(yields,self.current_lp)
-		elseif self.current_lp.status == "dead" then
-			print("a light process dead")
+			self:Add2Active(lp)
 		end
+		self.current_lp = prelp
+	else
+		local yields = {}
 		self.current_lp = self.runable:pop()
-	end
-    local now = C.GetSysTick()
-    while self.m_timer:Min() ~=0 and self.m_timer:Min() <= now do
-        local lprocess = self.m_timer:PopMin()
-        if lprocess.status == "block" or lprocess.status == "sleep" then
-            self:Add2Active(lprocess)
-        end
-    end
-    for k,v in pairs(yields) do
-		self:Add2Active(v)
+		while self.current_lp do
+			coroutine.resume(self.current_lp.croutine,self.current_lp)
+			if self.current_lp.status == "yield" then
+				table.insert(yields,self.current_lp)
+			elseif self.current_lp.status == "dead" then
+				print("a light process dead")
+			end
+			self.current_lp = self.runable:pop()
+		end
+		local now = C.GetSysTick()
+		while self.m_timer:Min() ~=0 and self.m_timer:Min() <= now do
+			local lprocess = self.m_timer:PopMin()
+			if lprocess.status == "block" or lprocess.status == "sleep" then
+				self:Add2Active(lprocess)
+			end
+		end
+		for k,v in pairs(yields) do
+			self:Add2Active(v)
+		end
     end
     return self.runable:len()
 end
@@ -131,8 +141,8 @@ local function GetLightProcessByIdentity(identity)
 	return lightprocesses[identity]
 end
 
-local function Schedule()
-	return global_sc:Schedule()
+local function Schedule(lp)
+	return global_sc:Schedule(lp)
 end
 
 local function lp_start_fun(lp)

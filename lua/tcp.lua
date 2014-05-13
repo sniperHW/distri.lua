@@ -1,5 +1,6 @@
 local netaddr = require "lua/netaddr"
 local cjson = require "cjson"
+local Socket = require "lua/socket"
 --for ipv4
 local function Listen4(addr,on_newclient)
 	if addr then 
@@ -7,7 +8,10 @@ local function Listen4(addr,on_newclient)
 		if not addr.ip or not addr.port then
 			return nil,"ip or port is nil"
 		end
-		return C.stream_listen(addr,{onaccept=on_newclient})
+		return C.stream_listen(addr,{onaccept=function (s)
+									if data then data = cjson.decode(data) end				
+										Socket.Quepush({Socket.ACCEPT_CALLBACK,on_newclient,s})
+								  end})
 	else
 		return nil,"addr is nil"
 	end
@@ -25,7 +29,10 @@ local function Connect4(remoteaddr,localaddr,connect_callback,timeout)
 				return nil,"localaddr ip or port is nil"
 			end					
 		end
-		return C.connect(SOCK_STREAM,remoteaddr,localaddr,{onconnected = connect_callback},timeout)
+		return C.connect(SOCK_STREAM,remoteaddr,localaddr,{onconnected = function (s,remote_addr,err)
+									if data then data = cjson.decode(data) end				
+										Socket.Quepush({Socket.CONNECT_CALLBACK,connect_callback,s,remote_addr,err})
+								  end},timeout)
 	else
 		return nil,"remoteaddr is nil"
 	end

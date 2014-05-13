@@ -11,7 +11,7 @@ while not luanet.Register2Name(netaddr.netaddr_ipv4("127.0.0.1",8010)) do
 end
 print("register sucess")
 --启动一组lightprocess执行远程调用
-for i=1,10000 do	
+for i=1,5000 do	
 	Sche.Spawn(
 				function() 
 					while true do

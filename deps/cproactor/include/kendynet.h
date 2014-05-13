@@ -77,6 +77,16 @@ int           kn_fd_get_type(kn_fd_t);
 
 kn_sockaddr*  kn_fd_get_local_addr(kn_fd_t);
 
+/* 增加/减少fd的引用计数,典型应用场景
+*  假设连接上收到两个顺序消息A,B,在A消息的回调中,保存了fd，并启动另一个异步操作
+*  在异步操作的回调中向fd发送消息,在B消息的回调中调用kn_close(fd).在这个场景下
+*  B消息的kn_close操作将导致fd的内存被释放.当A消息等待的回调调用时将会操作一个
+*  非法的fd.所以,在启动异步操作前需要先调用kn_fd_addref,等回调完成后执行kn_fd_subref
+*  这样将保证fd不会被错误的释放.
+*/ 
+void kn_fd_addref(kn_fd_t fd);
+void kn_fd_subref(kn_fd_t fd);
+
 
 //用于替换fd的默认销毁函数
 kn_ref_destroyer kn_fd_get_destroyer(kn_fd_t);
