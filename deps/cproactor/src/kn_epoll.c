@@ -83,6 +83,7 @@ static int32_t addRead(kn_proactor_t p ,kn_fd_t s)
 	if(s->proactor) op = EPOLL_CTL_MOD; 
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,op,s->fd,&ev));
 	if(ret != 0) return -errno;
+	s->events = ev.events;
 	if(!s->proactor){
 		++ep->eventsize;
 		if(ep->eventsize > ep->maxevents){
@@ -103,6 +104,7 @@ static int32_t delRead(kn_proactor_t p ,kn_fd_t s)
 	kn_epoll *ep = (kn_epoll*)p;	
 	ev.data.ptr = s;
 	ev.events = s->events & (~EPOLLIN);	
+	s->events = ev.events;	
 	return epoll_ctl(ep->epfd,EPOLL_CTL_MOD,s->fd,&ev);
 }
 
@@ -119,6 +121,7 @@ static int32_t addWrite(kn_proactor_t p ,kn_fd_t s)
 	if(s->proactor) op = EPOLL_CTL_MOD; 		
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,op,s->fd,&ev));
 	if(ret != 0) return -errno;
+	s->events = ev.events;
 	if(!s->proactor){
 		++ep->eventsize;
 		if(ep->eventsize > ep->maxevents){
@@ -139,7 +142,8 @@ static int32_t delWrite(kn_proactor_t p ,kn_fd_t s)
 	struct epoll_event ev = {0};
 	kn_epoll *ep = (kn_epoll*)p;	
 	ev.data.ptr = s;
-	ev.events = s->events & (~EPOLLOUT);	
+	ev.events = s->events & (~EPOLLOUT);
+	s->events = ev.events;	
 	return epoll_ctl(ep->epfd,EPOLL_CTL_MOD,s->fd,&ev);	
 }
 

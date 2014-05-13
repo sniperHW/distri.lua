@@ -1,6 +1,8 @@
 #include "kn_proactor.h"
 #include "redisconn.h"
 
+void kn_redisDisconnect(redisconn_t rc);
+
 static void redisLibevRead(redisconn_t rc){
     redisAsyncHandleRead(rc->context);
 }
@@ -12,45 +14,45 @@ static void redisLibevWrite(redisconn_t rc){
 void kn_redisDisconnect(redisconn_t rc);
 
 static void redis_on_active(kn_fd_t s,int event){
-	//kn_proactor_t p;
 	redisconn_t rc = (redisconn_t)s;
 	if(rc->state == REDIS_CONNECTING){
 		int err = 0;
 		socklen_t len = sizeof(err);
 		if (getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
 			rc->cb_connect(rc,-1);
-			kn_closefd(s);
+			//kn_closefd(s);
+			kn_redisDisconnect(rc);
 			return;
 		}
 		if(err){
 			errno = err;
 			rc->cb_connect(rc,errno);
-			kn_closefd(s);
+			kn_redisDisconnect(rc);
+			//kn_closefd(s);
 			return;
 		}
-		//connect success
-		//p = rc->base.proactor;
-		//p->UnRegister(p,(kn_fd_t)rc);   
+		//connect success  
 		rc->state = REDIS_ESTABLISH;
-		//p->Register(p,(kn_fd_t)rc);
 		rc->cb_connect(rc,0);			
 	}else{
 		if(event & (EPOLLERR | EPOLLHUP)){
 			kn_redisDisconnect(rc);	
 			return;
 		}
+		kn_ref_acquire(&rc->base.ref);
 		if(event & (EPOLLRDHUP | EPOLLIN)){
+			//printf("read active\n");
 			redisLibevRead(rc);
 		}
-		if(event & EPOLLOUT){
+		if((event & EPOLLOUT) && rc->state != REDIS_CLOSE){
+			//printf("write active\n");
 			redisLibevWrite(rc);
-		}	
+		}
+		kn_ref_release(&rc->base.ref);	
 	}
 }
 
 static void redisconn_destroy(void *ptr){
-	//redisconn_t rc = (redisconn_t)((char*)ptr - sizeof(kn_dlist_node));
-	//redisAsyncFree(rc->context);
 	free(ptr);
 }
 
@@ -67,12 +69,14 @@ static void redisDelRead(void *privdata) {
 }
 
 static void redisAddWrite(void *privdata) {
+	//printf("redisAddWrite\n");
 	redisconn_t con = (redisconn_t)privdata;
 	kn_proactor_t p = con->base.proactor;
 	p->addWrite(p,(kn_fd_t)con);
 }
 
 static void redisDelWrite(void *privdata) {
+	//printf("redisDelWrite\n");
 	redisconn_t con = (redisconn_t)privdata;
 	kn_proactor_t p = con->base.proactor;
 	p->delWrite(p,(kn_fd_t)con);
@@ -80,15 +84,22 @@ static void redisDelWrite(void *privdata) {
 
 static void redisCleanup(void *privdata) {
     redisconn_t con = (redisconn_t)privdata;
-	kn_proactor_t p = con->base.proactor;
-    p->UnRegister(p,(kn_fd_t)con);
-    kn_closefd((kn_fd_t)con); 
+    if(con){
+		if(con->state == REDIS_ESTABLISH && con->cb_disconnected)
+			con->cb_disconnected(con);		
+		kn_proactor_t p = con->base.proactor;
+		p->UnRegister(p,(kn_fd_t)con);
+		con->state = REDIS_CLOSE;
+		kn_closefd((kn_fd_t)con);
+	} 
 }
 
 
 int kn_redisAsynConnect(struct kn_proactor *p,
 						const char *ip,unsigned short port,
-						void (*cb_connect)(struct redisconn*,int err))
+						void (*cb_connect)(struct redisconn*,int err),
+						void (*cb_disconnected)(struct redisconn*)
+						)
 {
 	redisAsyncContext *c = redisAsyncConnect(ip, port);
     if(c->err) {
@@ -101,7 +112,8 @@ int kn_redisAsynConnect(struct kn_proactor *p,
 	con->base.on_active = redis_on_active;
 	con->base.type = REDISCONN;
 	con->state = REDIS_CONNECTING; 
-	con->cb_connect = cb_connect;   
+	con->cb_connect = cb_connect; 
+	con->cb_disconnected = cb_disconnected;
     kn_ref_init(&con->base.ref,redisconn_destroy);
 	
     c->ev.addRead =  redisAddRead;
@@ -113,7 +125,9 @@ int kn_redisAsynConnect(struct kn_proactor *p,
 	if(p->Register(p,(kn_fd_t)con) == 0){
 		return 0;
 	}else{
-		kn_closefd((kn_fd_t)c);
+		redisAsyncFree(c);
+		free(con);
+		//kn_closefd((kn_fd_t)c);
 		return -1;
 	}    											
 }

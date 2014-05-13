@@ -111,7 +111,9 @@ typedef struct redisconn *redisconn_t;
 
 int kn_redisAsynConnect(kn_proactor_t p,
 						const char *ip,unsigned short port,
-						void (*cb_connect)(redisconn_t,int err));
+						void (*cb_connect)(redisconn_t,int err),
+						void (*cb_disconnected)(struct redisconn*)
+						);
 
 struct redisReply;						
 int kn_redisCommand(redisconn_t,const char *cmd,
