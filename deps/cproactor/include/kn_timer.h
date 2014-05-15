@@ -25,7 +25,7 @@ typedef struct kn_timer* kn_timer_t;
 struct kn_timer_item;
 
 //如果返回1则timer_callback调用完之后会释放掉timer_item
-typedef int (*timer_callback)(kn_timer_t,struct kn_timer_item*,void*);
+typedef int (*timer_callback)(kn_timer_t,struct kn_timer_item*,void*,uint64_t now);
 
 
 kn_timer_t kn_new_timer();

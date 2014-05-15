@@ -183,14 +183,13 @@ kn_stream_conn_t kn_new_stream_conn(kn_fd_t s)
 
 void kn_stream_conn_close(kn_stream_conn_t c){
 	if(c->is_close) return;
+	c->is_close = 1;
 	if(!c->doing_send){
 		if(c->on_disconnected) c->on_disconnected(c,0);
 		kn_closefd(c->fd);
 	}else{
-		/*
-		*  确保待发送数据发送完毕或发送超时才调用kn_closefd
-		*/
-		c->is_close = 1;		
+		//确保待发送数据发送完毕或发送超时才调用kn_closefd
+		c->send_timeout = 30*1000;			
 	} 
 }
 

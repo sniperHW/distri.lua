@@ -139,7 +139,7 @@ struct kn_timer_item
     struct heapele _heapele;
     uint64_t       _timeout;
     void*          _ud;
-    int (*_callback)(kn_timer_t,struct kn_timer_item*,void*);
+    int (*_callback)(kn_timer_t,struct kn_timer_item*,void*,uint64_t);
 };
 
 typedef struct kn_timer
@@ -181,7 +181,7 @@ void kn_update_timer(kn_timer_t t,uint64_t now)
 			free(item);
 		}else if(now >= item->_timeout){
 			minheap_popmin(t->_minheap);
-			if(item->_callback(t,item,item->_ud))
+			if(item->_callback(t,item,item->_ud,now))
 				free(item);
 		}else
 			break; 

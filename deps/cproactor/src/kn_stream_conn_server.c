@@ -18,8 +18,51 @@ static void on_new_connection(kn_fd_t fd,void *ud){
 	server->on_connection(server,kn_new_stream_conn(fd));
 }
 
+int check_timeout(kn_timer_t timer,struct kn_timer_item *item,void *ud,uint64_t now)
+{	
+	int ret = 0;
+	kn_stream_conn_t conn = (kn_stream_conn_t)ud;
+	kn_fd_addref(conn->fd);
+	do{	
+		if(conn->is_close){
+			wpacket_t wpk = (wpacket_t)kn_list_head(&conn->send_list);
+			if(wpk && now > wpk->base.tstamp + (uint64_t)conn->send_timeout){
+				if(conn->on_disconnected) conn->on_disconnected(conn,0);
+				kn_closefd(conn->fd);
+				ret = 1;
+			}		
+		}else{					
+			if(conn->on_send_timeout){
+				wpacket_t wpk = (wpacket_t)kn_list_head(&conn->send_list);
+				if(wpk && now > wpk->base.tstamp + (uint64_t)conn->send_timeout){
+					conn->on_send_timeout(conn);
+					if(conn->is_close){
+						if(conn->on_disconnected) conn->on_disconnected(conn,0);
+						kn_closefd(conn->fd);
+						ret = 1;
+						break;
+					}
+				}	
+			}			
+			if(conn->on_recv_timeout){
+				if(now > conn->last_recv + (uint64_t)conn->recv_timeout){
+					conn->on_recv_timeout(conn);
+					if(conn->is_close && !conn->doing_send)
+						ret = 1;
+				}
+			}
+		}
+	}while(0);
+	kn_fd_subref(conn->fd);
+	if(ret == 0)
+		kn_register_timer(timer,conn->_timer_item,check_timeout,conn,1000);
+	return ret;
+}
+
+
 void kn_stream_tick(struct service *s){
 	//检查连接超时
+	kn_update_timer(((kn_stream_server_t)s)->timer,kn_systemms64());
 }
 
 
@@ -101,7 +144,13 @@ int kn_stream_server_bind(kn_stream_server_t server,
 {
 	
 	
-	return bind_private(server->proactor,conn,is_raw,recvbuf_size,
-						on_packet,on_disconnected,recv_timeout,
-						on_recv_timeout,send_timeout,on_send_timeout);
+	int ret = bind_private(server->proactor,conn,is_raw,recvbuf_size,
+						   on_packet,on_disconnected,recv_timeout,
+						   on_recv_timeout,send_timeout,on_send_timeout);
+	if(ret == 0){
+		if(conn->on_recv_timeout || conn->on_send_timeout){
+			conn->_timer_item = kn_register_timer(server->timer,NULL,check_timeout,conn,1000);
+		}
+	}
+	return ret;
 }	

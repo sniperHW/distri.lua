@@ -72,16 +72,4 @@ kn_stream_conn_t kn_new_stream_conn(kn_fd_t s);
 
 void kn_stream_conn_close(kn_stream_conn_t);
 
-/*
-struct connection *new_conn(SOCK s,uint8_t is_raw);
-void   release_conn(struct connection *con);
-void   acquire_conn(struct connection *con);
-
-void   active_close(struct connection*);//active close connection
-
-int32_t send_packet(struct connection*,wpacket_t);
-
-int32_t bind2engine(ENGINE,struct connection*,uint32_t recv_bufsize,CCB_PROCESS_PKT,CCB_DISCONNECT);
-*/
-
 #endif
