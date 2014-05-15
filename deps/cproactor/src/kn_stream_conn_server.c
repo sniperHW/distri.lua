@@ -1,6 +1,7 @@
 #include "kn_stream_conn_server.h"
 #include "kn_stream_conn_private.h"
 #include "kn_proactor.h"
+#include "kn_time.h"
 
 typedef struct kn_stream_server{
 	struct service base;
