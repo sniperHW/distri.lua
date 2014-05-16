@@ -14,14 +14,15 @@ int  on_packet(kn_stream_conn_t conn,rpacket_t rpk){
 }
 
 void on_disconnected(kn_stream_conn_t conn,int err){
-	//printf("on_disconnected\n");
+	printf("on_disconnected\n");
 	--client_count;
 }
 
 void new_client(kn_stream_server_t server,kn_stream_conn_t conn){
+	printf("new_client\n");
 	++client_count;
 	kn_stream_server_bind(server,conn,1,1024,on_packet,on_disconnected,
-						  0,NULL,0,NULL);
+						  10*1000,NULL,0,NULL);
 }
 
 int main(int argc,char **argv)

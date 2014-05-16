@@ -21,7 +21,7 @@ static void connect_cb(kn_fd_t fd,struct kn_sockaddr* addr,void *ud,int err)
 	} 	
 }
 
-void kn_stream_tick(struct service *s);
+void kn_stream_client_tick(struct service *s);
 kn_stream_client_t kn_new_stream_client(kn_proactor_t p,
 										void (*on_connect)(kn_stream_client_t,kn_stream_conn_t),
 										void (*on_connect_fail)(kn_stream_client_t,kn_sockaddr*,int err))
@@ -32,14 +32,22 @@ kn_stream_client_t kn_new_stream_client(kn_proactor_t p,
 	client->on_connect_fail = on_connect_fail;
 	client->timer = kn_new_timer();
 	client->proactor = p;
-	client->base.tick = kn_stream_tick;
-	kn_dlist_push(&p->service,(kn_dlist_node*)client);
+	client->base.tick = NULL;
+	kn_dlist_init(&client->base.dlist);
+	if(client->base.tick)
+		kn_dlist_push(&p->service,(kn_dlist_node*)client);
 	return client;
 }
 
 void kn_destroy_stream_client(kn_stream_client_t client){
 	kn_delete_timer(client->timer);
 	kn_dlist_remove((kn_dlist_node*)&client);
+	kn_dlist_node *node;
+	while((node = kn_dlist_pop(&client->base.dlist))){
+		kn_stream_conn_t conn = (kn_stream_conn_t)node;
+		if(conn->on_disconnected) conn->on_disconnected(conn,0);
+		kn_closefd(conn->fd);
+	}		
 	free(client);
 }
 
@@ -67,9 +75,15 @@ int kn_stream_client_bind( kn_stream_client_t client,
 						   void (*on_send_timeout)(kn_stream_conn_t) //on send timeout									
 						   )
 {
-	return bind_private(client->proactor,conn,is_raw,recvbuf_size,
+	int ret = bind_private(client->proactor,conn,is_raw,recvbuf_size,
 						on_packet,on_disconnected,recv_timeout,
 						on_recv_timeout,send_timeout,on_send_timeout);
+	
+	if(ret == 0){
+		kn_dlist_push(&client->base.dlist,(kn_dlist_node*)conn);
+		conn->service = (struct service*)client;
+	}
+	return ret;
 }
 
 int kn_stream_connect(kn_stream_client_t client,

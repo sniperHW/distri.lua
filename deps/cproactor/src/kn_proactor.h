@@ -10,6 +10,7 @@ struct kn_fd;
 
 struct service{
 	kn_dlist_node node;
+	kn_dlist      dlist;
 	void (*tick)(struct service*);
 };
 

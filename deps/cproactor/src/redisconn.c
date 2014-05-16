@@ -1,6 +1,7 @@
 #include "kn_proactor.h"
 #include "redisconn.h"
 
+
 void kn_redisDisconnect(redisconn_t rc);
 
 static void redisLibevRead(redisconn_t rc){
@@ -52,7 +53,23 @@ static void redis_on_active(kn_fd_t s,int event){
 	}
 }
 
+typedef void (*redis_cb)(redisconn_t,redisReply*,void *pridata);
+
+struct privst{
+	kn_dlist_node node;
+	redisconn_t rc;
+	void*       privdata;
+	void (*cb)(redisconn_t,redisReply*,void *pridata);
+};
+
 static void redisconn_destroy(void *ptr){
+	redisconn_t conn = (redisconn_t)((char*)ptr - sizeof(kn_dlist_node));
+	kn_dlist_node *node;
+	while((node = kn_dlist_pop(&conn->pending_command))){
+		struct privst *pri = ((struct privst*)node);
+		pri->cb(conn,NULL,pri->privdata);
+		free(node);	
+	}
 	free(ptr);
 }
 
@@ -114,6 +131,7 @@ int kn_redisAsynConnect(struct kn_proactor *p,
 	con->state = REDIS_CONNECTING; 
 	con->cb_connect = cb_connect; 
 	con->cb_disconnected = cb_disconnected;
+	kn_dlist_init(&con->pending_command);
     kn_ref_init(&con->base.ref,redisconn_destroy);
 	
     c->ev.addRead =  redisAddRead;
@@ -132,22 +150,15 @@ int kn_redisAsynConnect(struct kn_proactor *p,
 	}    											
 }
 
-typedef void (*redis_cb)(redisconn_t,redisReply*,void *pridata);
-
-struct privst{
-	redisconn_t rc;
-	void*       privdata;
-	void (*cb)(redisconn_t,redisReply*,void *pridata);
-};
-
 static void kn_redisCallback(redisAsyncContext *c, void *r, void *privdata) {
 	redisReply *reply = r;
 	redisconn_t rc = ((struct privst*)privdata)->rc;
 	redis_cb cb = ((struct privst*)privdata)->cb;
-	free(privdata);
 	if(cb){
 		cb(rc,reply,((struct privst*)privdata)->privdata);
 	}
+	kn_dlist_remove((kn_dlist_node*)privdata);
+	free(privdata);
 }
 
 int kn_redisCommand(redisconn_t rc,const char *cmd,
@@ -161,8 +172,11 @@ int kn_redisCommand(redisconn_t rc,const char *cmd,
 		privst->privdata = pridata;
 	}
 	int status = redisAsyncCommand(rc->context, privst?kn_redisCallback:NULL,privst,cmd);
-	if(status != REDIS_OK)
-		free(privst);
+	if(status != REDIS_OK){
+		if(privst) free(privst);
+	}else{
+		if(privst) kn_dlist_push(&rc->pending_command,(kn_dlist_node*)privst);
+	}	
 	return status;
 }
 					

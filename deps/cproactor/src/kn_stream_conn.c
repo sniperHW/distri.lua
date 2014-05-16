@@ -167,6 +167,9 @@ static void stream_conn_destroy(void *ptr)
     buffer_release(&c->unpack_buf);
     buffer_release(&c->next_recv_buf);		
 	c->fd_destroy_fn(ptr);
+	if(c->service){
+		kn_dlist_remove((kn_dlist_node*)c);
+	}
 	free(c);
 }
 

@@ -36,9 +36,10 @@ typedef void (*CCB_SEND_TIMEOUT)(kn_stream_conn_t);
 
 #define MAX_WBAF 512
 #define MAX_SEND_SIZE 65536
-
+struct service;
 struct kn_stream_conn
 {
+	kn_dlist_node node;
 	kn_fd_t  fd;
 	struct   iovec wsendbuf[MAX_WBAF];
 	struct   iovec wrecvbuf[2];
@@ -61,7 +62,7 @@ struct kn_stream_conn
 	uint32_t recv_bufsize;
 	void     (*fd_destroy_fn)(void *arg);
 	uint8_t  is_close;
-	
+	struct service *service;
 	int  (*on_packet)(kn_stream_conn_t,rpacket_t);
 	void (*on_recv_timeout)(kn_stream_conn_t);
 	void (*on_send_timeout)(kn_stream_conn_t);	

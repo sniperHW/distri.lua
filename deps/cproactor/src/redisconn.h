@@ -6,6 +6,7 @@
 //redis连接
 #include "hiredis/hiredis.h"
 #include "hiredis/async.h"
+#include "kn_dlist.h"
 
 struct kn_proactor;
 enum{
@@ -20,6 +21,7 @@ typedef struct redisconn{
 	redisAsyncContext*    context;
 	void (*cb_connect)(struct redisconn*,int err);
 	void (*cb_disconnected)(struct redisconn*);
+	kn_dlist              pending_command;
 	
 }redisconn,*redisconn_t;
 
