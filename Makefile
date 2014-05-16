@@ -2,24 +2,24 @@ CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic
 LDFLAGS = -lpthread -lrt -llua -lm -ldl -ltcmalloc 
 SHARED = -fPIC -shared
 CC = gcc
-INCLUDE = -I./deps/cproactor/include -I.. -I./deps
+INCLUDE = -I../KendyNet/include -I.. -I./deps
 DEFINE = -D_DEBUG -D_LINUX 
 
 kendynet.a: \
-		   ./deps/cproactor/src/kn_connector.c \
-		   ./deps/cproactor/src/kn_epoll.c \
-		   ./deps/cproactor/src/kn_except.c \
-		   ./deps/cproactor/src/kn_proactor.c \
-		   ./deps/cproactor/src/kn_ref.c \
-		   ./deps/cproactor/src/kn_acceptor.c \
-		   ./deps/cproactor/src/kn_fd.c \
-		   ./deps/cproactor/src/kn_datasocket.c \
-		   ./deps/cproactor/src/kendynet.c \
-		   ./deps/cproactor/src/kn_time.c \
-		   ./deps/cproactor/src/kn_thread.c\
-		   ./deps/cproactor/src/spinlock.c\
-		   ./deps/cproactor/src/lua_util.c\
-		   ./deps/cproactor/src/kn_channel.c
+		   ../KendyNet/src/kn_connector.c \
+		   ../KendyNet/src/kn_epoll.c \
+		   ../KendyNet/src/kn_except.c \
+		   ../KendyNet/src/kn_proactor.c \
+		   ../KendyNet/src/kn_ref.c \
+		   ../KendyNet/src/kn_acceptor.c \
+		   ../KendyNet/src/kn_fd.c \
+		   ../KendyNet/src/kn_datasocket.c \
+		   ../KendyNet/src/kendynet.c \
+		   ../KendyNet/src/kn_time.c \
+		   ../KendyNet/src/kn_thread.c\
+		   ../KendyNet/src/spinlock.c\
+		   ../KendyNet/src/lua_util.c\
+		   ../KendyNet/src/kn_channel.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o
 	rm -f *.o
