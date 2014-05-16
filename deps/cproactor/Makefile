@@ -31,6 +31,7 @@ kendynet.a: \
 		   src/obj_allocator.c\
 		   src/log.c\
 		   src/redisconn.c\
+		   src/tls.c\
 		   src/kn_channel.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o

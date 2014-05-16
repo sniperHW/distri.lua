@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "common_define.h"
+#include "kn_common_define.h"
 
 /*struct tls_st
 {
