@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "lua_util.h"
+#include "lua/lua_util.h"
 #include "kendynet.h"
 #include "kn_time.h"
 #include "kn_ref.h"

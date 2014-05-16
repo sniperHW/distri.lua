@@ -18,6 +18,7 @@ kendynet.a: \
 		   ./deps/cproactor/src/kn_time.c \
 		   ./deps/cproactor/src/kn_thread.c\
 		   ./deps/cproactor/src/spinlock.c\
+		   ./deps/cproactor/src/lua_util.c\
 		   ./deps/cproactor/src/kn_channel.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o
@@ -26,8 +27,8 @@ kendynet.a: \
 cjson.so:
 	cp deps/lua-cjson-2.1.0/cjson.so .
 		
-distri:src/distri.c src/lua_util.c kendynet.a cjson.so
-	$(CC) $(CFLAGS) -o distri src/distri.c src/lua_util.c kendynet.a  $(INCLUDE) $(LDFLAGS)	$(DEFINE) 
+distri:src/distri.c kendynet.a cjson.so
+	$(CC) $(CFLAGS) -o distri src/distri.c kendynet.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) 
 
 	
 	
