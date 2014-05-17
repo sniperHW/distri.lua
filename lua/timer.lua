@@ -68,8 +68,11 @@ function timer:Change(co)
     end
     --尝试往下调整
     self:Down(index)
-    --尝试往上调整
-    self:Up(index)
+	--如果向下调整过必定不再需要向上调整
+	if index == co.index then
+		--尝试往上调整
+		self:Up(index)
+	end
 end
 
 function timer:Insert(co)
