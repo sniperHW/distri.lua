@@ -437,7 +437,6 @@ int lua_connect(lua_State *L){
 	luaObject_t remote = create_luaObj(L,2);
 	luaObject_t local = create_luaObj(L,3);
 	luaObject_t obj = create_luaObj(L,4);
-	int timeout = lua_tonumber(L,5);
 	if(!remote || !obj){
 		release_luaObj(local);
 		release_luaObj(remote);
@@ -465,7 +464,7 @@ int lua_connect(lua_State *L){
 	}
 			
 	if(0 != kn_asyn_connect(g_proactor,sock_type,local?&addr_local:NULL,
-					&addr_remote,on_connect,(void*)obj,(int64_t)timeout))
+					&addr_remote,on_connect,(void*)obj))
 	{
 		release_luaObj(obj);
 		lua_pushboolean(L,0);
@@ -562,7 +561,7 @@ int lua_run(lua_State *L){
 		        now = kn_systemms64();
 				if(now - tick > 1000)
 				{
-		            uint32_t elapse = (uint32_t)(now-tick);
+		            //uint32_t elapse = (uint32_t)(now-tick);
 		            printf("count:%d/s\n",recv_count);
 					tick = now;
 					recv_count = 0;
@@ -717,7 +716,7 @@ int lua_channel_send(lua_State *L){
 	size_t len = strlen(tmp);
 	char *msg = calloc(1,len+1);
 	strcpy(msg,tmp); 
-	if(0 != kn_channel_putmsg(to,&channel,msg)){
+	if(0 != kn_channel_putmsg(to,&channel,msg,NULL)){
 		free(msg);
 		lua_pushstring(L,"invaild channel");
 	}else
@@ -864,7 +863,6 @@ int main(int argc,char **argv)
 	}
 	g_L = luaL_newstate();
 	luaL_openlibs(g_L);
-	kn_net_open();
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);	
 	RegisterNet();

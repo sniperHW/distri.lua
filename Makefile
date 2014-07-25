@@ -16,9 +16,11 @@ kendynet.a: \
 		   ../KendyNet/src/kn_datasocket.c \
 		   ../KendyNet/src/kendynet.c \
 		   ../KendyNet/src/kn_time.c \
+		   ../KendyNet/src/kn_timer.c\
 		   ../KendyNet/src/kn_thread.c\
 		   ../KendyNet/src/spinlock.c\
 		   ../KendyNet/src/lua_util.c\
+		   ../KendyNet/src/kn_timerfd.c\
 		   ../KendyNet/src/kn_channel.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o
