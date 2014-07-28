@@ -133,5 +133,5 @@ kn_timer_t _kn_reg_timer(kn_timermgr_t t,uint64_t timeout,kn_cb_timer cb,void *u
 
 kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 	kn_epoll *ep = (kn_epoll*)e;
-	return _kn_reg_timer(ep->timermgr,timeout,cb,ud);
+	return _kn_reg_timer(((struct st_head*)ep->timerfd)->ud,timeout,cb,ud);
 }

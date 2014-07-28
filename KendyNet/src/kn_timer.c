@@ -1,3 +1,4 @@
+#include "kendynet.h"
 #include "kn_timer.h"
 #include <assert.h>
 #include <stdlib.h>
