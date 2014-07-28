@@ -18,7 +18,6 @@
 #define _KN_TIMER_H
 #include <time.h>
 #include <stdint.h>
-#include "minheap.h"
 
 typedef struct kn_timermgr *kn_timermgr_t;
 typedef struct kn_timer *kn_timer_t;

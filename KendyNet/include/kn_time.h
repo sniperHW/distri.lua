@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "kn_common_include.h"
-#include "kn_thread.h"
+#include <pthread.h>
 
 extern pthread_key_t g_systime_key;
 extern pthread_once_t g_systime_key_once;

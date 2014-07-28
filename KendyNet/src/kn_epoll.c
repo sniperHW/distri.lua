@@ -1,5 +1,6 @@
 #include "kendynet.h"
 #include "kn_socket.h"
+#include "kn_timer.h"
 #include "kn_timerfd.h"
 #include <assert.h>
 
@@ -62,7 +63,7 @@ int kn_event_del(engine_t e,handle_t h){
 	}
 	return ret;	
 }
-
+kn_timermgr_t kn_new_timermgr();
 
 engine_t kn_new_engine(){
 	int epfd = epoll_create(1);
@@ -84,6 +85,7 @@ engine_t kn_new_engine(){
 	
 	ep->timermgr = kn_new_timermgr();
 	ep->timerfd = kn_new_timerfd(1000);
+	((struct st_head*)ep->timerfd)->ud = ep->timermgr;
 	kn_event_add(ep,ep->timerfd,EPOLLIN | EPOLLOUT);	
 	return (engine_t)ep;
 }

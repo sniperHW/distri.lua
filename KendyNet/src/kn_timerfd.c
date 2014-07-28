@@ -1,11 +1,14 @@
 #include "kn_timerfd.h"
-#include "kn_proactor.h"
 #include <sys/timerfd.h> 
 
+void kn_timermgr_tick(kn_timermgr_t t);
+
 void kn_timerfd_on_active(handle_t s,int event){
+	kn_timerfd_t t = (kn_timerfd_t)s;
 	long long tmp;
-	read(s->comm_head.fd,&tmp,sizeof(tmp));
-	kn_timermgr_tick(s->proactor->timermgr);
+	read(t->comm_head.fd,&tmp,sizeof(tmp));
+	kn_timermgr_t mgr = (kn_timermgr_t)t->comm_head.ud;
+	kn_timermgr_tick(mgr);
 }
 
 void kn_timerfd_destroy(void *ptr){
@@ -14,7 +17,7 @@ void kn_timerfd_destroy(void *ptr){
 	free(t);
 }
 
-handle_t_t kn_new_timerfd(uint32_t timeout){
+handle_t kn_new_timerfd(uint32_t timeout){
 	kn_timerfd_t fd = calloc(1,sizeof(*fd));
 	fd->comm_head.fd = timerfd_create(CLOCK_MONOTONIC,0);
 	if(fd->comm_head.fd < 0){
@@ -39,5 +42,5 @@ handle_t_t kn_new_timerfd(uint32_t timeout){
 		return NULL;
 	}
 	fd->comm_head.on_events = kn_timerfd_on_active;
-	return (kn_fd_t)fd;
+	return (handle_t)fd;
 }

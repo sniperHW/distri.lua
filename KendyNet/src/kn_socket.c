@@ -327,8 +327,8 @@ static int stream_connect(kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *re
 		if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events)){
 			s->events = events;
 			s->comm_head.status = kn_connecting;
-		}
-		return -1;	
+		}else
+			return -1;
 	}
 	return 0;
 }
