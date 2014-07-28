@@ -125,7 +125,7 @@ static void process_accept(kn_socket *s){
 static void process_connect(kn_socket *s,int events){
 	int err = 0;
     socklen_t len = sizeof(err);    
-    kn_event_del(s->comm_head.e);
+    kn_event_del(s->comm_head.e,(handle_t)s);
     s->events = 0;
     if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
         s->cb_connect(s,err,s->comm_head.ud);
