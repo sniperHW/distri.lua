@@ -195,14 +195,10 @@ int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_i
 	kn_socket *s = (kn_socket*)h;
 	if(!cb_ontranfnish) return -1;
 	if(s->comm_head.status != kn_establish) return -1;
-	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);
-	s->comm_head.e = e;
+	if(s->e) kn_event_del(s->e,h);
 	s->destry_stio = destry_stio;
 	s->cb_ontranfnish = cb_ontranfnish;
-	if(0 == kn_event_add(e,h,EPOLLRDHUP)){
-		s->events = EPOLLRDHUP;
-		return 0;
-	}
+	s->e = e;
 	return -1;
 }
 
@@ -212,7 +208,14 @@ int kn_sock_send(handle_t h,st_io *req){
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);
 	if(!(s->events & EPOLLOUT)){
 		int events = s->events | EPOLLOUT;
-		if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events))
+		int ret = 0;
+		if(s->events == 0){
+			events |= EPOLLRDHUP;
+			ret = kn_event_add(s->e,(handle_t)s,events);
+		}else
+			ret = kn_event_mod(s->comm_head.e,(handle_t)s,events));
+			
+		if(ret == 0)
 			s->events = events;
 		else
 			return -1;
@@ -226,7 +229,14 @@ int kn_sock_recv(handle_t h,st_io *req){
 	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);
 	if(!(s->events & EPOLLIN)){
 		int events = s->events | EPOLLIN;
-		if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events))
+		int ret = 0;
+		if(s->events == 0){
+			events |= EPOLLRDHUP;
+			ret = kn_event_add(s->e,(handle_t)s,events);
+		}else
+			ret = kn_event_mod(s->comm_head.e,(handle_t)s,events));
+			
+		if(ret == 0)
 			s->events = events;
 		else
 			return -1;
@@ -278,7 +288,7 @@ static int dgram_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
 int kn_sock_listen(engine_t e,handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void*),void *ud){
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != kn_none) return -1;
-	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);
+	if(s->comm_head.e) return -1;
 	int ret;
 	
 	if(s->protocal == IPPROTO_UDP)
@@ -347,7 +357,7 @@ int kn_sock_connect(engine_t e,handle_t h,kn_sockaddr *remote,kn_sockaddr *local
 
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != kn_none) return -1;
-	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);	
+	if(s->e) return -1;	
 
 	int ret;
 	

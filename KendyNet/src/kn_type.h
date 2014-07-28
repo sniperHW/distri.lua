@@ -6,7 +6,6 @@ struct st_head{
 	int type;
 	int status;
 	int fd;
-	engine_t e;
 	void *ud;
 	void (*on_events)(handle_t,int events);
 };

@@ -34,7 +34,6 @@ int kn_event_add(engine_t e,handle_t h,int events){
 		ep->maxevents <<= 2;
 		ep->events = calloc(1,sizeof(*ep->events)*ep->maxevents);
 	}
-	s->e = ep;	
 	return 0;
 }
 
@@ -58,7 +57,6 @@ int kn_event_del(engine_t e,handle_t h){
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_DEL,s->fd,&ev));
 	if(0 == ret){ 
 		--ep->eventsize;
-		s->e = NULL;
 	}
 	return ret;	
 }

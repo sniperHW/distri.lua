@@ -11,6 +11,7 @@ typedef struct{
 	int    protocal;
 	int    inloop;	
 	int    events;
+	engine_t e;
 	kn_list pending_send;//尚未处理的发请求
     kn_list pending_recv;//尚未处理的读请求
     struct kn_sockaddr    addr_local;
