@@ -192,6 +192,7 @@ static void on_events(handle_t h,int events){
 }
 
 handle_t kn_new_sock(int domain,int type,int protocal){	
+	if(type == SOCK_DGRAM) return NULL;//暂不支持数据报套接字
 	int fd = socket(domain,type|SOCK_NONBLOCK,protocal);
 	if(fd < 0) return NULL;
 	handle_t h = new_sock(fd,domain,type,protocal);
