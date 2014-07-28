@@ -15,6 +15,7 @@ enum{
 	KN_SOCKET = 1,
 	KN_TIMERFD,
 	KN_FILE,
+	KN_REDISCONN,
 };
 
 enum{

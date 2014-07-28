@@ -38,6 +38,4 @@ kn_timer_t kn_reg_timer(engine_t,uint64_t timeout,kn_cb_timer cb,void *ud);
 void       kn_del_timer(kn_timer_t);//销毁timer并从timermgr中取消注册
 void*      kn_timer_getud(kn_timer_t);
 
-
-
 #endif

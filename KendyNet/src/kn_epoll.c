@@ -79,7 +79,7 @@ engine_t kn_new_engine(){
 	fcntl(tmp[1], F_SETFL, O_NONBLOCK | O_RDWR);
 	kn_event_add(ep,&ep->notify_stop,EPOLLIN);
 	
-	ep->timerfd = kn_new_timerfd(1000);
+	ep->timerfd = kn_new_timerfd(1);
 	((struct st_head*)ep->timerfd)->ud = kn_new_timermgr();
 	kn_event_add(ep,ep->timerfd,EPOLLIN | EPOLLOUT);	
 	return (engine_t)ep;
