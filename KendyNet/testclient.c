@@ -26,8 +26,7 @@ int main(int argc,char **argv){
 	send_size = atoi(argv[4]);
 	for(; i < client_count; ++i){
 		handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-		kn_sock_associate(c,p,transfer_finish,NULL);
-		kn_sock_connect(c,&remote,NULL,on_connect,p);
+		kn_sock_connect(p,c,&remote,NULL,on_connect,p);
 	}
 	
 	kn_engine_run(p);
