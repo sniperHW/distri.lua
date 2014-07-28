@@ -5,7 +5,6 @@
 #include "kn_common_define.h"
 #include "kn_sockaddr.h"
 #include "kn_time.h"
-#include "kn_timer.h"
 
 typedef void*  handle_t;
 typedef void*  engine_t;
@@ -30,6 +29,9 @@ int      kn_sock_send(handle_t,st_io*);
 int      kn_sock_recv(handle_t,st_io*);
 void     kn_sock_setud(handle_t,void*);
 void*    kn_sock_getud(handle_t);
+
+typedef struct kn_timer *kn_timer_t;
+typedef int  (*kn_cb_timer)(kn_timer_t);//如果返回1继续注册，否则不再注册
 
 kn_timer_t kn_reg_timer(engine_t,uint64_t timeout,kn_cb_timer cb,void *ud);
 void       kn_del_timer(kn_timer_t);//销毁timer并从timermgr中取消注册

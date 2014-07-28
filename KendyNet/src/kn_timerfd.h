@@ -8,6 +8,6 @@ typedef struct kn_timerfd{
 }kn_timerfd,*kn_timerfd_t;
 
 handle_t kn_new_timerfd(uint32_t timeout);
-
+void     kn_timermgr_tick(kn_timermgr_t t);
 
 #endif

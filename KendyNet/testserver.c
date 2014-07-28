@@ -1,11 +1,6 @@
 #include "kendynet.h"
 #include "session.h"
 
-struct userst{
-	uint64_t expecttime;
-	uint64_t ms;
-};
-
 void on_accept(handle_t s,void *ud){
 	printf("on_accept\n");
 	engine_t p = (engine_t)ud;
@@ -19,9 +14,6 @@ void on_accept(handle_t s,void *ud){
 }
 
 int timer_callback(kn_timer_t timer){
-	//struct userst *st = (struct userst*)kn_timer_getud(timer);
-	//printf("%d,%d\n",kn_systemms64()-st->expecttime,st->ms);
-	//st->expecttime = kn_systemms64() + st->ms;
 	printf("client_count:%d,totalbytes:%d MB/s\n",client_count,totalbytes/1024/1024);
 	totalbytes = 0;
 	return 1;
@@ -35,11 +27,7 @@ int main(int argc,char **argv){
 	handle_t l = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	kn_sock_associate(l,p,NULL,NULL);
 	kn_sock_listen(l,&local,on_accept,p);
-	
-	struct userst st1;
-	st1.ms = 1000;
-	st1.expecttime = kn_systemms64()+st1.ms;
-	kn_reg_timer(p,st1.ms,timer_callback,&st1);		
+	kn_reg_timer(p,1000,timer_callback,NULL);		
 	kn_engine_run(p);
 	return 0;
 }

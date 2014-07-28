@@ -1,8 +1,6 @@
 #include "kn_timerfd.h"
 #include <sys/timerfd.h> 
 
-void kn_timermgr_tick(kn_timermgr_t t);
-
 void kn_timerfd_on_active(handle_t s,int event){
 	kn_timerfd_t t = (kn_timerfd_t)s;
 	long long tmp;

@@ -14,8 +14,7 @@ typedef struct{
 	struct epoll_event* events;
 	int    eventsize;
 	int    maxevents;
-	handle_t timerfd;
-	kn_timermgr_t timermgr;		
+	handle_t timerfd;	
 	struct st_notify notify_stop;
 }kn_epoll;
 
@@ -63,7 +62,6 @@ int kn_event_del(engine_t e,handle_t h){
 	}
 	return ret;	
 }
-kn_timermgr_t kn_new_timermgr();
 
 engine_t kn_new_engine(){
 	int epfd = epoll_create(1);
@@ -83,9 +81,8 @@ engine_t kn_new_engine(){
 	fcntl(tmp[1], F_SETFL, O_NONBLOCK | O_RDWR);
 	kn_event_add(ep,&ep->notify_stop,EPOLLIN);
 	
-	ep->timermgr = kn_new_timermgr();
 	ep->timerfd = kn_new_timerfd(1000);
-	((struct st_head*)ep->timerfd)->ud = ep->timermgr;
+	((struct st_head*)ep->timerfd)->ud = kn_new_timermgr();
 	kn_event_add(ep,ep->timerfd,EPOLLIN | EPOLLOUT);	
 	return (engine_t)ep;
 }

@@ -20,8 +20,7 @@
 #include <stdint.h>
 
 typedef struct kn_timermgr *kn_timermgr_t;
-typedef struct kn_timer *kn_timer_t;
 
-typedef int  (*kn_cb_timer)(kn_timer_t);//如果返回1继续注册，否则不再注册
+kn_timermgr_t kn_new_timermgr();
 
 #endif
