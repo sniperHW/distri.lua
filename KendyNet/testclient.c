@@ -10,6 +10,8 @@ void on_connect(handle_t s,int err,void *ud)
 		printf("connect ok\n");
 		struct session *session = calloc(1,sizeof(*session));
 		session->s = s;
+		engine_t p = (engine_t)ud;
+		kn_sock_associate(s,p,transfer_finish,NULL);	
 		kn_sock_setud(s,session);    	
 		session_send(session,send_size);
 	}else{
