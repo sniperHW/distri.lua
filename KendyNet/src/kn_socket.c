@@ -39,7 +39,7 @@ static void process_read(kn_socket *s){
 	if(kn_list_size(&s->pending_recv) == 0){
 		//没有接收请求了,取消EPOLLIN
 		int events = s->events ^ EPOLLIN;
-		if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events))
+		if(0 == kn_event_mod(s->e,(handle_t)s,events))
 			s->events = events;
 	}
 }
@@ -67,7 +67,7 @@ static void process_write(kn_socket *s){
 	if(kn_list_size(&s->pending_send) == 0){
 		//没有接收请求了,取消EPOLLOUT
 		int events = s->events ^ EPOLLOUT;
-		if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events))
+		if(0 == kn_event_mod(s->e,(handle_t)s,events))
 			s->events = events;
 	}		
 }
@@ -125,7 +125,7 @@ static void process_accept(kn_socket *s){
 static void process_connect(kn_socket *s,int events){
 	int err = 0;
     socklen_t len = sizeof(err);    
-    kn_event_del(s->comm_head.e,(handle_t)s);
+    kn_event_del(s->e,(handle_t)s);
     s->events = 0;
     if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
         s->cb_connect(s,err,s->comm_head.ud);
@@ -204,7 +204,7 @@ int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_i
 
 int kn_sock_send(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
-	if(!s->comm_head.e || s->comm_head.status != kn_establish) return -2;
+	if(!s->e || s->comm_head.status != kn_establish) return -2;
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);
 	if(!(s->events & EPOLLOUT)){
 		int events = s->events | EPOLLOUT;
@@ -213,7 +213,7 @@ int kn_sock_send(handle_t h,st_io *req){
 			events |= EPOLLRDHUP;
 			ret = kn_event_add(s->e,(handle_t)s,events);
 		}else
-			ret = kn_event_mod(s->comm_head.e,(handle_t)s,events));
+			ret = kn_event_mod(s->e,(handle_t)s,events);
 			
 		if(ret == 0)
 			s->events = events;
@@ -225,7 +225,7 @@ int kn_sock_send(handle_t h,st_io *req){
 
 int kn_sock_recv(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
-	if(!s->comm_head.e || s->comm_head.status != kn_establish) return -2;	
+	if(!s->e || s->comm_head.status != kn_establish) return -2;	
 	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);
 	if(!(s->events & EPOLLIN)){
 		int events = s->events | EPOLLIN;
@@ -234,7 +234,7 @@ int kn_sock_recv(handle_t h,st_io *req){
 			events |= EPOLLRDHUP;
 			ret = kn_event_add(s->e,(handle_t)s,events);
 		}else
-			ret = kn_event_mod(s->comm_head.e,(handle_t)s,events));
+			ret = kn_event_mod(s->e,(handle_t)s,events);
 			
 		if(ret == 0)
 			s->events = events;
@@ -288,7 +288,7 @@ static int dgram_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
 int kn_sock_listen(engine_t e,handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void*),void *ud){
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != kn_none) return -1;
-	if(s->comm_head.e) return -1;
+	if(s->e) return -1;
 	int ret;
 	
 	if(s->protocal == IPPROTO_UDP)
