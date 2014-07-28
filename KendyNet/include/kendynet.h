@@ -21,8 +21,9 @@ int      kn_event_del(engine_t,handle_t);
 
 handle_t kn_new_sock(int domain,int type,int protocal);
 int      kn_close_sock(handle_t);
-int      kn_sock_listen(handle_t,kn_sockaddr*,void (*cb_accept)(handle_t,void*),void*);
-int      kn_sock_connect(handle_t,kn_sockaddr *remote,kn_sockaddr *local,void (*cb_connect)(handle_t,int,void*),void*);
+int      kn_sock_listen(engine_t,handle_t,kn_sockaddr*,void (*cb_accept)(handle_t,void*),void*);
+int      kn_sock_connect(engine_t,handle_t,kn_sockaddr *remote,kn_sockaddr *local,void (*cb_connect)(handle_t,int,void*),void*);
+
 int      kn_sock_associate(handle_t,engine_t,void (*cb_ontranfnish)(handle_t,st_io*,int,int),void (*destry_stio)(st_io*));
 
 int      kn_sock_send(handle_t,st_io*);

@@ -191,20 +191,17 @@ handle_t kn_new_sock(int domain,int type,int protocal){
 
 int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_io*,int,int),void (*destry_stio)(st_io*)){
 	kn_socket *s = (kn_socket*)h;
+	if(!cb_ontranfnish) return -1;
+	if(s->comm_head.status != kn_establish) return -1;
 	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);
 	s->comm_head.e = e;
 	s->destry_stio = destry_stio;
-	s->cb_ontranfnish = cb_ontranfnish;		
-	if(e){
-		if(cb_ontranfnish){
-			if(0 == kn_event_add(e,h,EPOLLRDHUP)){
-				s->events = EPOLLRDHUP;
-				return 0;
-			}
-			return -1;
-		}
-	}	
-	return 0;
+	s->cb_ontranfnish = cb_ontranfnish;
+	if(0 == kn_event_add(e,h,EPOLLRDHUP)){
+		s->events = EPOLLRDHUP;
+		return 0;
+	}
+	return -1;
 }
 
 int kn_sock_send(handle_t h,st_io *req){
@@ -248,7 +245,7 @@ static int kn_bind(int fd,kn_sockaddr *addr_local){
 }
 
 
-static int stream_listen(kn_socket *s,int fd,kn_sockaddr *local){	
+static int stream_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){	
 	int32_t yes = 1;
 	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)))
 		return -1;
@@ -263,7 +260,7 @@ static int stream_listen(kn_socket *s,int fd,kn_sockaddr *local){
 
 	s->addr_local = *local;
 	int events = s->events | EPOLLIN;
-	if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events)){
+	if(0 == kn_event_add(e,(handle_t)s,events)){
 		s->events = events;
 		s->comm_head.status = kn_listening;
 	}
@@ -272,19 +269,20 @@ static int stream_listen(kn_socket *s,int fd,kn_sockaddr *local){
 	return 0;
 }
 
-static int dgram_listen(kn_socket *s,int fd,kn_sockaddr *local){
+static int dgram_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
 	return -1;
 }
 
-int kn_sock_listen(handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void*),void *ud){
+int kn_sock_listen(engine_t e,handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void*),void *ud){
 	kn_socket *s = (kn_socket*)h;
-	if(!s->comm_head.e) return -1;
+	if(s->comm_head.status != kn_none) return -1;
+	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);
 	int ret;
 	
 	if(s->protocal == IPPROTO_UDP)
-		ret = dgram_listen(s,s->comm_head.fd,local);
+		ret = dgram_listen(e,s,s->comm_head.fd,local);
 	else
-		ret = stream_listen(s,s->comm_head.fd,local);
+		ret = stream_listen(e,s,s->comm_head.fd,local);
 	
 	if(ret == 0){
 		s->cb_accept = cb_accept;
@@ -293,7 +291,7 @@ int kn_sock_listen(handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void
 	return ret;		
 }
 
-static int stream_connect(kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *remote){
+static int stream_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *remote){
 	socklen_t len;	
 	if(local){
 		if(kn_bind(fd,local) < 0){
@@ -330,7 +328,7 @@ static int stream_connect(kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *re
 		return 1;
 	}else{
 		int events = s->events | EPOLLIN | EPOLLOUT;
-		if(0 == kn_event_mod(s->comm_head.e,(handle_t)s,events)){
+		if(0 == kn_event_add(e,(handle_t)s,events)){
 			s->events = events;
 			s->comm_head.status = kn_connecting;
 		}else
@@ -339,21 +337,22 @@ static int stream_connect(kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *re
 	return 0;
 }
 
-static int dgram_connect(kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *remote){
+static int dgram_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *remote){
 	return -1;
 }
 
-int kn_sock_connect(handle_t h,kn_sockaddr *remote,kn_sockaddr *local,void (*cb_connect)(handle_t,int,void*),void *ud){
+int kn_sock_connect(engine_t e,handle_t h,kn_sockaddr *remote,kn_sockaddr *local,void (*cb_connect)(handle_t,int,void*),void *ud){
 
 	kn_socket *s = (kn_socket*)h;
-	if(!s->comm_head.e) return -1;
+	if(s->comm_head.status != kn_none) return -1;
+	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);	
 
 	int ret;
 	
 	if(s->protocal == IPPROTO_UDP)
-		ret = dgram_connect(s,s->comm_head.fd,local,remote);
+		ret = dgram_connect(e,s,s->comm_head.fd,local,remote);
 	else
-		ret = stream_connect(s,s->comm_head.fd,local,remote);
+		ret = stream_connect(e,s,s->comm_head.fd,local,remote);
 	
 	if(ret == 0){
 		s->cb_connect = cb_connect;
