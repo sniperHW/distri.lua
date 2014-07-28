@@ -18,6 +18,7 @@
 #define _KN_TIMER_H
 #include <time.h>
 #include <stdint.h>
+#include "kendynet.h"
 
 typedef struct kn_timer *kn_timer_t;
 typedef int  (*kn_cb_timer)(kn_timer_t);//如果返回1继续注册，否则不再注册

@@ -2,6 +2,7 @@
 #define _KN_TIMERFD_H
 
 #include "kn_type.h"
+#include "kn_timer_private.h"
 
 typedef struct kn_timerfd{
 	handle comm_head;
