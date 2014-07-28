@@ -200,7 +200,10 @@ handle_t kn_new_sock(int domain,int type,int protocal){
 	return h;
 }
 
-int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_io*,int,int),void (*destry_stio)(st_io*)){
+int kn_sock_associate(handle_t h,
+					  engine_t e,
+					  void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+					  void (*destry_stio)(st_io*)){
 	kn_socket *s = (kn_socket*)h;
 	if(!cb_ontranfnish) return -1;
 	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
@@ -266,9 +269,13 @@ static int kn_bind(int fd,kn_sockaddr *addr_local){
 }
 
 
-static int stream_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){	
+static int stream_listen(engine_t e,
+						 kn_socket *s,
+						 int fd,
+						 kn_sockaddr *local)
+{	
 	int32_t yes = 1;
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)))
+	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)))
 		return -1;
 	
 	if(kn_bind(fd,local) < 0){
@@ -290,11 +297,20 @@ static int stream_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
 	return 0;
 }
 
-static int dgram_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
+static int dgram_listen(engine_t e,
+						kn_socket *s,
+						int fd,
+						kn_sockaddr *local)
+{
 	return -1;
 }
 
-int kn_sock_listen(engine_t e,handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void*),void *ud){
+int kn_sock_listen(engine_t e,
+				   handle_t h,
+				   kn_sockaddr *local,
+				   void (*cb_accept)(handle_t,void*),
+				   void *ud)
+{
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_NONE) return -1;
 	if(s->e) return -1;
@@ -312,7 +328,12 @@ int kn_sock_listen(engine_t e,handle_t h,kn_sockaddr *local,void (*cb_accept)(ha
 	return ret;		
 }
 
-static int stream_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *remote){
+static int stream_connect(engine_t e,
+						  kn_socket *s,
+						  int fd,
+						  kn_sockaddr *local,
+						  kn_sockaddr *remote)
+{
 	socklen_t len;	
 	if(local){
 		if(kn_bind(fd,local) < 0){
@@ -358,11 +379,22 @@ static int stream_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_s
 	return 0;
 }
 
-static int dgram_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_sockaddr *remote){
+static int dgram_connect(engine_t e,
+						 kn_socket *s,
+						 int fd,
+						 kn_sockaddr *local,
+						 kn_sockaddr *remote)
+{
 	return -1;
 }
 
-int kn_sock_connect(engine_t e,handle_t h,kn_sockaddr *remote,kn_sockaddr *local,void (*cb_connect)(handle_t,int,void*),void *ud){
+int kn_sock_connect(engine_t e,
+					handle_t h,
+					kn_sockaddr *remote,
+					kn_sockaddr *local,
+					void (*cb_connect)(handle_t,int,void*),
+					void *ud)
+{
 
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_NONE) return -1;

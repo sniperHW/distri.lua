@@ -1,6 +1,7 @@
 #include "kendynet.h"
 #include "kn_socket.h"
 #include "kn_timer.h"
+#include "kn_timer_private.h"
 #include "kn_timerfd.h"
 #include <assert.h>
 
@@ -124,9 +125,7 @@ void kn_stop_engine(engine_t e){
 }
 
 
-kn_timer_t _kn_reg_timer(kn_timermgr_t t,uint64_t timeout,kn_cb_timer cb,void *ud);
-
 kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 	kn_epoll *ep = (kn_epoll*)e;
-	return _kn_reg_timer(((handle_t)ep->timerfd)->ud,timeout,cb,ud);
+	return reg_timer_imp(((handle_t)ep->timerfd)->ud,timeout,cb,ud);
 }

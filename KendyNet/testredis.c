@@ -1,6 +1,7 @@
 #include "kendynet.h"
 #include "kn_redis.h"
 #include "kn_time.h"
+#include "kn_timer.h"
 #include <stdio.h>
 #include "hiredis/hiredis.h"
 #include "hiredis/async.h"
