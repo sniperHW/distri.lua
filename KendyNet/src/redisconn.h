@@ -8,23 +8,15 @@
 #include "hiredis/async.h"
 #include "kn_dlist.h"
 
-enum{
-	REDIS_CONNECTING = 1,
-	REDIS_ESTABLISH,
-	REDIS_CLOSE,
-};
-
 typedef struct redisconn{
-	struct st_head        comm_head;
+	handle                comm_head;
 	engine_t              e;
 	int                   events;
 	int                   closing;
 	redisAsyncContext*    context;
 	void (*cb_connect)(struct redisconn*,int err,void *);
 	void (*cb_disconnected)(struct redisconn*,void *);
-	kn_dlist              pending_command;
-	void                  *ud;
-	
+	kn_dlist              pending_command;	
 }redisconn,*redisconn_t;
 
 #endif

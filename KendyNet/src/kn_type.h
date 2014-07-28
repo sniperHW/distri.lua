@@ -2,13 +2,13 @@
 #define _KN_TYPE
 #include "kendynet.h"
 
-struct st_head{
+typedef struct handle{
 	int type;
 	int status;
 	int fd;
 	void *ud;
 	void (*on_events)(handle_t,int events);
-};
+}handle;
 
 
 enum{
@@ -16,14 +16,6 @@ enum{
 	KN_TIMERFD,
 	KN_FILE,
 	KN_REDISCONN,
-};
-
-enum{
-	kn_none = 0,
-	kn_establish,
-	kn_connecting,
-	kn_listening,
-	kn_close,
 };
 
 #endif

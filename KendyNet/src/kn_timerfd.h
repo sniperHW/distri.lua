@@ -4,7 +4,7 @@
 #include "kn_type.h"
 
 typedef struct kn_timerfd{
-	struct st_head comm_head;
+	handle comm_head;
 }kn_timerfd,*kn_timerfd_t;
 
 handle_t kn_new_timerfd(uint32_t timeout);

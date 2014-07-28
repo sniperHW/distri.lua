@@ -6,8 +6,8 @@
 #include "kn_sockaddr.h"
 #include "kn_time.h"
 
-typedef void*  handle_t;
-typedef void*  engine_t;
+typedef struct handle* handle_t;
+typedef void* engine_t;
 
 
 engine_t kn_new_engine();

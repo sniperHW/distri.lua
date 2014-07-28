@@ -1,6 +1,11 @@
 #include "kendynet.h"
 #include "redisconn.h"
 
+enum{
+	REDIS_CONNECTING = 1,
+	REDIS_ESTABLISH,
+	REDIS_CLOSE,
+};
 
 void kn_redisDisconnect(redisconn_t rc);
 
@@ -36,38 +41,41 @@ void kn_redisDisconnect(redisconn_t rc);
 
 static void redis_on_active(handle_t s,int event){
 	redisconn_t rc = (redisconn_t)s;
-	if(rc->comm_head.status == REDIS_CONNECTING){
-		int err = 0;
-		socklen_t len = sizeof(err);
-		if (getsockopt(rc->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
-			rc->cb_connect(NULL,-1,rc->comm_head.ud);
-			kn_redisDisconnect(rc);
-			return;
+	do{
+		if(rc->comm_head.status == REDIS_CONNECTING){
+			int err = 0;
+			socklen_t len = sizeof(err);
+			if (getsockopt(rc->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
+				rc->cb_connect(NULL,-1,rc->comm_head.ud);
+				kn_redisDisconnect(rc);
+				break;
+			}
+			if(err){
+				errno = err;
+				rc->cb_connect(NULL,errno,rc->comm_head.ud);
+				kn_redisDisconnect(rc);
+				break;
+			}
+			//connect success  
+			rc->comm_head.status = REDIS_ESTABLISH;
+			rc->cb_connect(rc,0,rc->comm_head.ud);			
+		}else{
+			if(event & (EPOLLERR | EPOLLHUP)){
+				kn_redisDisconnect(rc);	
+				break;
+			}
+			if(event & (EPOLLRDHUP | EPOLLIN)){
+				redisLibevRead(rc);
+			}
+			if(event & EPOLLOUT){
+				redisLibevWrite(rc);
+			}
 		}
-		if(err){
-			errno = err;
-			rc->cb_connect(NULL,errno,rc->comm_head.ud);
-			kn_redisDisconnect(rc);
-			return;
-		}
-		//connect success  
-		rc->comm_head.status = REDIS_ESTABLISH;
-		rc->cb_connect(rc,0,rc->comm_head.ud);			
-	}else{
-		if(event & (EPOLLERR | EPOLLHUP)){
-			kn_redisDisconnect(rc);	
-			return;
-		}
-		if(event & (EPOLLRDHUP | EPOLLIN)){
-			redisLibevRead(rc);
-		}
-		if(event & EPOLLOUT){
-			redisLibevWrite(rc);
-		}
-		if(rc->comm_head.status == REDIS_CLOSE){
-			destroy_redisconn(rc);
-		}
-	}
+	}while(0);
+	
+	if(rc->comm_head.status == REDIS_CLOSE){
+		destroy_redisconn(rc);
+	}	
 }
 
 static void redisAddRead(void *privdata){
@@ -108,7 +116,7 @@ static void redisCleanup(void *privdata) {
     redisconn_t con = (redisconn_t)privdata;
     if(con){
 		if(con->comm_head.status == REDIS_ESTABLISH && con->cb_disconnected) 
-			con->cb_disconnected(con,con->ud);
+			con->cb_disconnected(con,con->comm_head.ud);
 		if(con->comm_head.status == REDIS_CONNECTING){
 			destroy_redisconn(con);
 		}else

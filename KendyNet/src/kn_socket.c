@@ -1,6 +1,14 @@
 #include "kn_socket.h"
 #include <assert.h>
 
+enum{
+	SOCKET_NONE = 0,
+	SOCKET_ESTABLISH  = 1,
+	SOCKET_CONNECTING = 2,
+	SOCKET_LISTENING  = 3,
+	SOCKET_CLOSE      = 4,
+};
+
 static void on_events(handle_t h,int events);
 static handle_t new_sock(int fd,int domain,int type,int protocal){
 	kn_socket *s = calloc(1,sizeof(*s));
@@ -33,7 +41,7 @@ static void process_read(kn_socket *s){
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
 				break;
 		}else{
-			s->cb_ontranfnish(s,io_req,bytes_transfer,errno);
+			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
 		}
 	}	
 	if(kn_list_size(&s->pending_recv) == 0){
@@ -61,7 +69,7 @@ static void process_write(kn_socket *s){
 				kn_list_pushback(&s->pending_send,(kn_list_node*)io_req);
 				break;
 		}else{
-			s->cb_ontranfnish(s,io_req,bytes_transfer,errno);
+			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
 		}
 	}
 	if(kn_list_size(&s->pending_send) == 0){
@@ -116,7 +124,7 @@ static void process_accept(kn_socket *s){
 		   fcntl(fd, F_SETFL, O_NONBLOCK | O_RDWR);
 		   ((kn_socket*)h)->addr_local = s->addr_local;
 		   ((kn_socket*)h)->addr_remote = remote;
-		   ((kn_socket*)h)->comm_head.status = kn_establish;
+		   ((kn_socket*)h)->comm_head.status = SOCKET_ESTABLISH;
 			s->cb_accept(h,s->comm_head.ud);
     	}      
     }
@@ -128,17 +136,17 @@ static void process_connect(kn_socket *s,int events){
     kn_event_del(s->e,(handle_t)s);
     s->events = 0;
     if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
-        s->cb_connect(s,err,s->comm_head.ud);
+        s->cb_connect((handle_t)s,err,s->comm_head.ud);
         return;
     }
     if(err){
         errno = err;
-        s->cb_connect(s,errno,s->comm_head.ud);
+        s->cb_connect((handle_t)s,errno,s->comm_head.ud);
         return;
     }
     //connect success
-    s->comm_head.status = kn_establish;
-    s->cb_connect(s,0,s->comm_head.ud);	
+    s->comm_head.status = SOCKET_ESTABLISH;
+    s->cb_connect((handle_t)s,0,s->comm_head.ud);	
 }
 
 static void destroy_socket(kn_socket *s){
@@ -155,17 +163,17 @@ static void destroy_socket(kn_socket *s){
 
 static void on_events(handle_t h,int events){
 	kn_socket *s = (kn_socket*)h;
-	s->inloop = 1;
-	if(s->comm_head.status == kn_listening){
+	s->processing = 1;
+	if(s->comm_head.status == SOCKET_LISTENING){
 		process_accept(s);
-	}else if(s->comm_head.status == kn_connecting){
+	}else if(s->comm_head.status == SOCKET_CONNECTING){
 		process_connect(s,events);
-	}else if(s->comm_head.status == kn_establish){
+	}else if(s->comm_head.status == SOCKET_ESTABLISH){
 		if(events & (EPOLLERR | EPOLLHUP)){
 			char buf[1];
 			errno = 0;
 			(void)(read(s->comm_head.fd,buf,1));//触发errno变更
-			s->cb_ontranfnish(s,NULL,-1,errno);
+			s->cb_ontranfnish((handle_t)s,NULL,-1,errno);
 			return;
 		}
 		
@@ -173,12 +181,12 @@ static void on_events(handle_t h,int events){
 			process_read(s);
 		}
 		
-		if(s->comm_head.status == kn_establish && (events & EPOLLOUT)){
+		if(s->comm_head.status == SOCKET_ESTABLISH && (events & EPOLLOUT)){
 			process_write(s);
 		}
 	}
-	s->inloop = 0;	
-	if(s->comm_head.status == kn_close){
+	s->processing = 0;
+	if(s->comm_head.status == SOCKET_CLOSE){
 		destroy_socket(s);
 	}	
 }
@@ -194,7 +202,7 @@ handle_t kn_new_sock(int domain,int type,int protocal){
 int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_io*,int,int),void (*destry_stio)(st_io*)){
 	kn_socket *s = (kn_socket*)h;
 	if(!cb_ontranfnish) return -1;
-	if(s->comm_head.status != kn_establish) return -1;
+	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
 	if(s->e) kn_event_del(s->e,h);
 	s->destry_stio = destry_stio;
 	s->cb_ontranfnish = cb_ontranfnish;
@@ -204,7 +212,7 @@ int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_i
 
 int kn_sock_send(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
-	if(!s->e || s->comm_head.status != kn_establish) return -2;
+	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);
 	if(!(s->events & EPOLLOUT)){
 		int events = s->events | EPOLLOUT;
@@ -225,7 +233,7 @@ int kn_sock_send(handle_t h,st_io *req){
 
 int kn_sock_recv(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
-	if(!s->e || s->comm_head.status != kn_establish) return -2;	
+	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;	
 	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);
 	if(!(s->events & EPOLLIN)){
 		int events = s->events | EPOLLIN;
@@ -274,7 +282,7 @@ static int stream_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
 	int events = s->events | EPOLLIN;
 	if(0 == kn_event_add(e,(handle_t)s,events)){
 		s->events = events;
-		s->comm_head.status = kn_listening;
+		s->comm_head.status = SOCKET_LISTENING;
 	}
 	else
 		return -1;		
@@ -287,7 +295,7 @@ static int dgram_listen(engine_t e,kn_socket *s,int fd,kn_sockaddr *local){
 
 int kn_sock_listen(engine_t e,handle_t h,kn_sockaddr *local,void (*cb_accept)(handle_t,void*),void *ud){
 	kn_socket *s = (kn_socket*)h;
-	if(s->comm_head.status != kn_none) return -1;
+	if(s->comm_head.status != SOCKET_NONE) return -1;
 	if(s->e) return -1;
 	int ret;
 	
@@ -342,7 +350,7 @@ static int stream_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_s
 		int events = s->events | EPOLLIN | EPOLLOUT;
 		if(0 == kn_event_add(e,(handle_t)s,events)){
 			s->events = events;
-			s->comm_head.status = kn_connecting;
+			s->comm_head.status = SOCKET_CONNECTING;
 		}else
 			return -1;
 	}
@@ -356,7 +364,7 @@ static int dgram_connect(engine_t e,kn_socket *s,int fd,kn_sockaddr *local,kn_so
 int kn_sock_connect(engine_t e,handle_t h,kn_sockaddr *remote,kn_sockaddr *local,void (*cb_connect)(handle_t,int,void*),void *ud){
 
 	kn_socket *s = (kn_socket*)h;
-	if(s->comm_head.status != kn_none) return -1;
+	if(s->comm_head.status != SOCKET_NONE) return -1;
 	if(s->e) return -1;	
 
 	int ret;
@@ -370,7 +378,7 @@ int kn_sock_connect(engine_t e,handle_t h,kn_sockaddr *remote,kn_sockaddr *local
 		s->cb_connect = cb_connect;
 		s->comm_head.ud = ud;
 	}else if(ret == 1){
-		s->comm_head.status = kn_establish;
+		s->comm_head.status = SOCKET_ESTABLISH;
 		cb_connect(h,0,ud);
 		ret = 0;
 	}	
@@ -379,9 +387,9 @@ int kn_sock_connect(engine_t e,handle_t h,kn_sockaddr *remote,kn_sockaddr *local
 
 int kn_close_sock(handle_t h){
 	kn_socket *s = (kn_socket*)h;
-	if(s->comm_head.status != kn_close){
-		if(s->inloop){
-			s->comm_head.status = kn_close;
+	if(s->comm_head.status != SOCKET_CLOSE){
+		if(s->processing){
+			s->comm_head.status = SOCKET_CLOSE;
 		}else{
 			//可以安全释放
 			destroy_socket(s);
