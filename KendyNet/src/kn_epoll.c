@@ -44,6 +44,7 @@ int kn_event_mod(engine_t e,handle_t h,int events){
 	struct epoll_event ev = {0};
 	kn_epoll *ep = (kn_epoll*)e;
 	struct st_head *s = (struct st_head*)h;
+	if(!s->e) kn_event_add(e,h,events);
 	ev.data.ptr = s;
 	ev.events = events;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_MOD,s->fd,&ev));

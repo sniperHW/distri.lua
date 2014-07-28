@@ -192,18 +192,24 @@ handle_t kn_new_sock(int domain,int type,int protocal){
 int kn_sock_associate(handle_t h,engine_t e,void (*cb_ontranfnish)(handle_t,st_io*,int,int),void (*destry_stio)(st_io*)){
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.e) kn_event_del(s->comm_head.e,h);
-	if(0 == kn_event_add(e,h,EPOLLRDHUP)){
-		s->events = EPOLLRDHUP;
-		s->cb_ontranfnish = cb_ontranfnish;
-		s->destry_stio = destry_stio;
-		return 0;
-	}
-	return -1;
+	s->comm_head.e = e;
+	s->destry_stio = destry_stio;
+	s->cb_ontranfnish = cb_ontranfnish;		
+	if(e){
+		if(cb_ontranfnish){
+			if(0 == kn_event_add(e,h,EPOLLRDHUP)){
+				s->events = EPOLLRDHUP;
+				return 0;
+			}
+			return -1;
+		}
+	}	
+	return 0;
 }
 
 int kn_sock_send(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
-	if(s->comm_head.status != kn_establish) return -2;
+	if(!s->comm_head.e || s->comm_head.status != kn_establish) return -2;
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);
 	if(!(s->events & EPOLLOUT)){
 		int events = s->events | EPOLLOUT;
@@ -217,7 +223,7 @@ int kn_sock_send(handle_t h,st_io *req){
 
 int kn_sock_recv(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
-	if(s->comm_head.status != kn_establish) return -2;	
+	if(!s->comm_head.e || s->comm_head.status != kn_establish) return -2;	
 	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);
 	if(!(s->events & EPOLLIN)){
 		int events = s->events | EPOLLIN;
