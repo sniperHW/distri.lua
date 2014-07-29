@@ -155,7 +155,6 @@ int kn_chr_dev_write(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
-	kn_list_pushback(&r->pending_write,(kn_list_node*)req);
 	if(!(r->events & EPOLLOUT)){
 		int ret = 0;
 		if(r->events == 0){
@@ -167,7 +166,8 @@ int kn_chr_dev_write(handle_t h,st_io *req){
 			r->events = EPOLLOUT;
 		else
 			return -1;
-	}		
+	}
+	kn_list_pushback(&r->pending_write,(kn_list_node*)req);			
 	return 0;
 }
 
@@ -175,7 +175,6 @@ int kn_chrdev_read(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
-	kn_list_pushback(&r->pending_read,(kn_list_node*)req);
 	if(!(r->events & EPOLLIN)){
 		int ret = 0;
 		if(r->events == 0){
@@ -187,6 +186,7 @@ int kn_chrdev_read(handle_t h,st_io *req){
 			r->events = EPOLLIN;
 		else
 			return -1;
-	}		
+	}
+	kn_list_pushback(&r->pending_read,(kn_list_node*)req);			
 	return 0;
 }

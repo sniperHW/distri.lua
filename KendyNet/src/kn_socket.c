@@ -248,7 +248,6 @@ int kn_sock_send(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;
-	kn_list_pushback(&s->pending_send,(kn_list_node*)req);
 	if(!(s->events & EPOLLOUT)){
 		int events = s->events | EPOLLOUT;
 		int ret = 0;
@@ -262,15 +261,15 @@ int kn_sock_send(handle_t h,st_io *req){
 			s->events = events;
 		else
 			return -1;
-	} 	
+	}
+	kn_list_pushback(&s->pending_send,(kn_list_node*)req);	 	
 	return 0;
 }
 
 int kn_sock_recv(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;	
 	kn_socket *s = (kn_socket*)h;
-	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;	
-	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);
+	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;
 	if(!(s->events & EPOLLIN)){
 		int events = s->events | EPOLLIN;
 		int ret = 0;
@@ -284,7 +283,8 @@ int kn_sock_recv(handle_t h,st_io *req){
 			s->events = events;
 		else
 			return -1;
-	} 	
+	} 
+	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);		
 	return 0;	
 }
 
