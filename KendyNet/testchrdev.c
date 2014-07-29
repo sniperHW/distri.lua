@@ -1,25 +1,47 @@
 #include "kn_chr_dev.h"
 #include "kendynet.h"
 
-st_io net_io;
-struct iovec net_wbuf[1];
-char   net_buf[4096];
+
+handle_t sock = NULL;
+
+
+st_io *new_stio(int size){
+		st_io * io = calloc(1,sizeof(*io));
+		struct iovec *wbuf = calloc(1,sizeof(*wbuf));
+		char   *buf = calloc(1,size);
+		wbuf->iov_base = buf;
+		wbuf->iov_len = size;	
+		io->iovec_count = 1;
+		io->iovec = wbuf;
+		return io;	
+}
+
+void release_stio(st_io *io){
+	free(io->iovec->iov_base);
+	free(io->iovec);
+	free(io);
+}
+
+
 void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
-
-
+	if(!io || bytestransfer <= 0)
+	{
+		kn_close_sock(s);
+		sock = NULL;         
+		if(!io) return;
+	}
+	if(((int*)io->ud) == 2){
+		printf("%s",(char*)io->iovec->iov_base);
+	}
+	release_stio(io);
 }
 	
 void on_connect(handle_t s,int err,void *ud)
 {
 	if(s){
+		sock = s;
 		printf("connect ok\n");
-		net_io.next.next = NULL;
-		/*struct session *session = calloc(1,sizeof(*session));
-		session->s = s;
-		engine_t p = (engine_t)ud;
-		kn_sock_associate(s,p,transfer_finish,NULL);	
-		kn_sock_setud(s,session);    	
-		session_send(session,send_size);*/
+		kn_sock_associate(s,(engine_t)ud,sock_transfer_finish,release_stio);
 	}else{
 		printf("connect failed\n");
 	}	
@@ -34,7 +56,16 @@ void chr_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err)
 		kn_release_chrdev(s,1);
 	}else{
 		((char*)io->iovec[0].iov_base)[bytestransfer] = 0;
-		printf("%s\n",(char*)io->iovec[0].iov_base);
+		if(sock){
+			//printf("%s\n",(char*)io->iovec[0].iov_base);
+			st_io *io_send = new_stio(bytestransfer+1);
+			strcpy(io_send->iovec->iov_base,((char*)io->iovec[0].iov_base));
+			io_send->ud = (void*)1;
+			kn_sock_send(sock,io_send);
+			st_io *io_recv = new_stio(bytestransfer+1);
+			io_recv->ud = (void*)2;
+			kn_sock_recv(sock,io_recv);
+		}	
 		kn_chrdev_read(s,io);
 	}
 }
