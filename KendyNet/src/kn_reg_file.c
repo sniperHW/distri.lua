@@ -25,12 +25,12 @@ static void process_read(kn_reg_file *r){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	int total_transfer = 0;
-	while(total_transfer < 65536 && (io_req = (st_io*)kn_list_pop(&s->pending_read))!=NULL){
+	while(total_transfer < 65536 && (io_req = (st_io*)kn_list_pop(&r->pending_read))!=NULL){
 		errno = 0;
-		bytes_transfer = TEMP_FAILURE_RETRY(readv(s->comm_head.fd,io_req->iovec,io_req->iovec_count));
+		bytes_transfer = TEMP_FAILURE_RETRY(readv(r->comm_head.fd,io_req->iovec,io_req->iovec_count));
 		if(bytes_transfer < 0 && errno == EAGAIN){
 				//将请求重新放回到队列
-				kn_list_pushback(&s->pending_read,(kn_list_node*)io_req);
+				kn_list_pushback(&r->pending_read,(kn_list_node*)io_req);
 				break;
 		}else{
 			r->cb_ontranfnish((handle_t)r,io_req,bytes_transfer,errno);
@@ -38,15 +38,15 @@ static void process_read(kn_reg_file *r){
 				return;			
 		}
 	}	
-	if(kn_list_size(&s->pending_read) == 0){
+	if(kn_list_size(&r->pending_read) == 0){
 		//没有接收请求了,取消EPOLLIN
-		int events = s->events ^ EPOLLIN;
+		int events = r->events ^ EPOLLIN;
 		if(0 == kn_event_mod(r->e,(handle_t)r,events))
 			r->events = events;
 	}
 }
 
-static void process_write(kn_reg_file *s){
+static void process_write(kn_reg_file *r){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	int total_transfer = 0;
@@ -76,9 +76,9 @@ static void destroy_regfile(kn_reg_file *r){
 	printf("destroy_regfile\n");
 	st_io *io_req;
 	if(r->destry_stio){
-        while((io_req = (st_io*)kn_list_pop(&s->pending_write))!=NULL)
+        while((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL)
             r->destry_stio(io_req);
-        while((io_req = (st_io*)kn_list_pop(&s->pending_read))!=NULL)
+        while((io_req = (st_io*)kn_list_pop(&r->pending_read))!=NULL)
             r->destry_stio(io_req);
 	}
 	free(r);
@@ -112,13 +112,14 @@ handle_t kn_new_regfile(int fd){
 	kn_reg_file *r = calloc(1,sizeof(*r));
 	((handle_t)r)->fd = fd;
 	((handle_t)r)->type = KN_REGFILE;
-	return r;
+	((handle_t)r)->on_events = on_events;
+	return (handle_t)r;
 }
 
 //如果close非0,则同时调用close(fd)
 int kn_release_regfile(handle_t h,int beclose){
-	if(((handle)h)->type != KN_REGFILE) return -1;
-	if(((handle)h)->status == KN_REGFILE_RELEASE) return -1;
+	if(((handle_t)h)->type != KN_REGFILE) return -1;
+	if(((handle_t)h)->status == KN_REGFILE_RELEASE) return -1;
 	kn_reg_file *r = (kn_reg_file*)h;
 	if(beclose) close(r->comm_head.fd);
 	if(r->processing){
@@ -131,7 +132,7 @@ int kn_release_regfile(handle_t h,int beclose){
 }
 
 int kn_regfile_fd(handle_t h){
-	return ((handle)h)->fd; 
+	return ((handle_t)h)->fd; 
 }
 
 int kn_regfile_associate(handle_t h,
@@ -139,8 +140,8 @@ int kn_regfile_associate(handle_t h,
 						 void (*cb_ontranfnish)(handle_t,st_io*,int,int),
 						 void (*destry_stio)(st_io*))
 {
-	if(((handle)h)->type != KN_REGFILE) return -1;
-	if(((handle)h)->status == KN_REGFILE_RELEASE) return -1;
+	if(((handle_t)h)->type != KN_REGFILE) return -1;
+	if(((handle_t)h)->status == KN_REGFILE_RELEASE) return -1;
 	kn_reg_file *r = (kn_reg_file*)h;	
 	if(!cb_ontranfnish) return -1;
 	if(r->e) kn_event_del(r->e,h);
@@ -152,8 +153,8 @@ int kn_regfile_associate(handle_t h,
 						   
 						   
 int kn_regfile_write(handle_t h,st_io *req){
-	if(((handle)h)->type != KN_REGFILE) return -1;
-	if(((handle)h)->status == KN_REGFILE_RELEASE) return -1;
+	if(((handle_t)h)->type != KN_REGFILE) return -1;
+	if(((handle_t)h)->status == KN_REGFILE_RELEASE) return -1;
 	kn_reg_file *r = (kn_reg_file*)h;	
 	kn_list_pushback(&r->pending_write,(kn_list_node*)req);
 	if(!(r->events & EPOLLOUT)){
@@ -172,8 +173,8 @@ int kn_regfile_write(handle_t h,st_io *req){
 }
 
 int kn_regfile_read(handle_t h,st_io *req){
-	if(((handle)h)->type != KN_REGFILE) return -1;
-	if(((handle)h)->status == KN_REGFILE_RELEASE) return -1;
+	if(((handle_t)h)->type != KN_REGFILE) return -1;
+	if(((handle_t)h)->status == KN_REGFILE_RELEASE) return -1;
 	kn_reg_file *r = (kn_reg_file*)h;	
 	kn_list_pushback(&r->pending_read,(kn_list_node*)req);
 	if(!(r->events & EPOLLIN)){

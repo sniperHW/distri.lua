@@ -233,7 +233,7 @@ int kn_sock_associate(handle_t h,
 					  engine_t e,
 					  void (*cb_ontranfnish)(handle_t,st_io*,int,int),
 					  void (*destry_stio)(st_io*)){
-	if((handle)h)->type != KN_SOCKET) return -1;						  
+	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
 	kn_socket *s = (kn_socket*)h;
 	if(!cb_ontranfnish) return -1;
 	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
@@ -245,7 +245,7 @@ int kn_sock_associate(handle_t h,
 }
 
 int kn_sock_send(handle_t h,st_io *req){
-	if((handle)h)->type != KN_SOCKET) return -1;	
+	if(((handle_t)h)->type != KN_SOCKET) return -1;	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);
@@ -267,7 +267,7 @@ int kn_sock_send(handle_t h,st_io *req){
 }
 
 int kn_sock_recv(handle_t h,st_io *req){
-	if((handle)h)->type != KN_SOCKET) return -1;	
+	if(((handle_t)h)->type != KN_SOCKET) return -1;	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH) return -2;	
 	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);
@@ -343,7 +343,7 @@ int kn_sock_listen(engine_t e,
 				   void (*cb_accept)(handle_t,void*),
 				   void *ud)
 {
-	if((handle)h)->type != KN_SOCKET) return -1;	
+	if(((handle_t)h)->type != KN_SOCKET) return -1;	
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_NONE) return -1;
 	if(s->e) return -1;
@@ -428,7 +428,7 @@ int kn_sock_connect(engine_t e,
 					void (*cb_connect)(handle_t,int,void*),
 					void *ud)
 {
-	if((handle)h)->type != KN_SOCKET) return -1;
+	if(((handle_t)h)->type != KN_SOCKET) return -1;
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_NONE) return -1;
 	if(s->e) return -1;	
@@ -452,7 +452,7 @@ int kn_sock_connect(engine_t e,
 }
 
 int kn_close_sock(handle_t h){
-	if((handle)h)->type != KN_SOCKET) return -1;
+	if(((handle_t)h)->type != KN_SOCKET) return -1;
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_CLOSE){
 		if(s->processing){
@@ -467,27 +467,27 @@ int kn_close_sock(handle_t h){
 }
 
 void kn_sock_setud(handle_t h,void *ud){
-	if((handle)h)->type != KN_SOCKET) return;
-	((handle)h)->ud = ud;	
+	if(((handle_t)h)->type != KN_SOCKET) return;
+	((handle_t)h)->ud = ud;	
 }
 
 void* kn_sock_getud(handle_t h){
-	if((handle)h)->type != KN_SOCKET) return NULL;	
-	return ((handle)h)->ud;
+	if(((handle_t)h)->type != KN_SOCKET) return NULL;	
+	return ((handle_t)h)->ud;
 }
 
 int kn_sock_fd(handle_t h){
-	return ((handle)h)->fd;
+	return ((handle_t)h)->fd;
 }
 
 kn_sockaddr* kn_sock_addrlocal(handle_t h){
-	if((handle)h)->type != KN_SOCKET) return NULL;		
+	if(((handle_t)h)->type != KN_SOCKET) return NULL;		
 	kn_socket *s = (kn_socket*)h;
 	return &s->addr_local;
 }
 
 kn_sockaddr* kn_sock_addrpeer(handle_t h){
-	if((handle)h)->type != KN_SOCKET) return NULL;		
+	if(((handle_t)h)->type != KN_SOCKET) return NULL;		
 	kn_socket *s = (kn_socket*)h;
 	return &s->addr_remote;	
 }
