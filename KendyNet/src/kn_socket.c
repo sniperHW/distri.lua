@@ -154,6 +154,7 @@ static void process_connect(kn_socket *s,int events){
 }
 
 static void destroy_socket(kn_socket *s){
+	printf("destroy_socket\n");
 	st_io *io_req;
 	if(s->destry_stio){
         while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL)
@@ -168,27 +169,31 @@ static void destroy_socket(kn_socket *s){
 static void on_events(handle_t h,int events){
 	kn_socket *s = (kn_socket*)h;
 	s->processing = 1;
-	if(s->comm_head.status == SOCKET_LISTENING){
-		process_accept(s);
-	}else if(s->comm_head.status == SOCKET_CONNECTING){
-		process_connect(s,events);
-	}else if(s->comm_head.status == SOCKET_ESTABLISH){
-		if(events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)){
-			char buf[1];
-			errno = 0;
-			(void)(read(s->comm_head.fd,buf,1));//触发errno变更
-			s->cb_ontranfnish((handle_t)s,NULL,-1,errno);
-			return;
-		}
+	do{
+		if(s->comm_head.status == SOCKET_LISTENING){
+			process_accept(s);
+		}else if(s->comm_head.status == SOCKET_CONNECTING){
+			process_connect(s,events);
+		}else if(s->comm_head.status == SOCKET_ESTABLISH){
+			if(events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)){
+				char buf[1];
+				errno = 0;
+				(void)(read(s->comm_head.fd,buf,1));//触发errno变更
+				s->cb_ontranfnish((handle_t)s,NULL,-1,errno);
+				break;
+			}
+
+			if(events & EPOLLIN){
+				process_read(s);
+				if(s->comm_head.status == SOCKET_CLOSE) 
+					break;
+			}
 		
-		if(s->comm_head.status == SOCKET_ESTABLISH && (events & EPOLLIN)){
-			process_read(s);
+			if(events & EPOLLOUT)
+				process_write(s);
+			
 		}
-		
-		if(s->comm_head.status == SOCKET_ESTABLISH && (events & EPOLLOUT)){
-			process_write(s);
-		}
-	}
+	}while(0);
 	s->processing = 0;
 	if(s->comm_head.status == SOCKET_CLOSE){
 		destroy_socket(s);
@@ -274,9 +279,9 @@ static int kn_bind(int fd,kn_sockaddr *addr_local){
 
 
 static int stream_listen(engine_t e,
-						 kn_socket *s,
-						 int fd,
-						 kn_sockaddr *local)
+			 kn_socket *s,
+		         int fd,
+		         kn_sockaddr *local)
 {	
 	int32_t yes = 1;
 	if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)))
@@ -456,7 +461,7 @@ kn_sockaddr* kn_sock_addrlocal(handle_t h){
 	return &s->addr_local;
 }
 
-kn_sockaddr* kn_sock_addrpeer(handle_t){
+kn_sockaddr* kn_sock_addrpeer(handle_t h){
 	kn_socket *s = (kn_socket*)h;
 	return &s->addr_remote;	
 }
