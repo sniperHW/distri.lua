@@ -25,3 +25,5 @@ testredis:testredis.c kendynet.a
 	$(CC) $(CFLAGS) -o testredis testredis.c kendynet.a hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 testtimer:kendynet.a testtimer.c
 	$(CC) $(CFLAGS) -o testtimer testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl			
+teststat:kendynet.a teststat.c
+	$(CC) $(CFLAGS) -o teststat teststat.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl			
