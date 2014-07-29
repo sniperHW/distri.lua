@@ -173,7 +173,7 @@ static void on_events(handle_t h,int events){
 	}else if(s->comm_head.status == SOCKET_CONNECTING){
 		process_connect(s,events);
 	}else if(s->comm_head.status == SOCKET_ESTABLISH){
-		if(events & (EPOLLERR | EPOLLHUP)){
+		if(events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)){
 			char buf[1];
 			errno = 0;
 			(void)(read(s->comm_head.fd,buf,1));//触发errno变更
@@ -181,7 +181,7 @@ static void on_events(handle_t h,int events){
 			return;
 		}
 		
-		if(s->comm_head.status == SOCKET_ESTABLISH && (events & (EPOLLRDHUP | EPOLLIN))){
+		if(s->comm_head.status == SOCKET_ESTABLISH && (events & EPOLLIN)){
 			process_read(s);
 		}
 		
