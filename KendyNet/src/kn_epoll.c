@@ -1,4 +1,4 @@
-#include "kendynet.h"
+#include "kendynet_private.h"
 #include "kn_socket.h"
 #include "kn_timer.h"
 #include "kn_timer_private.h"

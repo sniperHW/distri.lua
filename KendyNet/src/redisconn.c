@@ -1,4 +1,4 @@
-#include "kendynet.h"
+#include "kendynet_private.h"
 #include "redisconn.h"
 
 enum{

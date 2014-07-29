@@ -15,10 +15,6 @@ void     kn_release_engine(engine_t);
 int      kn_engine_run(engine_t);
 void     kn_stop_engine(engine_t);
 
-int      kn_event_add(engine_t,handle_t,int event);
-int      kn_event_mod(engine_t,handle_t,int event);
-int      kn_event_del(engine_t,handle_t);
-
 handle_t kn_new_sock(int domain,int type,int protocal);
 int      kn_close_sock(handle_t);
 
@@ -44,6 +40,10 @@ int      kn_sock_send(handle_t,st_io*);
 int      kn_sock_recv(handle_t,st_io*);
 void     kn_sock_setud(handle_t,void*);
 void*    kn_sock_getud(handle_t);
+int      kn_sock_fd(handle_t);
+kn_sockaddr* kn_sock_addrlocal(handle_t);
+kn_sockaddr* kn_sock_addrpeer(handle_t);
+
 
 
 #endif

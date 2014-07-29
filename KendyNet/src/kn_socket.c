@@ -42,6 +42,8 @@ static void process_read(kn_socket *s){
 				break;
 		}else{
 			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
+			if(s->comm_head.status == SOCKET_CLOSE)
+				return;			
 		}
 	}	
 	if(kn_list_size(&s->pending_recv) == 0){
@@ -70,6 +72,8 @@ static void process_write(kn_socket *s){
 				break;
 		}else{
 			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
+			if(s->comm_head.status == SOCKET_CLOSE)
+				return;
 		}
 	}
 	if(kn_list_size(&s->pending_send) == 0){
@@ -177,7 +181,7 @@ static void on_events(handle_t h,int events){
 			return;
 		}
 		
-		if(events & (EPOLLRDHUP | EPOLLIN)){
+		if(s->comm_head.status == SOCKET_ESTABLISH && (events & (EPOLLRDHUP | EPOLLIN))){
 			process_read(s);
 		}
 		
@@ -440,4 +444,19 @@ void kn_sock_setud(handle_t h,void *ud){
 void* kn_sock_getud(handle_t h){
 	kn_socket *s = (kn_socket*)h;
 	return s->comm_head.ud;
+}
+
+int kn_sock_fd(handle_t h){
+	kn_socket *s = (kn_socket*)h;
+	return s->comm_head.fd;
+}
+
+kn_sockaddr* kn_sock_addrlocal(handle_t h){
+	kn_socket *s = (kn_socket*)h;
+	return &s->addr_local;
+}
+
+kn_sockaddr* kn_sock_addrpeer(handle_t){
+	kn_socket *s = (kn_socket*)h;
+	return &s->addr_remote;	
 }

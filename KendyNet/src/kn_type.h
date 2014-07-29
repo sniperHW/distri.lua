@@ -1,6 +1,6 @@
 #ifndef _KN_TYPE
 #define _KN_TYPE
-#include "kendynet.h"
+#include "kendynet_private.h"
 
 typedef struct handle{
 	int type;
