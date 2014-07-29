@@ -322,8 +322,6 @@ static int stream_listen(engine_t e,
 	int events = s->events | EPOLLIN;
 	if(0 == kn_event_add(e,(handle_t)s,events)){
 		s->events = events;
-		s->e = e;
-		s->comm_head.status = SOCKET_LISTENING;
 	}
 	else
 		return -1;		
@@ -358,6 +356,8 @@ int kn_sock_listen(engine_t e,
 	if(ret == 0){
 		s->cb_accept = cb_accept;
 		s->comm_head.ud = ud;
+		s->e = e;
+		s->comm_head.status = SOCKET_LISTENING;		
 	}	
 	return ret;		
 }
