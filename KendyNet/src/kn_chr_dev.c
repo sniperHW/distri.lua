@@ -109,6 +109,7 @@ handle_t kn_new_chrdev(int fd){
 	if(!S_ISCHR(buf.st_mode)) return NULL; 
 	kn_chr_dev *r = calloc(1,sizeof(*r));
 	((handle_t)r)->fd = fd;
+	fcntl(fd, F_SETFL, O_NONBLOCK);
 	((handle_t)r)->type = KN_CHRDEV;
 	((handle_t)r)->on_events = on_events;
 	return (handle_t)r;

@@ -6,7 +6,7 @@ int send_size;
 
 void on_connect(handle_t s,int err,void *ud)
 {
-	if(s){
+	if(s && err == 0){
 		printf("connect ok\n");
 		struct session *session = calloc(1,sizeof(*session));
 		session->s = s;

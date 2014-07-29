@@ -322,6 +322,7 @@ static int stream_listen(engine_t e,
 	int events = s->events | EPOLLIN;
 	if(0 == kn_event_add(e,(handle_t)s,events)){
 		s->events = events;
+		s->e = e;
 		s->comm_head.status = SOCKET_LISTENING;
 	}
 	else
@@ -405,7 +406,6 @@ static int stream_connect(engine_t e,
 		int events = s->events | EPOLLIN | EPOLLOUT;
 		if(0 == kn_event_add(e,(handle_t)s,events)){
 			s->events = events;
-			s->comm_head.status = SOCKET_CONNECTING;
 		}else
 			return -1;
 	}
@@ -441,8 +441,10 @@ int kn_sock_connect(engine_t e,
 		ret = stream_connect(e,s,s->comm_head.fd,local,remote);
 	
 	if(ret == 0){
+		s->comm_head.status = SOCKET_CONNECTING;
 		s->cb_connect = cb_connect;
 		s->comm_head.ud = ud;
+		s->e = e;
 	}else if(ret == 1){
 		s->comm_head.status = SOCKET_ESTABLISH;
 		cb_connect(h,0,ud);

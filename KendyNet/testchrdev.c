@@ -30,7 +30,7 @@ void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err
 		sock = NULL;         
 		if(!io) return;
 	}
-	if(((int*)io->ud) == 2){
+	if((int)io->ud == 2){
 		printf("%s",(char*)io->iovec->iov_base);
 	}
 	release_stio(io);
@@ -38,7 +38,7 @@ void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err
 	
 void on_connect(handle_t s,int err,void *ud)
 {
-	if(s){
+	if(err == 0){
 		sock = s;
 		printf("connect ok\n");
 		kn_sock_associate(s,(engine_t)ud,sock_transfer_finish,release_stio);
@@ -52,12 +52,10 @@ void on_connect(handle_t s,int err,void *ud)
 void chr_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
 	if(bytestransfer <= 0)
 	{       
-		printf("read EOF\n");
 		kn_release_chrdev(s,1);
 	}else{
 		((char*)io->iovec[0].iov_base)[bytestransfer] = 0;
 		if(sock){
-			//printf("%s\n",(char*)io->iovec[0].iov_base);
 			st_io *io_send = new_stio(bytestransfer+1);
 			strcpy(io_send->iovec->iov_base,((char*)io->iovec[0].iov_base));
 			io_send->ud = (void*)1;
@@ -71,7 +69,7 @@ void chr_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err)
 }
 
 
-int main(){
+int main(int argc,char **argv){
 	engine_t p = kn_new_engine();
 	handle_t h = kn_new_chrdev(0);
 	if(!h) return 0;
@@ -85,6 +83,10 @@ int main(){
 	io.iovec_count = 1;
 	io.iovec = wbuf;
 	kn_chrdev_read(h,&io);
+	kn_sockaddr remote;
+	kn_addr_init_in(&remote,argv[1],atoi(argv[2]));
+	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+	kn_sock_connect(p,c,&remote,NULL,on_connect,p);
 	kn_engine_run(p);	
 	return 0;
 }
