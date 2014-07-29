@@ -1,4 +1,4 @@
-#ifndef _KN_SOCKET_H
+/*#ifndef _KN_SOCKET_H
 #define _KN_SOCKET_H
 
 #include "kn_type.h"
@@ -22,6 +22,4 @@ typedef struct{
 	void   (*cb_connect)(handle_t,int,void *ud);
 	void   (*destry_stio)(st_io*);
 }kn_socket;
-
-
-#endif
+#endif*/

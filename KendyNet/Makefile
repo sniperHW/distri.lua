@@ -11,6 +11,8 @@ kendynet.a: \
 		   ./src/kn_timer.c \
 		   ./src/kn_time.c \
 		   ./src/redisconn.c\
+		   ./src/kn_reg_file.c\
+		   ./src/kn_chr_dev.c\
 		   ./src/kn_socket.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o
@@ -26,4 +28,6 @@ testredis:testredis.c kendynet.a
 testtimer:kendynet.a testtimer.c
 	$(CC) $(CFLAGS) -o testtimer testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl			
 teststat:kendynet.a teststat.c
-	$(CC) $(CFLAGS) -o teststat teststat.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl			
+	$(CC) $(CFLAGS) -o teststat teststat.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl
+testregfile:kendynet.a testregfile.c
+	$(CC) $(CFLAGS) -o testregfile testregfile.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl				

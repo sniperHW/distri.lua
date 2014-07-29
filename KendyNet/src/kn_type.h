@@ -14,7 +14,8 @@ typedef struct handle{
 enum{
 	KN_SOCKET = 1,
 	KN_TIMERFD,
-	KN_FILE,
+	KN_REGFILE,
+	KN_CHRDEV,
 	KN_REDISCONN,
 };
 
