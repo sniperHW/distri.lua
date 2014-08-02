@@ -2,7 +2,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic
 LDFLAGS = -lpthread -lrt -lm -ldl -ltcmalloc 
 SHARED = -fPIC -shared
 CC = gcc
-INCLUDE = -I./include -I./src -I./ -I../
+INCLUDE = -I./include -I./src -I./ -I../ -I../../deps
 DEFINE = -D_DEBUG -D_LINUX 
 
 kendynet.a: \
@@ -48,7 +48,7 @@ testserver:testserver.c kendynet.a
 testclient:testclient.c kendynet.a
 	$(CC) $(CFLAGS) -o testclient testclient.c kendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 testredis:testredis.c kendynet.a						
-	$(CC) $(CFLAGS) -o testredis testredis.c kendynet.a ../hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o testredis testredis.c kendynet.a ../../deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 testtimer:kendynet.a testtimer.c
 	$(CC) $(CFLAGS) -o testtimer testtimer.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl			
 teststat:kendynet.a teststat.c
