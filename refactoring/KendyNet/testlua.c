@@ -109,7 +109,7 @@ int main(){
 	lua_getglobal(L,"ttab2");
 	tabRef = create_luaTabRef(L,-1);
 	LuaTabEnum(tabRef){
-		lua_State *L = tabRef->L;
+		lua_State *L = luaTabRef_LState(tabRef);
 		printf("%s",lua_tostring(L,EnumKey));
 		luaTabRef_t subtabRef = create_luaTabRef(L,EnumVal);
 		LuaTabEnum(subtabRef){

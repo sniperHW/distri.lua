@@ -100,41 +100,43 @@
 
 
 //lua表的一个引用
-typedef struct luaTabRef
+typedef struct
 {
 	lua_State      *L;
 	int 		   rindex;	
-}*luaTabRef_t;
+}luaTabRef_t;
 
 static inline luaTabRef_t create_luaTabRef(lua_State *L,int idx)
 {
-	luaTabRef_t o = calloc(1,sizeof(*o));
-	o->L = L;
+	luaTabRef_t o;
 	lua_pushvalue(L,idx);
-	o->rindex = luaL_ref(L,LUA_REGISTRYINDEX);
-	if(LUA_REFNIL == o->rindex){
-		free(o);
-		o = NULL;
-	}
+	o.L = L;
+	o.rindex = luaL_ref(L,LUA_REGISTRYINDEX);
 	return o;
+}
+
+static inline int  isVaild_TabRef(luaTabRef_t o){
+	return o.rindex != LUA_REFNIL;
 }
 
 static inline void release_luaTabRef(luaTabRef_t o)
 {
-	if(o){
-		luaL_unref(o->L,LUA_REGISTRYINDEX,o->rindex);
-		free(o);
-	}
+	if(o.rindex != LUA_REFNIL)
+		luaL_unref(o.L,LUA_REGISTRYINDEX,o.rindex);
+}
+
+static inline lua_State *luaTabRef_LState(luaTabRef_t o){
+	return o.L;
 }
 
 #define CallLuaTabFunc0(TABREF,FUNCNAME,RET)\
 		({\
-			lua_State *L = TABREF->L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_State *L = TABREF.L;\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			lua_pushstring(L,FUNCNAME);\
 			lua_gettable(L,-2);\
 			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			const char *err = NULL;\
 			if(lua_pcall(L,1,RET,0)){\
 				err = lua_tostring(L,1);\
@@ -143,12 +145,12 @@ static inline void release_luaTabRef(luaTabRef_t o)
 			
 #define CallLuaTabFunc1(TABREF,FUNCNAME,RET,ARG1)\
 		({\
-			lua_State *L = TABREF->L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_State *L = TABREF.L;\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			lua_pushstring(L,FUNCNAME);\
 			lua_gettable(L,-2);\
 			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			const char *err = NULL;\
 			ARG1;\
 			if(lua_pcall(L,2,RET,0)){\
@@ -158,12 +160,12 @@ static inline void release_luaTabRef(luaTabRef_t o)
 			
 #define CallLuaTabFunc2(TABREF,FUNCNAME,RET,ARG1,ARG2)\
 		({\
-			lua_State *L = TABREF->L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_State *L = TABREF.L;\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			lua_pushstring(L,FUNCNAME);\
 			lua_gettable(L,-2);\
 			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			const char *err = NULL;\
 			ARG1;ARG2;\
 			if(lua_pcall(L,3,RET,0)){\
@@ -173,12 +175,12 @@ static inline void release_luaTabRef(luaTabRef_t o)
 			
 #define CallLuaTabFunc3(TABREF,FUNCNAME,RET,ARG1,ARG2,ARG3)\
 		({\
-			lua_State *L = TABREF->L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_State *L = TABREF.L;\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			lua_pushstring(L,FUNCNAME);\
 			lua_gettable(L,-2);\
 			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			const char *err = NULL;\
 			ARG1;ARG2;ARG3;\
 			if(lua_pcall(L,4,RET,0)){\
@@ -188,12 +190,12 @@ static inline void release_luaTabRef(luaTabRef_t o)
 			
 #define CallLuaTabFunc4(TABREF,FUNCNAME,RET,ARG1,ARG2,ARG3,ARG4)\
 		({\
-			lua_State *L = TABREF->L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_State *L = TABREF.L;\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			lua_pushstring(L,FUNCNAME);\
 			lua_gettable(L,-2);\
 			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF->rindex);\
+			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
 			const char *err = NULL;\
 			ARG1;ARG2;ARG3;ARG4;\
 			if(lua_pcall(L,5,RET,0)){\
@@ -204,13 +206,13 @@ static inline void release_luaTabRef(luaTabRef_t o)
 #define EnumKey -2
 #define EnumVal -1				
 #define LuaTabEnum(TABREF)\
-			for(lua_rawgeti(TABREF->L,LUA_REGISTRYINDEX,TABREF->rindex),lua_pushnil(TABREF->L);\
+			for(lua_rawgeti(TABREF.L,LUA_REGISTRYINDEX,TABREF.rindex),lua_pushnil(TABREF.L);\
 				({\
 					int __result;\
-					do __result = lua_next(TABREF->L,-2);\
+					do __result = lua_next(TABREF.L,-2);\
 					while(0);\
-					if(!__result)lua_pop(TABREF->L,1);\
-					__result;});lua_pop(TABREF->L,1))
+					if(!__result)lua_pop(TABREF.L,1);\
+					__result;});lua_pop(TABREF.L,1))
 
 														
 /*
