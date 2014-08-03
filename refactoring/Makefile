@@ -5,7 +5,10 @@ CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
 		
 test:test.c
-	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE) 
+	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
+	
+testusrdata:testusrdata.c
+	$(CC) $(CFLAGS) -o testusrdata testusrdata.c $(LDFLAGS) $(DEFINE) 	 
 
 	
 	

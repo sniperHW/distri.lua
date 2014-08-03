@@ -1,4 +1,217 @@
-#include <stdio.h>
+#include "kendynet.h"
+#include "lua_util.h"
+
+#define MAX_BUFSIZE  1024
+#define MAX_WSEND_SIZE  1024
+
+#define SOCKET_METATABLE "socket_metatable"
+
+static __thread engine_t g_engine = NULL;
+//static __lua_State *g_L;
+
+typedef struct bytebuffer{
+	struct bytebuffer *next;
+	int    cap;
+	int    size;
+	char   data[0];
+}*bytebuffer_t;
+
+bytebuffer_t new_bytebuffer(int cap)
+{
+	bytebuffer_t b = calloc(1,sizeof(*b)+sizeof(char)*cap);
+	b->cap = cap;
+	b->size = 0;
+	return b;
+}
+
+static inline int bytebuffer_read(bytebuffer_t b,uint32_t pos,int8_t *out,uint32_t size)
+{
+	uint32_t copy_size;
+	while(size){
+        if(!b) return -1;
+        if(pos >= b->size) return -1;
+        copy_size = b->size - pos;
+		copy_size = copy_size > size ? size : copy_size;
+		memcpy(out,&b->data[pos],copy_size);
+		size -= copy_size;
+		pos += copy_size;
+		out += copy_size;
+		if(pos >= b->size){
+			pos = 0;
+			b = b->next;
+		}
+	}
+	return 0;
+}
+
+typedef struct lua_socket{
+	handle_t     sock;		
+	st_io        send_overlap;
+	st_io        recv_overlap;
+	struct       iovec wrecvbuf[2];
+	struct       iovec wsendbuf[MAX_WSEND_SIZE];
+	uint8_t      is_close;	
+	kn_list      send_list;
+	uint32_t     unpack_size; //还未解包的数据大小
+	uint32_t     unpack_pos;
+	uint32_t     recv_pos;
+	bytebuffer_t recv_buf;
+	bytebuffer_t unpack_buf;
+	luaTabRef_t  callback;
+	char         name[512];  //use by lua
+	char         packet[MAX_BUFSIZE];	
+}*lua_socket_t;
+
+inline static lua_socket_t _getsock(lua_State *L, int index) {
+    lua_socket_t sock = (lua_socket_t)luaL_checkudata(L, index, SOCKET_METATABLE);
+    return sock;
+}
+
+inline static void _setsock(lua_State *L, handle_t sock) {
+    lua_socket_t nsock = (lua_socket_t) lua_newuserdata(L, sizeof(*nsock));
+    luaL_getmetatable(L, SOCKET_METATABLE);
+    lua_setmetatable(L, -2);
+    nsock->sock = sock;
+    kn_sock_setud(sock,nsock);
+}
+
+static int _socket(lua_State *L) {
+    int domain    = luaL_checkint(L, 1);
+    int type      = luaL_checkint(L, 2);
+    int protocol  = luaL_optint(L,3,0);
+
+	handle_t sock = kn_new_sock(domain,type,protocol);
+	if(!sock){ 
+		lua_pushnil(L);
+		return 1;
+	}
+    _setsock(L,sock);
+    return 1;
+}
+   
+void on_connect(handle_t s,int err,void *ud)
+{
+	lua_socket_t sock = (lua_socket_t)kn_sock_getud(s);
+	luaTabRef_t *callback = &sock->callback;
+	lua_State *L = luaTabRef_LState(*callback);	
+	lua_rawgeti(L,LUA_REGISTRYINDEX,obj->rindex);
+	lua_pushstring(L,"on_connect");
+	lua_gettable(L,-2);
+	lua_pushstring(L,"sock");
+	lua_gettable(L,-2);		
+	lua_remove(L,-3);
+	
+	lua_pushinteger(L,err);
+	if(0 != lua_pcall(L,2,0,0)){
+		const char * error = lua_tostring(L, -1);
+		printf("on_connect:%s\n",error);
+		lua_pop(L,1);		
+	}
+	release_luaTabRef(callback);
+}	
+
+int _sock_connect(lua_State *L){
+    lua_socket_t sock = _getsock(L, 1);
+    const char *host = luaL_checkstring(L, 2);
+    luaL_checkint(L, 3);
+	int port = lua_tointeger(L, 3);
+	luaTabRef_t callback = create_luaTabRef(L,4);
+	if(!sock || !host || !callback){
+		lua_pushstring(L,"invaild arg");
+		return 1;
+	}
+	kn_sockaddr remote;
+	kn_addr_init_in(&remote,host,port);
+	sock->callback = callback;	
+	if(0 != kn_sock_connect(g_engine,sock->sock,&remote,NULL,on_connect,NULL){
+		release_luaTabRef(&sock->callback);
+		lua_pushstring(L,"connect error");
+	}else
+		lua_pushnil(L);
+	return 1;	
+}
+
+static void transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
+	
+}
+
+static void on_accept(handle_t s,void *ud){
+	luaTabRef_t *callback = (luaTabRef_t*)ud;
+	lua_rawgeti(callback->L,LUA_REGISTRYINDEX,obj->rindex);
+	lua_pushstring(callback->L,"on_newclient");
+	lua_gettable(callback->L,-2);
+	if(callback->L != g_L){ 
+		lua_xmove(callback->L,g_L,1);
+		lua_remove(callback->L,-1);
+	}else{
+		lua_remove(callback->L,-2);
+	}		
+	_setsock(g_L,s);
+	if(0 != lua_pcall(g_L,1,0,0)){
+		const char * error = lua_tostring(g_L, -1);
+		printf("on_accept:%s\n",error);
+		lua_pop(g_L,1);
+		kn_close_sock(s);		
+	}				
+}
+
+int _sock_listen(lua_State *L){
+    lua_socket_t sock = _getsock(L, 1);
+    const char *host = luaL_checkstring(L, 2);
+    luaL_checkint(L, 3);
+	int port = lua_tointeger(L, 3);
+	luaTabRef_t callback = create_luaTabRef(L,4);
+	if(!sock || !host || !callback){
+		lua_pushstring(L,"invaild arg");
+		return 1;
+	}
+	sock->callback = callback;
+	kn_sockaddr local;
+	kn_addr_init_in(&local,host,port);		
+	if(0 != kn_sock_listen(g_engine,sock->sock,&local,on_accept,&sock->callback)){
+		release_luaTabRef(&sock->callback);
+		lua_pushstring(L,"listen error");
+	}else
+		lua_pushnil(L);
+	return 1;
+}
+
+int reg_socket_c(lua_State *L){
+    luaL_Reg socket_mt[] = {
+        {"__gc", _sock_close},
+        //{"__tostring",  _sock_tostring},
+        {NULL, NULL}
+    };
+    
+    luaL_Reg socket_methods[] = {
+        {"connect", _sock_connect},
+        {"recv",_sock_recv},
+        {"send",_sock_send},
+        {"listen",_sock_listen},
+        {"accept",_sock_accept},
+        {"close",_sock_close},
+        {NULL, NULL}
+    };
+    luaL_newmetatable(L, SOCKET_METATABLE);
+    luaL_setfuncs(L, socket_mt, 0);
+    luaL_newlib(L, socket_methods);
+    lua_setfield(L, -2, "__index");
+    lua_pop(L, 1);
+    
+	lua_newtable(L);
+	
+	lua_pushstring(L,"socket");
+	lua_pushcfunction(L,&_socket);
+	lua_settable(L, -3);
+				
+	lua_setglobal(L,"socket");    
+}
+
+
+
+
+
+/*#include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include "lua/lua_util.h"
@@ -24,12 +237,6 @@ static int           recv_count = 0;
 static void sig_int(int sig){
 	recv_sigint = 1;
 }
-
-/*enum{
-	lua_socket_close = 1,
-	lua_socket_writeclose,
-	lua_socket_waitclose,//等send_list中的数据发送完成自动close
-};*/
 
 typedef struct bytebuffer{
 	struct bytebuffer *next;
@@ -291,7 +498,7 @@ static void luasocket_post_send(lua_data_socket_t l){
 		sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
 		int size = 0;
 		int send_size = 0;
-		while(c < MAX_WSEND_SIZE && buf/* && send_size < MAX_BUFSIZE*/){
+		while(c < MAX_WSEND_SIZE && buf){
 			l->wsendbuf[c].iov_base = buf->buf + buf->index;
 			l->wsendbuf[c].iov_len  = buf->size;
 			send_size += size;
@@ -872,3 +1079,4 @@ int main(int argc,char **argv)
 	//lua_close(g_L);		
 	return 0;
 } 
+*/

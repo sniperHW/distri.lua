@@ -119,10 +119,13 @@ static inline int  isVaild_TabRef(luaTabRef_t o){
 	return o.rindex != LUA_REFNIL;
 }
 
-static inline void release_luaTabRef(luaTabRef_t o)
+static inline void release_luaTabRef(luaTabRef_t *o)
 {
-	if(o.rindex != LUA_REFNIL)
-		luaL_unref(o.L,LUA_REGISTRYINDEX,o.rindex);
+	if(o->rindex != LUA_REFNIL){
+		luaL_unref(o->L,LUA_REGISTRYINDEX,o->rindex);
+		o->L = NULL;
+		o->rindex = LUA_REFNIL;
+	}
 }
 
 static inline lua_State *luaTabRef_LState(luaTabRef_t o){
