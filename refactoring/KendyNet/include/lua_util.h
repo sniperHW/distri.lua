@@ -32,71 +32,71 @@
 #define LuaCall0(LUASTATE,FUNCNAME,RET)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,0,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 
 #define LuaCall1(LUASTATE,FUNCNAME,RET,ARG1)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
 			ARG1;\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,1,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 
 #define LuaCall2(LUASTATE,FUNCNAME,RET,ARG1,ARG2)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
 			ARG1;ARG2;\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,2,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 		
 #define LuaCall3(LUASTATE,FUNCNAME,RET,ARG1,ARG2,ARG3)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
 			ARG1;ARG2;ARG3;\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,3,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 		
 #define LuaCall4(LUASTATE,FUNCNAME,RET,ARG1,ARG2,ARG3,ARG4)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
 			ARG1;ARG2;ARG3;ARG4;\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,4,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 		
 #define LuaCall5(LUASTATE,FUNCNAME,RET,ARG1,ARG2,ARG3,ARG4,ARG5)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
 			ARG1;ARG2;ARG3;ARG4;ARG5;\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,5,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 		
 #define LuaCall6(LUASTATE,FUNCNAME,RET,ARG1,ARG2,ARG3,ARG4,ARG5,ARG6)\
 		({\
 			lua_getglobal(LUASTATE,FUNCNAME);\
 			ARG1;ARG2;ARG3;ARG4;ARG5;ARG6;\
-			const char * err = NULL;\
+			const char * ___err = NULL;\
 			if(lua_pcall(LUASTATE,6,RET,0)){\
-				err = lua_tostring(LUASTATE,1);\
+				___err = lua_tostring(LUASTATE,1);\
 				lua_pop(LUASTATE,1);\
-			}err;})
+			}___err;})
 
 
 //lua表的一个引用
@@ -134,77 +134,77 @@ static inline lua_State *luaTabRef_LState(luaTabRef_t o){
 
 #define CallLuaTabFunc0(TABREF,FUNCNAME,RET)\
 		({\
-			lua_State *L = TABREF.L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			lua_pushstring(L,FUNCNAME);\
-			lua_gettable(L,-2);\
-			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			const char *err = NULL;\
-			if(lua_pcall(L,1,RET,0)){\
-				err = lua_tostring(L,1);\
-				lua_pop(L,1);\
-			}err;})
+			lua_State *___L = (TABREF).L;\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			lua_pushstring(___L,FUNCNAME);\
+			lua_gettable(___L,-2);\
+			lua_remove(___L,-2);\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			const char *___err = NULL;\
+			if(lua_pcall(___L,1,RET,0)){\
+				___err = lua_tostring(___L,1);\
+				lua_pop(___L,1);\
+			}___err;})
 			
 #define CallLuaTabFunc1(TABREF,FUNCNAME,RET,ARG1)\
 		({\
-			lua_State *L = TABREF.L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			lua_pushstring(L,FUNCNAME);\
-			lua_gettable(L,-2);\
-			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			const char *err = NULL;\
+			lua_State *___L = (TABREF).L;\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			lua_pushstring(___L,FUNCNAME);\
+			lua_gettable(___L,-2);\
+			lua_remove(___L,-2);\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			const char *___err = NULL;\
 			ARG1;\
-			if(lua_pcall(L,2,RET,0)){\
-				err = lua_tostring(L,1);\
-				lua_pop(L,1);\
-			}err;})
+			if(lua_pcall(___L,2,RET,0)){\
+				___err = lua_tostring(___L,1);\
+				lua_pop(___L,1);\
+			}___err;})
 			
 #define CallLuaTabFunc2(TABREF,FUNCNAME,RET,ARG1,ARG2)\
 		({\
-			lua_State *L = TABREF.L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			lua_pushstring(L,FUNCNAME);\
-			lua_gettable(L,-2);\
-			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			const char *err = NULL;\
+			lua_State *___L = (TABREF).L;\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			lua_pushstring(___L,FUNCNAME);\
+			lua_gettable(___L,-2);\
+			lua_remove(___L,-2);\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			const char *___err = NULL;\
 			ARG1;ARG2;\
-			if(lua_pcall(L,3,RET,0)){\
-				err = lua_tostring(L,1);\
-				lua_pop(L,1);\
-			}err;})	
+			if(lua_pcall(___L,3,RET,0)){\
+				___err = lua_tostring(___L,1);\
+				lua_pop(___L,1);\
+			}___err;})	
 			
 #define CallLuaTabFunc3(TABREF,FUNCNAME,RET,ARG1,ARG2,ARG3)\
 		({\
-			lua_State *L = TABREF.L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			lua_pushstring(L,FUNCNAME);\
-			lua_gettable(L,-2);\
-			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			const char *err = NULL;\
+			lua_State *___L = (TABREF).L;\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			lua_pushstring(___L,FUNCNAME);\
+			lua_gettable(___L,-2);\
+			lua_remove(___L,-2);\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			const char *___err = NULL;\
 			ARG1;ARG2;ARG3;\
-			if(lua_pcall(L,4,RET,0)){\
-				err = lua_tostring(L,1);\
-				lua_pop(L,1);\
-			}err;})
+			if(lua_pcall(___L,4,RET,0)){\
+				___err = lua_tostring(___L,1);\
+				lua_pop(___L,1);\
+			}___err;})
 			
 #define CallLuaTabFunc4(TABREF,FUNCNAME,RET,ARG1,ARG2,ARG3,ARG4)\
 		({\
-			lua_State *L = TABREF.L;\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			lua_pushstring(L,FUNCNAME);\
-			lua_gettable(L,-2);\
-			lua_remove(L,-2);\
-			lua_rawgeti(L,LUA_REGISTRYINDEX,TABREF.rindex);\
-			const char *err = NULL;\
+			lua_State *___L = (TABREF).L;\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			lua_pushstring(___L,FUNCNAME);\
+			lua_gettable(___L,-2);\
+			lua_remove(___L,-2);\
+			lua_rawgeti(___L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+			const char *___err = NULL;\
 			ARG1;ARG2;ARG3;ARG4;\
-			if(lua_pcall(L,5,RET,0)){\
-				err = lua_tostring(L,1);\
-				lua_pop(L,1);\
-			}err;})
+			if(lua_pcall(___L,5,RET,0)){\
+				___err = lua_tostring(___L,1);\
+				lua_pop(___L,1);\
+			}___err;})
 
 #define EnumKey -2
 #define EnumVal -1				
@@ -217,6 +217,17 @@ static inline lua_State *luaTabRef_LState(luaTabRef_t o){
 					if(!__result)lua_pop(TABREF.L,1);\
 					__result;});lua_pop(TABREF.L,1))
 
+
+#define GET_OBJ_FIELD(TABREF,FIELD,TYPE,POP)\
+		({\
+			TYPE __result;\
+			lua_rawgeti(TABREF.L,LUA_REGISTRYINDEX,TABREF.rindex);\
+			lua_pushstring(TABREF.L,FIELD);\
+			lua_gettable(TABREF.L,-2);\
+			lua_remove(TABREF.L,-2);\
+			do __result = (TYPE)POP(TABREF.L,-1);\
+			while(0);\
+		__result;})
 														
 /*
 #define PUSH_TABLE1(LUASTATE,VAL1)\

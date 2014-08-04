@@ -10,7 +10,7 @@ static inline void rawpacket_destroy(rawpacket_t p)
 	free(p);
 }
 
-void inline rpk_destroy(rpacket_t r)
+void rpk_destroy(rpacket_t r)
 {
 	//释放所有对buffer_t的引用
 	buffer_release(packet_buf(r));
@@ -19,7 +19,7 @@ void inline rpk_destroy(rpacket_t r)
 	free(r);
 }
 
-void inline wpk_destroy(wpacket_t w)
+void wpk_destroy(wpacket_t w)
 {
 	buffer_release(packet_buf(w));
 	buffer_release(w->writebuf);

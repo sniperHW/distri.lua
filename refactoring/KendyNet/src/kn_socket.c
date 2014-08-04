@@ -18,7 +18,7 @@ typedef struct{
 	void   (*cb_disconnect)(handle_t,int);
 	void   (*cb_accept)(handle_t,void *ud);
 	void   (*cb_ontranfnish)(handle_t,st_io*,int,int);
-	void   (*cb_connect)(handle_t,int,void *ud);
+	void   (*cb_connect)(handle_t,int,void *ud,kn_sockaddr*);
 	void   (*destry_stio)(st_io*);
 }kn_socket;
 
@@ -161,17 +161,17 @@ static void process_connect(kn_socket *s,int events){
     kn_event_del(s->e,(handle_t)s);
     s->events = 0;
     if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
-        s->cb_connect((handle_t)s,err,s->comm_head.ud);
+        s->cb_connect((handle_t)s,err,s->comm_head.ud,&s->addr_remote);
         return;
     }
     if(err){
         errno = err;
-        s->cb_connect((handle_t)s,errno,s->comm_head.ud);
+        s->cb_connect((handle_t)s,errno,s->comm_head.ud,&s->addr_remote);
         return;
     }
     //connect success
     s->comm_head.status = SOCKET_ESTABLISH;
-    s->cb_connect((handle_t)s,0,s->comm_head.ud);	
+    s->cb_connect((handle_t)s,0,s->comm_head.ud,&s->addr_remote);	
 }
 
 static void destroy_socket(kn_socket *s){
@@ -426,7 +426,7 @@ int kn_sock_connect(engine_t e,
 					handle_t h,
 					kn_sockaddr *remote,
 					kn_sockaddr *local,
-					void (*cb_connect)(handle_t,int,void*),
+					void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),
 					void *ud)
 {
 	if(((handle_t)h)->type != KN_SOCKET) return -1;
@@ -435,7 +435,7 @@ int kn_sock_connect(engine_t e,
 	if(s->e) return -1;	
 
 	int ret;
-	
+	s->addr_remote = *remote;
 	if(s->protocal == IPPROTO_UDP)
 		ret = dgram_connect(e,s,s->comm_head.fd,local,remote);
 	else
@@ -448,7 +448,7 @@ int kn_sock_connect(engine_t e,
 		s->e = e;
 	}else if(ret == 1){
 		s->comm_head.status = SOCKET_ESTABLISH;
-		cb_connect(h,0,ud);
+		cb_connect(h,0,ud,&s->addr_remote);
 		ret = 0;
 	}	
 	return ret;

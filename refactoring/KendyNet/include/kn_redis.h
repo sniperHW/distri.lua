@@ -1,6 +1,6 @@
 #ifndef _KN_REDIS_H
 #define _KN_REDIS_H
-
+#include "hiredis/hiredis.h"
 typedef struct redisconn *redisconn_t;
 
 int kn_redisAsynConnect(engine_t p,

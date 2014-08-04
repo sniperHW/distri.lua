@@ -4,8 +4,9 @@
 
 int send_size;
 
-void on_connect(handle_t s,int err,void *ud)
+void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 {
+	((void)_);
 	if(s && err == 0){
 		printf("connect ok\n");
 		struct session *session = calloc(1,sizeof(*session));

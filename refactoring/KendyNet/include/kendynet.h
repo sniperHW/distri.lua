@@ -28,7 +28,7 @@ int      kn_sock_connect(engine_t,
 						 handle_t,
 						 kn_sockaddr *remote,
 						 kn_sockaddr *local,
-						 void (*cb_connect)(handle_t,int,void*),
+						 void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),
 						 void*);
 
 int      kn_sock_associate(handle_t,

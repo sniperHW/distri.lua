@@ -47,11 +47,18 @@ typedef void (*CCB_DISCONNECTD)(stream_conn_t,int err);
 
 /*packet_type:RPACKET/RAWPACKET*/
 stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,uint8_t packet_type);
-void    stream_conn_setud(stream_conn_t,void *ud);
-void*   stream_conn_getud(stream_conn_t);
-void    stream_conn_close(stream_conn_t c);
-int     stream_conn_send(stream_conn_t c,packet_t p);
+void     stream_conn_close(stream_conn_t c);
+int      stream_conn_send(stream_conn_t c,packet_t p);
+static inline handle_t stream_conn_gethandle(stream_conn_t c){
+	return c->handle;
+} 
 
+static inline void stream_conn_setud(stream_conn_t c,void *ud){
+	c->ud = ud;
+}
+static inline void* stream_conn_getud(stream_conn_t c){
+	return c->ud;
+}
 /*
  * 与engine关联并启动接收过程.
  * 如果conn已经关联过,则首先与原engine断开关联.

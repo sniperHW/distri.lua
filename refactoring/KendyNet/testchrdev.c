@@ -36,8 +36,9 @@ void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err
 	release_stio(io);
 }
 	
-void on_connect(handle_t s,int err,void *ud)
+void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 {
+	((void)_);
 	if(err == 0){
 		sock = s;
 		printf("connect ok\n");

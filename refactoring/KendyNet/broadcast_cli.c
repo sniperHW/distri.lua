@@ -16,8 +16,9 @@ void on_disconnected(stream_conn_t c,int err){
 	printf("on_disconnectd\n");
 }
 
-void on_connect(handle_t s,int err,void *ud)
+void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 {
+	((void)_);
 	if(s && err == 0){
 		printf("connect ok\n");
 		engine_t p = (engine_t)ud;
