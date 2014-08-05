@@ -2,7 +2,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic
 LDFLAGS = -lpthread -lrt -lm -ldl -ltcmalloc 
 SHARED = -fPIC -shared
 CC = gcc
-INCLUDE = -I./include -I./src -I./ -I../deps
+INCLUDE = -I./include -I./src -I./ -I../../deps
 DEFINE = -D_DEBUG -D_LINUX 
 
 kendynet.a: \
@@ -27,6 +27,9 @@ kendynet.a: \
 		   ./src/spinlock.c \
 		   ./src/log.c \
 		   ./src/kn_string.c \
+		   ./src/minheap.c \
+		   ./src/tls.c \
+		   ./src/rbtree.c \
 		   ./src/buffer.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o

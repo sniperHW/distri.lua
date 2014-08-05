@@ -228,6 +228,14 @@ static inline lua_State *luaTabRef_LState(luaTabRef_t o){
 			do __result = (TYPE)POP(TABREF.L,-1);\
 			while(0);\
 		__result;})
+		
+#define PushLuaTabRef(LUASTATE,TABREF)\
+        do{\
+            lua_rawgeti((TABREF).L,LUA_REGISTRYINDEX,(TABREF).rindex);\
+            if(LUASTATE != (TABREF).L){\
+                lua_xmove((TABREF).L,LUASTATE,1);\
+            }\
+        }while(0)		
 														
 /*
 #define PUSH_TABLE1(LUASTATE,VAL1)\

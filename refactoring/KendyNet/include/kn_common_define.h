@@ -26,8 +26,7 @@ typedef struct
 #define likely(x) __builtin_expect(!!(x), 1)  
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
-static inline int32_t is_pow2(uint32_t size)
-{
+static inline int32_t is_pow2(uint32_t size){
 	return !(size&(size-1));
 }
 
