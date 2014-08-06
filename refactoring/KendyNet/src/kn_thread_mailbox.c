@@ -107,7 +107,7 @@ static void on_events_fair(handle_t h,int events){
 			UNLOCK(mailbox->mtx);
 			break;
 		}
-		while(TEMP_FAILURE_RETRY(read(mailbox->notifyfd,buf,4096)) > 0);
+		while(TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,buf,4096)) > 0);
 		mailbox->wait = 1;
 		UNLOCK(mailbox->mtx);	
 	}while(0);
@@ -127,7 +127,7 @@ static inline  struct mail* kn_getmail(kn_thread_mailbox *mailbox){
 	if(mail) return mail;
 	LOCK(mailbox->mtx);
 	if(!kn_list_size(&mailbox->global_queue)){
-		while(TEMP_FAILURE_RETRY(read(mailbox->notifyfd,buf,4096)) > 0);
+		while(TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,buf,4096)) > 0);
 		mailbox->wait = 1;
 		UNLOCK(mailbox->mtx);
 		return NULL;
