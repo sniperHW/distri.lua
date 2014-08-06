@@ -135,6 +135,7 @@ static inline void do_write_copy(wpacket_t w)
     if(packet_buf(w)) buffer_release(packet_buf(w));
     if(w->writebuf) buffer_release(w->writebuf);
     packet_buf(w) = tmp;
+    w->len = (uint32_t*)packet_buf(w)->buf;
     w->writebuf = buffer_acquire(NULL,packet_buf(w));
 }
 

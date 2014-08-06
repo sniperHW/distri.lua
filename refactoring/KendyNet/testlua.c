@@ -103,7 +103,7 @@ int main(){
 		printf("call none:%s\n",err);
 	}	
 	
-	release_luaTabRef(tabRef);
+	release_luaTabRef(&tabRef);
 	
 	printf("------------test enum lua table-----------\n");	
 	lua_getglobal(L,"ttab2");
