@@ -1,36 +1,50 @@
 CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic 
-LDFLAGS = -lpthread -lrt -llua -lm -ldl -ltcmalloc 
+LDFLAGS = -lpthread -lrt -llua5.2 -lm -ldl -ltcmalloc 
 SHARED = -fPIC -shared
 CC = gcc
-INCLUDE = -I../KendyNet/include -I.. -I./deps
 DEFINE = -D_DEBUG -D_LINUX 
+INCLUDE = -I../KendyNet/include -I./deps -I/usr/include/lua5.2 -I../deps
+		
+test:test.c
+	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
+	
+testusrdata:testusrdata.c
+	$(CC) $(CFLAGS) -o testusrdata testusrdata.c $(LDFLAGS) $(DEFINE) 
+	
 
 kendynet.a: \
-		   ../KendyNet/src/kn_connector.c \
 		   ../KendyNet/src/kn_epoll.c \
-		   ../KendyNet/src/kn_except.c \
-		   ../KendyNet/src/kn_proactor.c \
-		   ../KendyNet/src/kn_ref.c \
-		   ../KendyNet/src/kn_acceptor.c \
-		   ../KendyNet/src/kn_fd.c \
-		   ../KendyNet/src/kn_datasocket.c \
-		   ../KendyNet/src/kendynet.c \
+		   ../KendyNet/src/kn_timerfd.c \
+		   ../KendyNet/src/kn_timer.c \
 		   ../KendyNet/src/kn_time.c \
-		   ../KendyNet/src/kn_timer.c\
-		   ../KendyNet/src/kn_thread.c\
-		   ../KendyNet/src/spinlock.c\
-		   ../KendyNet/src/lua_util.c\
-		   ../KendyNet/src/kn_timerfd.c\
-		   ../KendyNet/src/kn_channel.c
+		   ../KendyNet/src/redisconn.c\
+		   ../KendyNet/src/kn_chr_dev.c\
+		   ../KendyNet/src/kn_refobj.c \
+		   ../KendyNet/src/rpacket.c \
+		   ../KendyNet/src/wpacket.c \
+		   ../KendyNet/src/packet.c \
+		   ../KendyNet/src/kn_socket.c \
+		   ../KendyNet/src/kn_refobj.c \
+		   ../KendyNet/src/stream_conn.c \
+		   ../KendyNet/src/kn_thread.c \
+		   ../KendyNet/src/kn_thread_mailbox.c \
+		   ../KendyNet/src/hash_map.c \
+		   ../KendyNet/src/kn_except.c \
+		   ../KendyNet/src/lookup8.c \
+		   ../KendyNet/src/spinlock.c \
+		   ../KendyNet/src/log.c \
+		   ../KendyNet/src/kn_string.c \
+		   ../KendyNet/src/minheap.c \
+		   ../KendyNet/src/tls.c \
+		   ../KendyNet/src/rbtree.c \
+		   ../KendyNet/src/buffer.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o
-	rm -f *.o
+	rm -f *.o	 
 
-cjson.so:
-	cp deps/lua-cjson-2.1.0/cjson.so .
-		
-distri:src/distri.c kendynet.a cjson.so
-	$(CC) $(CFLAGS) -o distri src/distri.c kendynet.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) 
-
-	
+distrilua:kendynet.a\
+		   src/luasocket.h\
+		   src/luasocket.c\
+		   src/distri.c	
+		$(CC) $(CFLAGS) -o distrilua src/distri.c src/luasocket.c kendynet.a ./deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	

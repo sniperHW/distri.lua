@@ -1,47 +1,4 @@
-#include "kendynet.h"
-#include "lua_util.h"
-#include "luasocket.h"
-
-__thread engine_t g_engine = NULL;
-
-static void sig_int(int sig){
-	kn_stop_engine(g_engine);
-}
-
-static void start(lua_State *L,const char *start_file)
-{	
-	if (luaL_dofile(L,start_file)) {
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("%s\n",error);
-	}
-	kn_engine_run(g_engine);		
-}
-
-int main(int argc,char **argv)
-{
-	if(argc < 2){
-		printf("usage distrilua luafile\n");
-		return 0;
-	}
-	lua_State *L = luaL_newstate();
-	luaL_openlibs(L);
-    signal(SIGINT,sig_int);
-    signal(SIGPIPE,SIG_IGN);	
-	reg_luasocket(L);
-	g_engine = kn_new_engine();
-	start(L,argv[1]);
-	luaL_loadstring(L,"collectgarbage(collect)");
-	if(0 != lua_pcall(L,0,0,0)){
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("%s\n",error);
-	}
-	return 0;
-} 
-
-
-/*#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include "lua/lua_util.h"
@@ -67,6 +24,12 @@ static int           recv_count = 0;
 static void sig_int(int sig){
 	recv_sigint = 1;
 }
+
+/*enum{
+	lua_socket_close = 1,
+	lua_socket_writeclose,
+	lua_socket_waitclose,//等send_list中的数据发送完成自动close
+};*/
 
 typedef struct bytebuffer{
 	struct bytebuffer *next;
@@ -328,7 +291,7 @@ static void luasocket_post_send(lua_data_socket_t l){
 		sendbuf *buf = (sendbuf*)kn_list_head(&l->send_list);
 		int size = 0;
 		int send_size = 0;
-		while(c < MAX_WSEND_SIZE && buf){
+		while(c < MAX_WSEND_SIZE && buf/* && send_size < MAX_BUFSIZE*/){
 			l->wsendbuf[c].iov_base = buf->buf + buf->index;
 			l->wsendbuf[c].iov_len  = buf->size;
 			send_size += size;
@@ -909,4 +872,3 @@ int main(int argc,char **argv)
 	//lua_close(g_L);		
 	return 0;
 } 
-*/

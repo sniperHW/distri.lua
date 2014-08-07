@@ -1,27 +1,26 @@
 local Socket = require "lua/socket"
-local Tcp = require "lua/tcp"
 
-function on_data(s,data,err)
-	if not data then
-		--print("a client disconnected")
-		Socket.Close(s)
-	else
-		Tcp.Send(s,data)
-		--Socket.Close(s)
-	end
+
+local socket = Socket.new(luasocket.AF_INET,luasocket.SOCK_STREAM,luasocket.IPPROTO_TCP)
+
+local function on_packet(client,packet)
+	client:send(packet)
 end
 
-function on_newclient(s)
-	--print("on_newclient")
-	if not Socket.Bind(s,on_data)then
-		print("bind error")
-		Socket.Close(s)
-	end
+local function on_disconnected(client,err)
+	print("client disconnected")
 end
 
-print("server listen on 127.0.0.1 8010")
-Tcp.Listen4({ip="127.0.0.1",port=8010},on_newclient)
+local function on_new_client(client)
+	client:set_packet_callback(on_packet)
+	client:set_disconn_callback(on_disconnected)
+	client:establish(4096)
+end
 
+local err = socket:listen("127.0.0.1",8010,on_new_client) 
+if not err then
+	print("server listen on 127.0.0.1 8010")
+end
 
 
 

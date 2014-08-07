@@ -1,73 +1,91 @@
-local cjson = require "cjson"
-local Que =  require "lua/queue"
-local Sche = require "lua/scheduler"
+local socket = {}
 
-local NET_DATA = 1
-local ACCEPT_CALLBACK = 2
-local CONNECT_CALLBACK = 3
+function socket:new1(domain,type,protocal)
+  o = {}
+  self.__index = self      
+  setmetatable(o,self)
+  o.luasocket = luasocket.new1(o,domain,type,protocal)
+  if not o.luasocket then
+		return nil
+  else
+		return o
+  end
+end
 
-local msgque = Que.Queue()
-local lp_wait_on_msgque =  Que.Queue() --阻塞在提取msg上的light process
-
-local function Quepush(ele)
-	msgque:push(ele)
-	local lp = lp_wait_on_msgque:pop()
-	if lp then
-		Sche.Schedule(lp)
-		--Sche.WakeUp(lp)
+function socket:close()
+	if self.luasocket then
+		luasocket.close(self.luasocket)
+		self.luasocket = nil
 	end
 end
 
-local function quepop()
-	local lp = Sche.GetCurrentLightProcess()
-	local ele = msgque:pop()
-	while not ele do
-		lp_wait_on_msgque:push(lp)
-		Sche.Block()
-		ele = msgque:pop()
+function socket:connect(ip,port,callback)
+	self.on_connect = callback
+	return luasocket.connect(self.luasocket,ip,port)
+end
+
+function socket:listen(ip,port,callback)
+	self.on_new_conn = callback
+	return luasocket.listen(self.luasocket,ip,port)
+end
+
+function socket:set_packet_callback(callback)
+	self.on_packet = callback
+end
+
+function socket:set_disconn_callback(callback)
+	self.on_disconnected = callback
+end
+
+function socket:establish(max_packet_size)
+	if self.luasocket then
+		return luasocket.establish(self.luasocket,max_packet_size)
+	else
+		return "invaild socket"
 	end
-	return ele	
 end
 
-
-local function Close(socket)
-	C.close(socket)
+function socket:send(packet)
+	if self.luasocket then
+		return luasocket.send(self.luasocket,packet)
+	else
+		return "invaild socket"
+	end
+end
+--供C直接回调
+function socket:__on_packet(packet)
+	if self.on_packet then
+		self.on_packet(self,packet)
+	end
 end
 
-for i=1,8192 do
-	Sche.Spawn(
-		function() 
-			while true do
-				local msg = quepop()
-				local type = msg[1]
-				if type == NET_DATA then
-					msg[2](msg[3],msg[4],msg[5])
-					C.socket_subref(msg[3])
-				elseif type == ACCEPT_CALLBACK then
-					msg[2](msg[3])
-				elseif type == CONNECT_CALLBACK then
-					msg[2](msg[3],msg[4],msg[5])
-				end
-			end	
-		end		
-	  )
-end	
+function socket:__cb_connect(errno)
+	if self.cb_connect then
+		self.cb_connect(self,errno)
+	end
+end
 
-local function Bind(socket,ondata)
-	return C.bind(socket,{recvfinish = function (s,data,err)
-									if data then data = cjson.decode(data) end
-										--ondata(s,data,err)
-										C.socket_addref(s)					
-										Quepush({NET_DATA,ondata,s,data,err})
-										--Sche.Schedule()
-								  end})
+function socket:__on_disconnected(errno)
+	if self.on_disconnected then
+		self.on_disconnected(self,errno)
+	end	
+end
+
+function socket:new2(sock)
+  o = {}
+  self.__index = self          
+  setmetatable(o, self)
+  o.luasocket = luasocket.new2(o,sock)
+  return o	
+end
+
+function socket:__on_new_conn(sock)
+	if self.on_new_conn then
+		local s = socket:new2(sock)
+		self.on_new_conn(s)
+	end
 end
 
 return {
-	Close = Close,
-	Bind = Bind,
-	Quepush = Quepush,
-	NET_DATA = NET_DATA,
-	ACCEPT_CALLBACK = ACCEPT_CALLBACK,
-	CONNECT_CALLBACK = CONNECT_CALLBACK	
+	new = function (domain,type,protocal) return socket:new1(domain,type,protocal) end
 }
