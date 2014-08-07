@@ -1,9 +1,13 @@
 local socket = {}
 
-function socket:new1(domain,type,porotocal)
+function socket:new1(domain,type,protocal)
   o = {}   
   setmetatable(o, self)
   self.__index = self
+  self.__gc = function () print("gc") end
+  print(domain)
+  print(type)
+  print(protocal)
   o.luasocket = luasocket.new1(o,domain,type,protocal)
   if not o.luasocket then
 		return nil
@@ -19,12 +23,14 @@ function socket:close()
 	end
 end
 
-function socket:connect(callback)
+function socket:connect(ip,port,callback)
 	self.on_connect = callback
+	return luasocket.connect(self.luasocket,ip,port)
 end
 
-function socket:listen(callback)
+function socket:listen(ip,port,callback)
 	self.on_new_conn = callback
+	return luasocket.listen(self.luasocket,ip,port)
 end
 
 function socket:set_packet_callback(callback)
@@ -73,6 +79,7 @@ function socket:new2(sock)
   o = {}   
   setmetatable(o, self)
   self.__index = self
+  self.__gc = function () print("gc") end  
   o.luasocket = luasocket.new2(o,sock)
   return o	
 end

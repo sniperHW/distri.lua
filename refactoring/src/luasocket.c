@@ -1,9 +1,7 @@
-#include "luasocket.h"
+#include "kendynet.h"
 #include "stream_conn.h"
-
-__thread engine_t g_engine;
-
-
+#include "luasocket.h"
+extern __thread engine_t g_engine;
 enum{
 	_SOCKET = 1,
 	_STREAM_CONN = 2,
@@ -114,9 +112,8 @@ static int luasocket_connect(lua_State *L){
 }
 
 
-static void on_new_conn(handle_t s,void* _){
-	((void)_);
-	luasocket_t luasock = (luasocket_t)kn_sock_getud(s);
+static void on_new_conn(handle_t s,void* ud){
+	luasocket_t luasock = (luasocket_t)ud;
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char*error;
 	if((error = CallLuaTabFunc1(*obj,"__on_new_conn",0,lua_pushlightuserdata(obj->L,s)))){
@@ -132,7 +129,7 @@ static int luasocket_listen(lua_State *L){
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr local;
 	kn_addr_init_in(&local,ip,port);		
-	if(0 != kn_sock_listen(g_engine,luasock->sock,&local,on_new_conn,NULL)){
+	if(0 != kn_sock_listen(g_engine,luasock->sock,&local,on_new_conn,luasock)){
 		lua_pushstring(L,"listen error");
 	}else
 		lua_pushnil(L);
@@ -186,6 +183,7 @@ void reg_luasocket(lua_State *L){
 	REGISTER_CONST(AF_INET);
 	REGISTER_CONST(AF_INET6);
 	REGISTER_CONST(AF_LOCAL);
+	REGISTER_CONST(IPPROTO_TCP);
 	REGISTER_CONST(IPPROTO_UDP);
 	REGISTER_CONST(SOCK_STREAM);
 	REGISTER_CONST(SOCK_DGRAM);
