@@ -52,7 +52,7 @@ static int  on_packet(stream_conn_t c,packet_t p){
 	luaTabRef_t  *obj = &luasock->luaObj;	
 	const char *msg = rawpacket_data((rawpacket_t)p,NULL);
 	const char *error;
-	if((error = CallLuaTabFunc1(*obj,"__on_packet",0,lua_pushstring(obj->L,msg)))){
+	if((error = CallLuaTabFunc1(NULL,*obj,"__on_packet",0,lua_pushstring(obj->L,msg)))){
 		printf("error on __on_packet:%s\n",error);
 	}
 	return 1;	
@@ -62,7 +62,7 @@ static void on_disconnected(stream_conn_t c,int err){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char *error;
-	if((error = CallLuaTabFunc1(*obj,"__on_disconnected",0,lua_pushinteger(obj->L,err)))){
+	if((error = CallLuaTabFunc1(NULL,*obj,"__on_disconnected",0,lua_pushinteger(obj->L,err)))){
 		printf("error on __on_disconnected:%s\n",error);
 	}
 	release_luaTabRef(&luasock->luaObj);
@@ -89,7 +89,7 @@ static void cb_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	luasocket_t luasock = kn_sock_getud(s);
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char*error;
-	if((error = CallLuaTabFunc1(*obj,"__cb_connect",0,lua_pushinteger(obj->L,err)))){
+	if((error = CallLuaTabFunc1(NULL,*obj,"__cb_connect",0,lua_pushinteger(obj->L,err)))){
 		printf("error on __cb_connect:%s\n",error);
 	}
 }
@@ -116,7 +116,7 @@ static void on_new_conn(handle_t s,void* ud){
 	luasocket_t luasock = (luasocket_t)ud;
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char*error;
-	if((error = CallLuaTabFunc1(*obj,"__on_new_conn",0,lua_pushlightuserdata(obj->L,s)))){
+	if((error = CallLuaTabFunc1(NULL,*obj,"__on_new_conn",0,lua_pushlightuserdata(obj->L,s)))){
 		printf("error on __on_new_conn:%s\n",error);
 		return;
 	}	
