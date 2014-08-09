@@ -24,6 +24,7 @@ long_line_column=72
 
 [files]
 current_page=0
+FILE_NAME_0=1509;Make;0;EUTF-8;1;1;0;%2Fhome%2Fsniper%2Fgit%2Fworkspace%2Fdistri.lua%2FMakefile;0;4
 
 [VTE]
 last_dir=/home/sniper
