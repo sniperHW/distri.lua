@@ -44,7 +44,7 @@ void write_sys_log(const char *content);
 
 int32_t write_prefix(char *buf,uint8_t loglev);
 
-#define  MAX_LOG_SIZE 65536
+#define  MAX_LOG_SIZE 65535
 
 //日志格式[INFO|ERROR]yyyy-mm-dd-hh:mm:ss.ms:content
 #define LOG(LOGFILE,LOGLEV,...)\

@@ -42,7 +42,7 @@ void *comsumer(void *arg)
 
 int main()
 {	
-	mq = new_ringN_int(65536);//new_ringque_N(65536);
+	mq = new_ringN_int(65535);//new_ringque_N(65536);
 	
 	kn_thread_start_run(kn_create_thread(0),comsumer,NULL);
 	kn_thread_start_run(kn_create_thread(0),comsumer,NULL);

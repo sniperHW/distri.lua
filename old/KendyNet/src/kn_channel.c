@@ -138,7 +138,7 @@ static inline struct msg* kn_channel_getmsg(struct channel_pth *c){
 static int8_t kn_channel_process(kn_fd_t s){
 	struct channel_pth* c = (struct channel_pth*)s;
 	struct msg *msg;
-	int n = 65536;//关键参数
+	int n = 65535;//关键参数
 	while((msg = kn_channel_getmsg(c)) != NULL && n > 0){
 		c->cb_msg(c->channel->ident,msg->sender,msg->data,c->ud);
 		if(msg->fn_destroy)

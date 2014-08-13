@@ -35,7 +35,7 @@ typedef void (*CCB_RECV_TIMEOUT)(kn_stream_conn_t);
 typedef void (*CCB_SEND_TIMEOUT)(kn_stream_conn_t);
 
 #define MAX_WBAF 512
-#define MAX_SEND_SIZE 65536
+#define MAX_SEND_SIZE 65535
 struct service;
 struct kn_stream_conn
 {

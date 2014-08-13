@@ -3,14 +3,14 @@ struct session{
 	st_io send_overlap;
 	st_io recv_overlap;
 	struct iovec wbuf[1];
-	char   buf[65536];
+	char   buf[65535];
 	kn_fd_t   s;
 };
 
 void session_recv(struct session *s)
 {
 	s->wbuf[0].iov_base = s->buf;
-	s->wbuf[0].iov_len = 65536;
+	s->wbuf[0].iov_len = 65535;
 	s->recv_overlap.iovec_count = 1;
 	s->recv_overlap.iovec = s->wbuf;
 	kn_post_recv(s->s,&s->recv_overlap);

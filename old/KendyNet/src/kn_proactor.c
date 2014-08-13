@@ -1,7 +1,7 @@
 #include "kn_proactor.h"
 #include "kn_epoll.h"
 
-int kn_max_proactor_fd = 65536; 
+int kn_max_proactor_fd = 65535; 
 
 kn_proactor_t kn_new_proactor(){	
 	return (kn_proactor_t)kn_epoll_new();
