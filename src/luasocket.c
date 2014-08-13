@@ -49,10 +49,11 @@ static int luasocket_new2(lua_State *L){
 
 static int  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
-	luaTabRef_t  *obj = &luasock->luaObj;	
-	const char *msg = rawpacket_data((rawpacket_t)p,NULL);
+	luaTabRef_t  *obj = &luasock->luaObj;
+	uint32_t len;	
+	const char *msg = rawpacket_data((rawpacket_t)p,&len);
 	const char *error;
-	if((error = CallLuaTabFunc1(NULL,*obj,"__on_packet",0,lua_pushstring(obj->L,msg)))){
+	if((error = CallLuaTabFunc1(NULL,*obj,"__on_packet",0,lua_pushlstring(obj->L,msg,len)))){
 		printf("error on __on_packet:%s\n",error);
 	}
 	return 1;	
@@ -100,6 +101,16 @@ static int luasocket_connect(lua_State *L){
 		lua_pushstring(L,"invaild socket");
 		return 1;
 	}
+	
+	if(lua_check(L,2) != LUA_TSTRING){
+		lua_pushstring(L,"invalid ip");
+		return 1;
+	}
+	
+	if(lua_check(L,3) != LUA_TNUMBER){
+		lua_pushstring(L,"invalid port");
+		return 1;		
+	}
 	const char *ip = lua_tostring(L,2);
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr host;
@@ -125,6 +136,19 @@ static void on_new_conn(handle_t s,void* ud){
 
 static int luasocket_listen(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
+	if(luasock->type != _SOCKET){
+		lua_pushstring(L,"invaild socket");
+		return 1;
+	}
+		
+	if(lua_check(L,2) != LUA_TSTRING){
+		lua_pushstring(L,"invalid ip");
+		return 1;
+	}	
+	if(lua_check(L,3) != LUA_TNUMBER){
+		lua_pushstring(L,"invalid port");
+		return 1;		
+	}	
 	const char *ip = lua_tostring(L,2);
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr local;
@@ -153,10 +177,14 @@ static int luasocket_send(lua_State *L){
 	if(luasock->type != _STREAM_CONN){
 		lua_pushstring(L,"invaild socket");
 		return 1;
-	}
-	
-	const char *msg = lua_tostring(L,2);
-	rawpacket_t pk = rawpacket_create2((void*)msg,strlen(msg)+1);
+	}	
+	if(lua_type(L,2) != LUA_TSTRING){
+		lua_pushstring(L,"invaild data");
+		return 1;
+	}	
+	size_t len;
+	const char *msg = lua_tolstring(L,2,&len);
+	rawpacket_t pk = rawpacket_create2((void*)msg,(uint32_t)len);
 	if(0 != stream_conn_send(luasock->streamconn,(packet_t)pk))
 		lua_pushstring(L,"send error");
 	else
