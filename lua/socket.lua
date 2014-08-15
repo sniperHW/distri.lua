@@ -2,18 +2,21 @@ local Sche = require "lua/sche"
 local Que  = require "lua/queue"
 local socket = {}
 
+local function sock_init(sock)
+	sock.closing = false
+	sock.errno = 0
+	return sock
+end
+
 function socket:new(domain,type,protocal)
   o = {}
   self.__index = self      
   setmetatable(o,self)
   o.luasocket = luasocket.new1(o,domain,type,protocal)
-  o.closing = false
-  o.errno = 0
   if not o.luasocket then
 		return nil
-  else
-		return o
   end
+  return sock_init(o)   
 end
 
 function socket:new2(sock)
@@ -21,9 +24,7 @@ function socket:new2(sock)
   self.__index = self          
   setmetatable(o, self)
   o.luasocket = luasocket.new2(o,sock)
-  o.closing = false
-  o.errno = 0
-  return o	
+  return sock_init(o)
 end
 
 function socket:close()
@@ -60,6 +61,13 @@ end
 local function on_disconnected(self,errno)
 	self.errno = errno
 	self.closing = true
+	while self.block_noaccept and co = self.block_onaccept:pop() do
+		Sche.Schedule(co)
+	end
+	while self.block_recv and co = self.block_recv:pop() do
+		Sche.Schedule(co)
+	end	
+	--[[
 	if self.block_noaccept then
 		while true do
 			local co = self.block_onaccept:pop()
@@ -75,14 +83,12 @@ local function on_disconnected(self,errno)
 			if not co then
 				break
 			end
-			print("Sche")
 			Sche.Schedule(co)
 		end
-	end	
+	end]]--	
 	if self.connect_co then
 		Sche.Schedule(self.connect_co)
-	end
-	print("on_disconnected")		
+	end	
 end
 
 local function on_packet(self,packet)
@@ -94,6 +100,14 @@ local function on_packet(self,packet)
 	end
 end
 
+local function establish(sock,max_packet_size)
+	luasocket.establish(sock.luasocket,max_packet_size)
+	sock.isestablish = true
+	sock.__on_packet = on_packet
+	sock.__on_disconnected = on_disconnected
+	sock.packet = Que.Queue()	
+end
+
 
 function socket:accept(max_packet_size)
 	if self.closing then
@@ -102,22 +116,13 @@ function socket:accept(max_packet_size)
 
 	if not self.block_onaccept or not self.new_conn then
 		return nil,"invaild socket"
-	else
-		
-		if not max_packet_size then
-			max_packet_size = 65535		
-		end
-		
+	else	
 		while true do
 			local s = self.new_conn:pop()
 			if s then
 			    s = s[1]
 				local sock = socket:new2(s)
-				luasocket.establish(sock.luasocket,max_packet_size)
-				sock.isestablish = true
-				sock.__on_packet = on_packet
-				sock.__on_disconnected = on_disconnected
-				sock.packet = Que.Queue()
+				establish(sock,max_packet_size or 65535)
 				return sock,nil
 			else
 				local co = Sche.Running()
@@ -126,7 +131,6 @@ function socket:accept(max_packet_size)
 				end
 				self.block_onaccept:push(co)
 				Sche.Block()
-				print("wake up")
 				if  self.closing then
 					return nil,"socket close" --socket被关闭
 				end				
@@ -146,16 +150,15 @@ local function cb_connect(self,s,err)
 	Sche.Schedule(co)	
 end
 
-function socket:connect(ip,port)
+function socket:connect(ip,port,max_packet_size)
 	local ret = luasocket.connect(self.luasocket,ip,port)
 	if not ret then
 		return ret
 	else
-		local co = Sche.Running()
-		if not co then
+		self.connect_co = Sche.Running()
+		if not self.connect_co then
 			return "connect must be call in a coroutine context"
 		end
-		self.connect_co = co
 		self.___cb_connect = cb_connect
 		Sche.Block()
 		if self.closing then
@@ -163,10 +166,7 @@ function socket:connect(ip,port)
 		elseif self.err then
 			return err
 		else
-			self.isestablish = true
-			self.__on_packet = on_packet
-			self.__on_disconnected = on_disconnected
-			self.packet = Que.Queue()		
+			establish(self,max_packet_size or 65535)	
 			return nil
 		end					
 	end
