@@ -69,7 +69,6 @@ local function on_disconnected(self,errno)
 		else
 			self.block_noaccept = nil
 		end
-		Sche.Schedule(co)
 	end
 
 	while self.block_recv do
