@@ -59,7 +59,6 @@ local function Block(ms)
         else
             sche.timer:Change(co)
         end
-        print(co.index)
     end
     co.status = stat_block
     coroutine.yield(co.coroutine)

@@ -28,7 +28,7 @@ int main(int argc,char **argv){
 	int i = 0;
 	send_size = atoi(argv[4]);
 	for(; i < client_count; ++i){
-		kn_asyn_connect(p,SOCK_STREAM,NULL,&remote,on_connect,(void*)p,30000);
+		kn_asyn_connect(p,SOCK_STREAM,NULL,&remote,on_connect,(void*)p);
 	} 
 	while(1){
 		kn_proactor_run(p,50);

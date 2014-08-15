@@ -2,7 +2,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing -std=gnu99
 LDFLAGS = -lpthread -lrt -lm -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE =  -I./include -I./
+INCLUDE =  -I./include -I./ -I../../deps/
 
 kendynet.a: \
 		   src/kn_connector.c \

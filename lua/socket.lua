@@ -86,7 +86,6 @@ local function on_disconnected(self,errno)
 end
 
 local function on_packet(self,packet)
-	print("on_packet")
 	self.packet:push({packet})
 	local co = self.block_recv:pop()
 	if co then
@@ -195,7 +194,6 @@ function socket:recv(timeout)
 		self.block_recv:push(co)
 		
 		if timeout then
-			print("timeout")
 			self.timeout = timeout
 		end
 		Sche.Block(timeout)		
