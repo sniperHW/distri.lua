@@ -61,31 +61,26 @@ end
 local function on_disconnected(self,errno)
 	self.errno = errno
 	self.closing = true
-	while self.block_noaccept and co = self.block_onaccept:pop() do
+	local co
+	while self.block_noaccept do
+		co = self.block_onaccept:pop()
+		if co then
+			Sche.Schedule(co)
+		else
+			self.block_noaccept = nil
+		end
 		Sche.Schedule(co)
 	end
-	while self.block_recv and co = self.block_recv:pop() do
-		Sche.Schedule(co)
-	end	
-	--[[
-	if self.block_noaccept then
-		while true do
-			local co = self.block_onaccept:pop()
-			if not co then
-				break
-			end
-			Sche.Schedule(co)
+
+	while self.block_recv do
+		co = self.block_recv:pop()
+		if co then
+			Sche.Schedule(co) 
+		else
+			self.block_recv = nil
 		end
 	end
-	if self.block_recv then	
-		while true do
-			local co = self.block_recv:pop()
-			if not co then
-				break
-			end
-			Sche.Schedule(co)
-		end
-	end]]--	
+	
 	if self.connect_co then
 		Sche.Schedule(self.connect_co)
 	end	
