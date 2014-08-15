@@ -43,8 +43,14 @@ kendynet.a: \
 	rm -f *.o	 
 
 distrilua:kendynet.a\
-		   src/luasocket.h\
-		   src/luasocket.c\
-		   src/distri.c	
-		$(CC) $(CFLAGS) -o distrilua src/distri.c src/luasocket.c kendynet.a ./deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	
+		  event_version/src/luasocket.h\
+		  event_version/src/luasocket.c\
+		  event_version/src/distri.c	
+		$(CC) $(CFLAGS) -o distrilua event_version/src/distri.c event_version/src/luasocket.c kendynet.a ./deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		
+distrilua2:kendynet.a\
+		   coroutine_version/src/luasocket.h\
+		   coroutine_version/src/luasocket.c\
+		   coroutine_version/src/distri.c	
+		$(CC) $(CFLAGS) -o distrilua2 coroutine_version/src/distri.c coroutine_version/src/luasocket.c kendynet.a ./deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)		
+	    mv distrilua2 coroutine_version

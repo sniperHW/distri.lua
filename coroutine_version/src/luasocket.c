@@ -2,6 +2,7 @@
 #include "stream_conn.h"
 #include "luasocket.h"
 extern __thread engine_t g_engine;
+static __thread lua_State *g_L;
 enum{
 	_SOCKET = 1,
 	_STREAM_CONN = 2,
@@ -13,7 +14,6 @@ typedef struct {
 	int           type;
 	luaTabRef_t   luaObj;	
 }*luasocket_t;
-
 
 static int luasocket_new1(lua_State *L){
 	luaTabRef_t obj = create_luaTabRef(L,1);
@@ -53,7 +53,7 @@ static int  on_packet(stream_conn_t c,packet_t p){
 	uint32_t len;	
 	const char *msg = rawpacket_data((rawpacket_t)p,&len);
 	const char *error;
-	if((error = CallLuaTabFunc1(NULL,*obj,"__on_packet",0,lua_pushlstring(obj->L,msg,len)))){
+	if((error = CallLuaTabFunc1(g_L,*obj,"__on_packet",0,lua_pushlstring(g_L,msg,len)))){
 		printf("error on __on_packet:%s\n",error);
 	}
 	return 1;	
@@ -63,7 +63,7 @@ static void on_disconnected(stream_conn_t c,int err){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char *error;
-	if((error = CallLuaTabFunc1(NULL,*obj,"__on_disconnected",0,lua_pushinteger(obj->L,err)))){
+	if((error = CallLuaTabFunc1(g_L,*obj,"__on_disconnected",0,lua_pushinteger(g_L,err)))){
 		printf("error on __on_disconnected:%s\n",error);
 	}
 	release_luaTabRef(&luasock->luaObj);
@@ -90,7 +90,7 @@ static void cb_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	luasocket_t luasock = kn_sock_getud(s);
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char*error;
-	if((error = CallLuaTabFunc1(NULL,*obj,"__cb_connect",0,lua_pushinteger(obj->L,err)))){
+	if((error = CallLuaTabFunc1(g_L,*obj,"__cb_connect",0,lua_pushinteger(g_L,err)))){
 		printf("error on __cb_connect:%s\n",error);
 	}
 }
@@ -102,12 +102,12 @@ static int luasocket_connect(lua_State *L){
 		return 1;
 	}
 	
-	if(lua_check(L,2) != LUA_TSTRING){
+	if(!luaL_checkstring(L,2)){
 		lua_pushstring(L,"invalid ip");
 		return 1;
 	}
 	
-	if(lua_check(L,3) != LUA_TNUMBER){
+	if(!luaL_checkunsigned(L,3)){
 		lua_pushstring(L,"invalid port");
 		return 1;		
 	}
@@ -127,8 +127,8 @@ static void on_new_conn(handle_t s,void* ud){
 	luasocket_t luasock = (luasocket_t)ud;
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char*error;
-	if((error = CallLuaTabFunc1(NULL,*obj,"__on_new_conn",0,lua_pushlightuserdata(obj->L,s)))){
-		printf("error on __on_new_conn:%s\n",error);
+	if((error = CallLuaTabFunc1(g_L,*obj,"__on_new_connection",0,lua_pushlightuserdata(g_L,s)))){
+		printf("error on __on_new_connection:%s\n",error);
 		return;
 	}	
 }
@@ -141,11 +141,11 @@ static int luasocket_listen(lua_State *L){
 		return 1;
 	}
 		
-	if(lua_check(L,2) != LUA_TSTRING){
+	if(!luaL_checkstring(L,2)){
 		lua_pushstring(L,"invalid ip");
 		return 1;
 	}	
-	if(lua_check(L,3) != LUA_TNUMBER){
+	if(!luaL_checkunsigned(L,3)){
 		lua_pushstring(L,"invalid port");
 		return 1;		
 	}	
@@ -224,6 +224,7 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
 	lua_setglobal(L,"luasocket");
+	g_L = L;
 }
 
 
