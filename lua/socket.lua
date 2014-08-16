@@ -36,11 +36,11 @@ function socket:close()
 end
 
 local function on_new_conn(self,sock)
-	print("on_new_conn")
+	--print("on_new_conn")
 	self.new_conn:push({sock})	
 	local co = self.block_onaccept:pop()
 	if co then
-		print(co.identity)
+		--print(co.identity)
 		Sche.Schedule(co)
 	end
 end
@@ -95,10 +95,11 @@ local function on_packet(self,packet)
 end
 
 local function establish(sock,max_packet_size)
-	luasocket.establish(sock.luasocket,max_packet_size)
 	sock.isestablish = true
 	sock.__on_packet = on_packet
 	sock.__on_disconnected = on_disconnected
+	sock.block_recv = Que.Queue()	
+	luasocket.establish(sock.luasocket,max_packet_size)
 	sock.packet = Que.Queue()	
 end
 
@@ -172,9 +173,6 @@ function socket:recv(timeout)
 		return nil,"socket close"	
 	elseif not self.isestablish then
 		return nil,"invaild socket"
-	end
-	if not self.block_recv then
-		self.block_recv = Que.Queue()
 	end
 	while true do
 		local packet = self.packet:pop()

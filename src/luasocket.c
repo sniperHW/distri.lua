@@ -1,6 +1,8 @@
 #include "kendynet.h"
 #include "stream_conn.h"
 #include "luasocket.h"
+#include "luabytebuffer.h"
+
 extern __thread engine_t g_engine;
 static __thread lua_State *g_L;
 enum{
@@ -172,24 +174,34 @@ static int luasocket_close(lua_State *L){
 	return 0;
 }
 
+inline static lua_bytebuffer_t lua_getbytebuffer(lua_State *L, int index) {
+    return (lua_bytebuffer_t)luaL_testudata(L, index, BYTEBUFFER_METATABLE);
+}
 static int luasocket_send(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type != _STREAM_CONN){
 		lua_pushstring(L,"invaild socket");
 		return 1;
 	}	
-	if(lua_type(L,2) != LUA_TSTRING){
-		lua_pushstring(L,"invaild data");
-		return 1;
-	}	
-	size_t len;
-	const char *msg = lua_tolstring(L,2,&len);
-	rawpacket_t pk = rawpacket_create2((void*)msg,(uint32_t)len);
+	rawpacket_t pk;
+	if(lua_type(L,2) == LUA_TSTRING){
+		size_t len;
+		const char *msg = lua_tolstring(L,2,&len);
+		pk = rawpacket_create2((void*)msg,(uint32_t)len);
+	}else{
+		lua_bytebuffer_t bbuffer = lua_getbytebuffer(L,2);
+		if(!bbuffer){
+			lua_pushstring(L,"invaild data");
+			return 1;			
+		}else{
+			pk = rawpacket_create1(bbuffer->raw_buffer,0,bbuffer->raw_buffer->size);
+		}
+	}
 	if(0 != stream_conn_send(luasock->streamconn,(packet_t)pk))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);
-	return 1;	
+	return 1;
 }
 
 
@@ -224,6 +236,7 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
 	lua_setglobal(L,"luasocket");
+	reg_luabytebuffer(L);	
 	g_L = L;
 }
 

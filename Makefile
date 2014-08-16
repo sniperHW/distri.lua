@@ -51,5 +51,7 @@ distrilua_ev:kendynet.a\
 distrilua:kendynet.a\
 		  src/luasocket.h\
 		  src/luasocket.c\
+		  src/luabytebuffer.h\
+		  src/luabytebuffer.c\
 		  src/distri.c	
-		$(CC) $(CFLAGS) -o distrilua src/distri.c src/luasocket.c kendynet.a deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		$(CC) $(CFLAGS) -o distrilua src/distri.c src/luasocket.c src/luabytebuffer.c kendynet.a deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)

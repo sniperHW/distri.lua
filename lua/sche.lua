@@ -140,7 +140,7 @@ local function gen_identity()
 end
 
 local function Spawn(func,...)
-	print("Spawn")
+	--print("Spawn")
     local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
     co.coroutine = coroutine.create(start_fun)
     if not sche.mainco then
