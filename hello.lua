@@ -29,43 +29,32 @@ end)
 while true do
 	local client = server:accept()
 	sche.Spawn(function ()	
-		local unpack_buffer = bytebuffer.bytebuffer(65535)
-		local buf_size = 0
+		local decoder = Packet.RPacketDecoder(65535)
 		while true do
-			local packet,err = client:recv()
+			local data,err = client:recv()
 			if err then
 				print("client disconnected err:" .. err)			
 				client:close()
 				return
 			end
-			local len = string.len(packet)
-			if buf_size + len > 65535 then
-				print("close here a:" .. buf_size + len)
+			if decoder:putdata(data) then
+				print("decoder:put error")
 				client:close()
-				return
-			end						
-			unpack_buffer:write_raw(buf_size,packet)
-			buf_size = buf_size + len
-			if buf_size >= 4 then
-				local packet_len = unpack_buffer:read_uint32(0)
-				packet_len = packet_len + 4 --加上包头字段
-				if packet_len > 65535 then
-					print("buff_size:" .. buf_size)
-					print("close here b:" .. packet_len)
+				return;
+			end
+			
+			while true do
+				local rpacket,err = decoder:unpack()
+				if err then
+					print("unpack error:" .. err)
 					client:close()
-					return				
-				end							
-				if packet_len <= buf_size then
-					--有完整的包
-					buf_size = buf_size - packet_len
-					if buf_size > 0 then
-						--调整unpack_buffer中的数据
-						unpack_buffer:move(packet_len,buf_size)
-					end
-					local rpacket = Packet.RPacket(bytebuffer.bytebuffer(unpack_buffer:read_raw(0,packet_len)))
-					count = count + 1
-					client:send(rpacket.bytebuffer)
+					return
 				end
+				if not rpacket then
+					break
+				end
+				count = count + 1
+				client:send(rpacket.bytebuffer)			
 			end
 		end
 	end)

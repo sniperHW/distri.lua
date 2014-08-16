@@ -108,6 +108,46 @@ function rpacket:size()
 	return self.len
 end
 
+local Decoder = {}
+function Decoder:new(maxpacket_size)
+	  o = {}
+	  self.__index = self      
+	  setmetatable(o,self)
+	  o.maxpacket_size = maxpacket_size
+	  o.buffer = bytebuffer.bytebuffer(maxpacket_size)
+	  o.datasize = 0
+	  return o
+end
+
+function Decoder:putdata(data)
+	local len = string.len(data)
+	if self.datasize + len > self.maxpacket_size then
+		return "packet too big"
+	end
+	self.buffer:write_raw(self.datasize,data)
+	self.datasize = self.datasize + len
+	return nil
+end
+
+function Decoder:unpack()
+	if self.datasize >= 4 then
+		local packet_len = self.buffer:read_uint32(0) + 4 --加上包头大小
+		if packet_len > self.maxpacket_size then
+			return nil,"packet too big"
+		elseif packet_len <= self.datasize then
+			--有完整的包
+			self.datasize = self.datasize - packet_len
+			if self.datasize > 0 then
+				--调整unpack_buffer中的数据
+				self.buffer:move(packet_len,self.datasize)
+			end
+			return rpacket:new(bytebuffer.bytebuffer(self.buffer:read_raw(0,packet_len))),nil			
+		end		
+	else
+		return nil,nil
+	end
+end
+
 local wpacket = {}
 
 function wpacket:new(data)
@@ -185,7 +225,8 @@ end
 return {
 	RawPacket = function (...) return rawpacket:new(...) end,
 	RPacket = function (...) return rpacket:new(...) end,
-	WPacket = function (...) return wpacket:new(...) end,		
+	WPacket = function (...) return wpacket:new(...) end,
+	RPacketDecoder = function (maxpacket_size) return Decoder:new(maxpacket_size) end,		
 }
 
 
