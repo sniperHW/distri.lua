@@ -2,34 +2,19 @@ local socket = require "lua/socket"
 local sche = require "lua/sche"
 local Packet = require "lua/packet"
 
-local server = socket.new(luasocket.AF_INET,luasocket.SOCK_STREAM,luasocket.IPPROTO_TCP)
-if not server:listen("127.0.0.1",8000) then
-		print("server listen on 127.0.0.1 8000")
-else
-	print("create server on 127.0.0.1 8000 error")
-	return
-end
-
-local count = 0
-
-sche.Spawn(function ()
-	local tick = GetSysTick()
-	local now = GetSysTick()
-	while true do 
-		now = GetSysTick()
-		if now - tick >= 1000 then
-			print(count*1000/(now-tick) .. " " .. now-tick)
-			tick = now
-			count = 0
+for i=1,100 do
+	sche.Spawn(function () 
+		local client = socket.new(luasocket.AF_INET,luasocket.SOCK_STREAM,luasocket.IPPROTO_TCP)
+		if client:connect("127.0.0.1",8000) then
+			print("connect to 127.0.0.1:8000 error")
+			return
 		end
-		sche.Sleep(10)
-	end
-end)
-
-while true do
-	local client = server:accept()
-	sche.Spawn(function ()	
+		
+		local wpk = Packet.WPacket(64)
+		wpk:write_string("hello")
+		client:send(wpk.bytebuffer)
 		local decoder = Packet.RPacketDecoder(65535)
+		print("connect success")
 		while true do
 			local data,err = client:recv()
 			if err then
@@ -53,11 +38,12 @@ while true do
 				if not rpacket then
 					break
 				end
-				count = count + 1
 				client:send(rpacket.bytebuffer)			
 			end
 		end
-	end)
+	end)	
 end
 
-
+while true do
+	sche.Sleep(100)
+end

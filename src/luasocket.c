@@ -92,8 +92,8 @@ static void cb_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	luasocket_t luasock = kn_sock_getud(s);
 	luaTabRef_t  *obj = &luasock->luaObj;
 	const char*error;
-	if((error = CallLuaTabFunc1(g_L,*obj,"__cb_connect",0,lua_pushinteger(g_L,err)))){
-		printf("error on __cb_connect:%s\n",error);
+	if((error = CallLuaTabFunc2(g_L,*obj,"___cb_connect",0,lua_pushlightuserdata(g_L,luasock->sock),lua_pushinteger(g_L,err)))){
+		printf("error on ___cb_connect:%s\n",error);
 	}
 }
 
@@ -121,6 +121,7 @@ static int luasocket_connect(lua_State *L){
 		lua_pushstring(L,"connect error");
 	}else
 		lua_pushnil(L);
+	kn_sock_setud(luasock->sock,luasock);
 	return 1;
 }
 
