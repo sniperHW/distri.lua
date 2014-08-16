@@ -91,13 +91,7 @@ local function Schedule(co)
 			coroutine.resume(co.coroutine,co)
 			if co.status == stat_yield then
 				table.insert(yields,co)
-			elseif co.status == stat_dead then
-			    if co == sche.mainco then
-					stop_program()
-					print("mainco dead")
-			    else
-					print("a light process dead")
-				end
+			--elseif co.status == stat_dead then
 			end
 			co = readylist:pop()
 		end
@@ -127,7 +121,7 @@ end
 local function start_fun(co)
     local _,err = pcall(co.start_func,table.unpack(co.args))
     if err then
-        print(err)
+        print("error on start_fun:" .. err)
     end
     sche.allcos[co.identity] = nil
     co.status = stat_dead
@@ -140,7 +134,6 @@ local function gen_identity()
 end
 
 local function Spawn(func,...)
-	--print("Spawn")
     local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
     co.coroutine = coroutine.create(start_fun)
     if not sche.mainco then

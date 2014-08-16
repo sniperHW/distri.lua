@@ -151,7 +151,6 @@ end
 local wpacket = {}
 
 function wpacket:new(data)
-  print(data)
   o = {}
   self.__index = self      
   setmetatable(o,self)

@@ -24,7 +24,6 @@ function socket:new2(sock)
   self.__index = self          
   setmetatable(o, self)
   o.luasocket = luasocket.new2(o,sock)
-  print(o.luasocket)
   return sock_init(o)
 end
 
@@ -37,11 +36,9 @@ function socket:close()
 end
 
 local function on_new_conn(self,sock)
-	--print("on_new_conn")
 	self.new_conn:push({sock})	
 	local co = self.block_onaccept:pop()
 	if co then
-		--print(co.identity)
 		Sche.Schedule(co)
 	end
 end
@@ -96,12 +93,10 @@ local function on_packet(self,packet)
 end
 
 local function establish(sock,max_packet_size)
-	print("establish")
 	sock.isestablish = true
 	sock.__on_packet = on_packet
 	sock.__on_disconnected = on_disconnected
 	sock.block_recv = Que.Queue()	
-	print(sock.luasocket)
 	luasocket.establish(sock.luasocket,max_packet_size)
 	sock.packet = Que.Queue()	
 end
@@ -142,8 +137,6 @@ local function cb_connect(self,s,err)
 		self.err = err
 	else
 		self.luasocket = luasocket.new2(self,s)
-		print("cb_connect")
-		print(self.luasocket)
 	end
 	local co = self.connect_co
 	self.connect_co = nil
@@ -164,7 +157,7 @@ function socket:connect(ip,port,max_packet_size)
 		if self.closing then
 			return "socket close" 
 		elseif self.err then
-			return err
+			return self.err
 		else
 			establish(self,max_packet_size or 65535)	
 			return nil

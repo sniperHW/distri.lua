@@ -2,7 +2,7 @@ local socket = require "lua/socket"
 local sche = require "lua/sche"
 local Packet = require "lua/packet"
 
-for i=1,100 do
+for i=1,1000 do
 	sche.Spawn(function () 
 		local client = socket.new(luasocket.AF_INET,luasocket.SOCK_STREAM,luasocket.IPPROTO_TCP)
 		if client:connect("127.0.0.1",8000) then
@@ -14,7 +14,6 @@ for i=1,100 do
 		wpk:write_string("hello")
 		client:send(wpk.bytebuffer)
 		local decoder = Packet.RPacketDecoder(65535)
-		print("connect success")
 		while true do
 			local data,err = client:recv()
 			if err then
