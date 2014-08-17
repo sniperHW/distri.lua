@@ -3,7 +3,7 @@ LDFLAGS = -lpthread -lrt -llua5.2 -lm -ldl -ltcmalloc
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
-INCLUDE = -I../KendyNet/include -I./deps -I/usr/include/lua5.2 -I../deps
+INCLUDE = -Ideps/KendyNet/include -Ideps -I/usr/include/lua5.2 
 		
 test:test.c
 	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
@@ -13,32 +13,32 @@ testusrdata:testusrdata.c
 	
 
 kendynet.a: \
-		   ../KendyNet/src/kn_epoll.c \
-		   ../KendyNet/src/kn_timerfd.c \
-		   ../KendyNet/src/kn_timer.c \
-		   ../KendyNet/src/kn_time.c \
-		   ../KendyNet/src/redisconn.c\
-		   ../KendyNet/src/kn_chr_dev.c\
-		   ../KendyNet/src/kn_refobj.c \
-		   ../KendyNet/src/rpacket.c \
-		   ../KendyNet/src/wpacket.c \
-		   ../KendyNet/src/packet.c \
-		   ../KendyNet/src/kn_socket.c \
-		   ../KendyNet/src/kn_refobj.c \
-		   ../KendyNet/src/stream_conn.c \
-		   ../KendyNet/src/kn_thread.c \
-		   ../KendyNet/src/kn_thread_mailbox.c \
-		   ../KendyNet/src/hash_map.c \
-		   ../KendyNet/src/kn_except.c \
-		   ../KendyNet/src/lookup8.c \
-		   ../KendyNet/src/spinlock.c \
-		   ../KendyNet/src/log.c \
-		   ../KendyNet/src/kn_string.c \
-		   ../KendyNet/src/minheap.c \
-		   ../KendyNet/src/tls.c \
-		   ../KendyNet/src/rbtree.c \
-		   ../KendyNet/src/lua_util.c \
-		   ../KendyNet/src/buffer.c
+		   deps/KendyNet/src/kn_epoll.c \
+		   deps/KendyNet/src/kn_timerfd.c \
+		   deps/KendyNet/src/kn_timer.c \
+		   deps/KendyNet/src/kn_time.c \
+		   deps/KendyNet/src/redisconn.c\
+		   deps/KendyNet/src/kn_chr_dev.c\
+		   deps/KendyNet/src/kn_refobj.c \
+		   deps/KendyNet/src/rpacket.c \
+		   deps/KendyNet/src/wpacket.c \
+		   deps/KendyNet/src/packet.c \
+		   deps/KendyNet/src/kn_socket.c \
+		   deps/KendyNet/src/kn_refobj.c \
+		   deps/KendyNet/src/stream_conn.c \
+		   deps/KendyNet/src/kn_thread.c \
+		   deps/KendyNet/src/kn_thread_mailbox.c \
+		   deps/KendyNet/src/hash_map.c \
+		   deps/KendyNet/src/kn_except.c \
+		   deps/KendyNet/src/lookup8.c \
+		   deps/KendyNet/src/spinlock.c \
+		   deps/KendyNet/src/log.c \
+		   deps/KendyNet/src/kn_string.c \
+		   deps/KendyNet/src/minheap.c \
+		   deps/KendyNet/src/tls.c \
+		   deps/KendyNet/src/rbtree.c \
+		   deps/KendyNet/src/lua_util.c \
+		   deps/KendyNet/src/buffer.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o
 	rm -f *.o	 
