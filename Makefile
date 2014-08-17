@@ -37,6 +37,7 @@ kendynet.a: \
 		   ../KendyNet/src/minheap.c \
 		   ../KendyNet/src/tls.c \
 		   ../KendyNet/src/rbtree.c \
+		   ../KendyNet/src/lua_util.c \
 		   ../KendyNet/src/buffer.c
 		   $(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 	ar -rc kendynet.a *.o

@@ -12,9 +12,10 @@ static void sig_int(int sig){
 
 static int  cb_timer(kn_timer_t timer)
 {
-	luaFuncRef_t *Schedule = (luaFuncRef_t*)kn_timer_getud(timer);
+	luaRef_t *Schedule = (luaRef_t*)kn_timer_getud(timer);
 	const char *err;
-	if((err = CallLuaFuncRef0(NULL,*Schedule,0))){
+	err = LuaCallRefFunc(*Schedule,NULL);
+	if(err){
 		printf("lua error0:%s\n",err);
 	}
 	return 1;
@@ -41,15 +42,16 @@ static void start(lua_State *L,const char *start_file)
 		if err then print(err) end\
 		Sche.Spawn(function () main() end)\
 		Sche.Schedule() return Sche.Schedule",start_file);
-	    luaL_loadstring(L,buf);
-	if(0 != lua_pcall(L,0,1,0)){
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
+	int oldtop = lua_gettop(L);
+	luaL_loadstring(L,buf);
+	luaRef_t *Schedule = calloc(1,sizeof(*Schedule));
+	const char *error = luacall(L,":r",Schedule);
+	if(error){
+		lua_settop(L,oldtop);
 		printf("%s\n",error);
+		return;
 	}
-	
-	luaFuncRef_t *Schedule = calloc(1,sizeof(*Schedule)); 
-	*Schedule = create_luaFuncRef(L,-1);	
+	lua_settop(L,oldtop);
 	kn_reg_timer(g_engine,1,cb_timer,Schedule);	
 	kn_engine_run(g_engine);		
 }
@@ -70,11 +72,5 @@ int main(int argc,char **argv)
 	reg_luasocket(L);
 	g_engine = kn_new_engine();
 	start(L,argv[1]);
-	luaL_loadstring(L,"collectgarbage(collect)");
-	if(0 != lua_pcall(L,0,0,0)){
-		const char * error = lua_tostring(L, -1);
-		lua_pop(L,1);
-		printf("%s\n",error);
-	}
 	return 0;
 } 
