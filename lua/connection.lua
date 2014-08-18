@@ -38,6 +38,7 @@ function connection:recv()
 end
 
 function connection:close()
+	--唤醒所有等待响应的rpc调用
 	self.sock:close()
 end
 

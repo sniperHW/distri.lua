@@ -104,6 +104,30 @@ function rpacket:read_string()
 	 return val
 end
 
+function rpacket:peek_uint8()
+	 if self.data_remain < 1 then
+		return nil
+	 end
+	 local val = self.bytebuffer:read_uint8(self.ridx)
+	 return val
+end
+
+function rpacket:peek_uint16()
+	 if self.data_remain < 1 then
+		return nil
+	 end
+	 local val = self.bytebuffer:read_uint16(self.ridx)
+	 return val
+end
+
+function rpacket:peek_uint32()
+	 if self.data_remain < 1 then
+		return nil
+	 end
+	 local val = self.bytebuffer:read_uint16(self.ridx)
+	 return val
+end
+
 function rpacket:size()
 	return self.len
 end
