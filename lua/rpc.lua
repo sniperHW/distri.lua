@@ -29,7 +29,7 @@ local function RPC_Process_Call(conn,rpk)
 	if not func then
 		response.err = funname .. "not found"
 	else
-		response.ret = table.pack(func(table.unpack(rpk.arg)))
+		response.ret = {func(table.unpack(rpk.arg))}
 	end
 	local wpk = Packet.WPacket(512)
 	wpk:write_uint32(CMD_RPC_RESP)
@@ -42,7 +42,7 @@ local function RPC_Process_Response(conn,rpk)
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then
 		co.response = response
-		conn.pending_prc[co] = nil
+		conn.pending_prc[co.identity] = nil
 		Sche.Schedule(co)
 	end
 end
@@ -59,7 +59,24 @@ function rpcCaller:new(conn,funcname)
 end
 
 function rpcCaller:Call(...)
-	
+	local request = {}
+	local co = Sche.Running()
+	request.f = self.funcname
+	request.co = co.identity
+	request.arg = {...}
+	local wpk = Packet.WPacket(512)
+	wpk:write_uint32(CMD_RPC_CALL)
+	wpk:write_string(cjson.encode(request))
+	local ret = conn:send(wpk)
+	if ret then
+		return ret
+	else
+		conn.pending_prc[co.identity]  = co
+		Sche.Block()
+		local response = co.response
+		co.response = nil
+		return response.err,table.unpack(response.ret)
+	end	
 end
 
 local function RPC_MakeCaller(conn,funcname)
@@ -70,6 +87,7 @@ return {
 	RPCServer = RPCServer,
 	RPC_Process_Call = RPC_Process_Call,
 	RPC_Process_Response = RPC_Process_Response,
+	RPC_MakeCaller = RPC_MakeCaller,
 	CMD_RPC_CALL =  CMD_RPC_CALL,
 	CMD_RPC_RESP =  CMD_RPC_RESP,
 }
