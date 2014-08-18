@@ -268,6 +268,6 @@ void reg_luabytebuffer(lua_State *L){
         {NULL, NULL}
     };
     luaL_newlib(L, l);
-	lua_setglobal(L,"bytebuffer");    	
+	lua_setglobal(L,"CBuffer");    	
 }
 

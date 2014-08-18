@@ -5,7 +5,7 @@ function rawpacket:new(data)
 	  self.__index = self      
 	  setmetatable(o,self)
 	  if type(data) == "string" then
-			o.bytebuffer = bytebuffer.bytebuffer(data)
+			o.bytebuffer = CBuffer.bytebuffer(data)
 	  elseif type(data) == "userdata" then 
 			o.bytebuffer = data
 	  else
@@ -114,7 +114,7 @@ function Decoder:new(maxpacket_size)
 	  self.__index = self      
 	  setmetatable(o,self)
 	  o.maxpacket_size = maxpacket_size
-	  o.buffer = bytebuffer.bytebuffer(maxpacket_size)
+	  o.buffer = CBuffer.bytebuffer(maxpacket_size)
 	  o.datasize = 0
 	  return o
 end
@@ -141,7 +141,7 @@ function Decoder:unpack()
 				--调整unpack_buffer中的数据
 				self.buffer:move(packet_len,self.datasize)
 			end
-			return rpacket:new(bytebuffer.bytebuffer(self.buffer:read_raw(0,packet_len))),nil			
+			return rpacket:new(CBuffer.bytebuffer(self.buffer:read_raw(0,packet_len))),nil			
 		end		
 	else
 		return nil,nil
@@ -155,7 +155,7 @@ function wpacket:new(data)
   self.__index = self      
   setmetatable(o,self)
   if type(data) == "number" then
-		o.bytebuffer = bytebuffer.bytebuffer(data)
+		o.bytebuffer = CBuffer.bytebuffer(data)
 		o.datasize = 4
    elseif type(data) == "userdata" then 
 		o.bytebuffer = data

@@ -250,7 +250,7 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("send",luasocket_send);
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
-	lua_setglobal(L,"luasocket");
+	lua_setglobal(L,"CSocket");
 	reg_luabytebuffer(L);	
 	g_L = L;
 }

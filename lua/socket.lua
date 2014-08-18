@@ -12,7 +12,7 @@ function socket:new(domain,type,protocal)
   o = {}
   self.__index = self      
   setmetatable(o,self)
-  o.luasocket = luasocket.new1(o,domain,type,protocal)
+  o.luasocket = CSocket.new1(o,domain,type,protocal)
   if not o.luasocket then
 		return nil
   end
@@ -23,14 +23,14 @@ function socket:new2(sock)
   o = {}
   self.__index = self          
   setmetatable(o, self)
-  o.luasocket = luasocket.new2(o,sock)
+  o.luasocket = CSocket.new2(o,sock)
   return sock_init(o)
 end
 
 function socket:close()
 	if not self.closing then
 		self.closing = true	
-		luasocket.close(self.luasocket)
+		CSocket.close(self.luasocket)
 		self.luasocket = nil
 	end
 end
@@ -53,7 +53,7 @@ function socket:listen(ip,port)
 	self.block_onaccept = Que.Queue()
 	self.new_conn = Que.Queue()
 	self.__on_new_connection = on_new_conn
-	return luasocket.listen(self.luasocket,ip,port)
+	return CSocket.listen(self.luasocket,ip,port)
 end
 
 local function on_disconnected(self,errno)
@@ -97,7 +97,7 @@ local function establish(sock,max_packet_size)
 	sock.__on_packet = on_packet
 	sock.__on_disconnected = on_disconnected
 	sock.block_recv = Que.Queue()	
-	luasocket.establish(sock.luasocket,max_packet_size)
+	CSocket.establish(sock.luasocket,max_packet_size)
 	sock.packet = Que.Queue()	
 end
 
@@ -136,7 +136,7 @@ local function cb_connect(self,s,err)
 	if not s or err ~= 0 then
 		self.err = err
 	else
-		self.luasocket = luasocket.new2(self,s)
+		self.luasocket = CSocket.new2(self,s)
 	end
 	local co = self.connect_co
 	self.connect_co = nil
@@ -144,7 +144,7 @@ local function cb_connect(self,s,err)
 end
 
 function socket:connect(ip,port,max_packet_size)
-	local ret = luasocket.connect(self.luasocket,ip,port)
+	local ret = CSocket.connect(self.luasocket,ip,port)
 	if ret then
 		return ret
 	else
@@ -203,7 +203,7 @@ function socket:send(packet)
 	if not self.luasocket then
 		return "invaild socket"
 	end
-	return luasocket.send(self.luasocket,packet)
+	return CSocket.send(self.luasocket,packet)
 end
 
 return {
