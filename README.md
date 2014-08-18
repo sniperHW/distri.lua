@@ -23,9 +23,11 @@ get distri.lua
 
 Install lua 5.2 or newer.
 
-Clone [the repository](https://github.com/sniperHW/KendyNet) in deps.
-
 Clone [the repository](https://github.com/sniperHW/distri.lua).
+
+cd distri.lua/deps
+
+Clone [the repository](https://github.com/sniperHW/KendyNet).
 
 Post feedback and issues on the [bug tracker](https://github.com/sniperHW/distri.lua/issues),
 
