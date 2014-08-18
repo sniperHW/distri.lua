@@ -1,9 +1,10 @@
 CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic 
-LDFLAGS = -lpthread -lrt -llua5.2 -lm -ldl -ltcmalloc 
+LDFLAGS = -lpthread -lrt -llua5.2 -lm -ldl -ljemalloc
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
 INCLUDE = -Ideps/KendyNet/include -Ideps -I/usr/include/lua5.2 
+LIB = -Ldeps/jemalloc/lib
 		
 test:test.c
 	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
@@ -43,16 +44,10 @@ kendynet.a: \
 	ar -rc kendynet.a *.o
 	rm -f *.o	 
 
-distrilua_ev:kendynet.a\
-		  event_version/src/luasocket.h\
-		  event_version/src/luasocket.c\
-		  event_version/src/distri.c	
-		$(CC) $(CFLAGS) -o distrilua_ev event_version/src/distri.c event_version/src/luasocket.c kendynet.a ./deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-		mv distrilua_ev event_version
 distrilua:kendynet.a\
 		  src/luasocket.h\
 		  src/luasocket.c\
 		  src/luabytebuffer.h\
 		  src/luabytebuffer.c\
 		  src/distri.c	
-		$(CC) $(CFLAGS) -o distrilua src/distri.c src/luasocket.c src/luabytebuffer.c kendynet.a deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		$(CC) $(CFLAGS) -o distrilua src/distri.c src/luasocket.c src/luabytebuffer.c kendynet.a deps/hiredis/libhiredis.a $(LIB) $(INCLUDE) $(LDFLAGS) $(DEFINE)
