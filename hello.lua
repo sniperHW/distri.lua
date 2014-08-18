@@ -1,37 +1,21 @@
 local sche = require "lua/sche"
 local Packet = require "lua/packet"
 local TcpServer = require "lua/tcpserver"
+local Connection = require "lua/connection"
 
 local count = 0
 
 TcpServer.Listen("127.0.0.1",8000,function (client)
-		local decoder = Packet.RPacketDecoder(65535)
+		local  conn = Connection.Connection(client,Packet.RPacketDecoder(65535))
 		while true do
-			local data,err = client:recv()
+			local rpk,err = conn:recv()
 			if err then
-				print("client disconnected err:" .. err)			
-				client:close()
+				print("conn disconnected:" .. err)
+				conn:close()
 				return
 			end
-			if decoder:putdata(data) then
-				print("decoder:put error")
-				client:close()
-				return;
-			end
-			
-			while true do
-				local rpacket,err = decoder:unpack()
-				if err then
-					print("unpack error:" .. err)
-					client:close()
-					return
-				end
-				if not rpacket then
-					break
-				end
-				count = count + 1
-				client:send(rpacket.bytebuffer)			
-			end
+			count = count + 1
+			conn:send(rpk)	
 		end
 end)
 

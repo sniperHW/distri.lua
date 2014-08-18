@@ -1,6 +1,7 @@
 local socket = require "lua/socket"
 local sche = require "lua/sche"
 local Packet = require "lua/packet"
+local Connection = require "lua/connection"
 
 for i=1,1000 do
 	sche.Spawn(function () 
@@ -9,36 +10,18 @@ for i=1,1000 do
 			print("connect to 127.0.0.1:8000 error")
 			return
 		end
-		
+		local conn = Connection.Connection(client,Packet.RPacketDecoder(65535))
 		local wpk = Packet.WPacket(64)
 		wpk:write_string("hello")
-		client:send(wpk.bytebuffer)
-		local decoder = Packet.RPacketDecoder(65535)
+		conn:send(wpk) -- send the first packet
 		while true do
-			local data,err = client:recv()
+			local rpk,err = conn:recv()
 			if err then
-				print("client disconnected err:" .. err)			
-				client:close()
+				print("conn disconnected:" .. err)
+				conn:close()
 				return
 			end
-			if decoder:putdata(data) then
-				print("decoder:put error")
-				client:close()
-				return;
-			end
-			
-			while true do
-				local rpacket,err = decoder:unpack()
-				if err then
-					print("unpack error:" .. err)
-					client:close()
-					return
-				end
-				if not rpacket then
-					break
-				end
-				client:send(rpacket.bytebuffer)			
-			end
+			conn:send(rpk)	
 		end
 	end)	
 end
