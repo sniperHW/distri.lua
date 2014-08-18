@@ -40,7 +40,7 @@ cd ../
 
 cd deps/lua-cjson-2.1.0
 make
-mv cjson.lua ../../
+mv cjson.so ../../
 
 cd ../../
 make distrilua
