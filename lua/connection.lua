@@ -10,6 +10,7 @@ function connection:new(sock,decoder)
 	setmetatable(o, self)
 	o.sock = sock
 	o.decoder = decoder
+	o.closing = false
 	return o
 end
 
@@ -30,7 +31,7 @@ function connection:recv()
 			ret = self.decoder:putdata(self.spillover,len)
 			len = len - ret		
 			if len > 0 then
-				self.spillover = string.sub(self.spillover,ret)
+				self.spillover = string.sub(self.spillover,ret+1)
 			else
 				self.spillover = nil
 			end
@@ -52,34 +53,15 @@ function connection:recv()
 	end
 end
 
---[[
-function connection:recv()
-	while true do		
-		local rpacket,err = self.decoder:unpack()
-		if err then
-			return nil,err
-		end
-
-		if rpacket then 
-			return rpacket,nil
-		end
-
-		local data,err = self.sock:recv()
-		if err then		
-			return nil,err
-		end
-		if self.decoder:putdata(data) then
-			return nil,err
-		end		
-	end
-end]]--
-
 function connection:close()
-	if self.application then
-		--唤醒所有等待响应的rpc调用
-		self.application.conns[self] = nil
+	if not self.closing then
+		if self.application then
+			--唤醒所有等待响应的rpc调用
+			self.application.conns[self] = nil
+		end
+		self.sock:close()
+		self.closing = true
 	end
-	self.sock:close()
 end
 
 return {

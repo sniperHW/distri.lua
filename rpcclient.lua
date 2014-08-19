@@ -11,18 +11,18 @@ local function on_disconnected(conn,err)
 	print("conn disconnected:" .. err)
 	conn:close()	
 end
-
+local count = 0
 rpcclient:run(function ()
-	for i=1,100 do
+	for i=1,1 do
 		Sche.Spawn(function () 
 			local client = Socket.new(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 			if client:connect("127.0.0.1",8000) then
 				print("connect to 127.0.0.1:8000 error")
 				return
 			end
-			local conn = Connection.Connection(client,Packet.RPacketDecoder(65535))
+			local conn = Connection.Connection(client,Packet.RPacketDecoder(4096))
 			rpcclient:add(conn,nil,on_disconnected)
-			for j=1,100 do
+			for j=1,5000 do
 				Sche.Spawn(function (conn)
 					while true do			
 						local rpccaller = RPC.RPC_MakeCaller(conn,"Plus")
@@ -31,6 +31,8 @@ rpcclient:run(function ()
 							print(err)
 							conn:close()
 							return
+						else
+							count = count + 1
 						end
 					end
 				end,conn)
@@ -39,6 +41,14 @@ rpcclient:run(function ()
 	end
 end)
 
-while true do
-	Sche.Sleep(100)
+local tick = GetSysTick()
+local now = GetSysTick()
+while true do 
+	now = GetSysTick()
+	if now - tick >= 1000 then
+		print("count:" .. count*1000/(now-tick) .. " " .. now-tick)		
+		tick = now
+		count = 0
+	end
+	Sche.Sleep(10)
 end

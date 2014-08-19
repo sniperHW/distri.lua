@@ -16,7 +16,7 @@ end
 rpcserver:run(function ()
 	TcpServer.Listen("127.0.0.1",8000,function (client)
 			print("on new client")
-			local  conn = Connection.Connection(client,Packet.RPacketDecoder(65535))		
+			local  conn = Connection.Connection(client,Packet.RPacketDecoder(4096))		
 			RPC.RPCServer(conn,"Plus",function (a,b)
 				count = count + 1 
 				return a+b 

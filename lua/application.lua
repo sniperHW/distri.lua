@@ -42,7 +42,23 @@ local function recver(app,conn)
 			break
 		end
 		--将packet投递到队列，供worker消费
-		push(conn.application,conn,rpk)	
+		--push(conn.application,conn,rpk)
+		local cmd = rpk:peek_uint32()
+		if not conn.closing and rpk then
+			local cmd = rpk:peek_uint32()
+			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
+				--如果是rpc消息，执行rpc处理
+				if cmd == RPC.CMD_RPC_CALL then
+					rpk:read_uint32()
+					RPC.RPC_Process_Call(conn,rpk)
+				elseif cmd == RPC.CMD_RPC_RESP then
+					rpk:read_uint32()
+					RPC.RPC_Process_Response(conn,rpk)
+				end						
+			elseif conn.on_packet then
+				conn.on_packet(conn,rpk)
+			end
+		end			
 	end
 	app.conns[conn] = nil	
 end
@@ -71,7 +87,7 @@ local function packet_worker(app)
 		else
 			local conn = task[1]
 			local rpk = task[2]
-			if rpk then
+			if not conn.closing and rpk then
 				local cmd = rpk:peek_uint32()
 				if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
 					--如果是rpc消息，执行rpc处理
@@ -97,7 +113,7 @@ function application:run(start_fun)
 		Sche.Spawn(recver,self,v)
 	end
 	--启动packet处理coroutine
-	for i=0,4096 do
+	for i=1,8192 do
 		Sche.Spawn(packet_worker,self)
 	end
 end
