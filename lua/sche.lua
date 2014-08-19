@@ -70,7 +70,7 @@ local function Block(ms)
 end
 
 local function WakeUp(co)
-    Add2Ready(co)
+    add2Ready(co)
 end
 
 local function Schedule(co)

@@ -132,6 +132,7 @@ function rpacket:size()
 	return self.len
 end
 
+
 local Decoder = {}
 function Decoder:new(maxpacket_size)
 	  o = {}
@@ -150,12 +151,11 @@ function Decoder:putdata(data,len)
 		local datasize = self.widx - self.ridx	
 		if datasize > 0 then
 			--移动数据
-			self.buffer:move(self.ridx,datasize)
-			mov_count = mov_count + 1			
+			self.buffer:move(self.ridx,datasize)		
 		end
 		self.widx = datasize
 		self.ridx = 0
-		space = self.maxpacket_size - self.widx 		
+		space = self.maxpacket_size - datasize		
 	end
 
 	if space >= len then
@@ -164,7 +164,7 @@ function Decoder:putdata(data,len)
 		return len
 	else
 		self.buffer:write_raw(self.widx,string.sub(data,1,space))
-		self.widx = self.widx + space
+		self.widx = self.maxpacket_size
 		return space				
 	end
 end
@@ -186,6 +186,48 @@ function Decoder:unpack()
 	end
 end
 
+--[[
+local Decoder = {}
+function Decoder:new(maxpacket_size)
+	  o = {}
+	  self.__index = self      
+	  setmetatable(o,self)
+	  o.maxpacket_size = maxpacket_size
+	  o.buffer = CBuffer.bytebuffer(maxpacket_size)
+	  o.datasize = 0
+	  return o
+end
+
+function Decoder:putdata(data)
+	local len = string.len(data)
+	if self.datasize + len > self.maxpacket_size then
+		return "packet too big"
+	end
+	self.buffer:write_raw(self.datasize,data)
+	self.datasize = self.datasize + len
+	return nil
+end
+
+function Decoder:unpack()
+	if self.datasize >= 4 then
+		local packet_len = self.buffer:read_uint32(0) + 4 --加上包头大小
+		if packet_len > self.maxpacket_size then
+			return nil,"packet too big"
+		elseif packet_len <= self.datasize then
+			--有完整的包
+			self.datasize = self.datasize - packet_len
+			local rpk = rpacket:new(CBuffer.bytebuffer(self.buffer:read_raw(0,packet_len)))	
+			if self.datasize > 0 then
+				--调整unpack_buffer中的数据
+				self.buffer:move(packet_len,self.datasize)
+			end			
+			return rpk,nil			
+		end		
+	else
+		return nil,nil
+	end
+end
+]]--
 local wpacket = {}
 
 function wpacket:new(data)

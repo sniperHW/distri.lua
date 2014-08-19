@@ -46,11 +46,33 @@ function connection:recv()
 				if self.spillover then
 					return nil,"packet too big3"
 				end
-				self.spillover = string.sub(data,ret)
+				self.spillover = string.sub(data,ret+1)
 			end	
 		end
 	end
 end
+
+--[[
+function connection:recv()
+	while true do		
+		local rpacket,err = self.decoder:unpack()
+		if err then
+			return nil,err
+		end
+
+		if rpacket then 
+			return rpacket,nil
+		end
+
+		local data,err = self.sock:recv()
+		if err then		
+			return nil,err
+		end
+		if self.decoder:putdata(data) then
+			return nil,err
+		end		
+	end
+end]]--
 
 function connection:close()
 	if self.application then

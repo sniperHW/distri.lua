@@ -39,7 +39,7 @@ local function on_new_conn(self,sock)
 	self.new_conn:push({sock})	
 	local co = self.block_onaccept:pop()
 	if co then
-		Sche.Schedule(co)
+		Sche.WakeUp(co)--Schedule(co)
 	end
 end
 
@@ -63,7 +63,7 @@ local function on_disconnected(self,errno)
 	while self.block_noaccept do
 		co = self.block_onaccept:pop()
 		if co then
-			Sche.Schedule(co)
+			Sche.WakeUp(co)--Schedule(co)
 		else
 			self.block_noaccept = nil
 		end
@@ -72,14 +72,14 @@ local function on_disconnected(self,errno)
 	while self.block_recv do
 		co = self.block_recv:pop()
 		if co then
-			Sche.Schedule(co) 
+			Sche.WakeUp(co)--Schedule(co) 
 		else
 			self.block_recv = nil
 		end
 	end
 	
 	if self.connect_co then
-		Sche.Schedule(self.connect_co)
+		Sche.WakeUp(self.connect_co)--Schedule(self.connect_co)
 	end	
 end
 
@@ -88,7 +88,8 @@ local function on_packet(self,packet)
 	local co = self.block_recv:pop()
 	if co then
 	    self.timeout = nil
-		Sche.Schedule(co)		
+		--Sche.Schedule(co)
+		Sche.WakeUp(co)		
 	end
 end
 
@@ -140,7 +141,7 @@ local function cb_connect(self,s,err)
 	end
 	local co = self.connect_co
 	self.connect_co = nil
-	Sche.Schedule(co)	
+	Sche.WakeUp(co)--Schedule(co)	
 end
 
 function socket:connect(ip,port,max_packet_size)

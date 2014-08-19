@@ -26,7 +26,7 @@ local function push(app,conn,rpk)
 	app.queue:push({conn,rpk})
 	local free = app.blocking:pop()
 	if free then
-		Sche.Schedule(free)
+		Sche.WakeUp(free)--Schedule(free)
 	end
 end
 
@@ -107,7 +107,7 @@ function application:stop()
 	--唤醒所有的blocking
 	local block = self.blocking:pop()
 	while block do
-		Sche.Schedule(block)
+		Sche.WakeUp(block)--Schedule(block)
 		block = self.blocking:pop()
 	end	
 	for k,v in pairs(self.conns) do

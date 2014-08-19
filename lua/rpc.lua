@@ -18,18 +18,18 @@ local function RPCServer(conn,name,func)
 end
 
 local function RPC_Process_Call(conn,rpk)
---	local str = rpk:read_string()
---[[	local status
-	local oldrpk = rpk
+--[[	local str = rpk:read_string()
+	local status
 	status,rpk = pcall(cjson.decode,str)
 	if not status then
-		print(rpk)	
+		print(rpk)
+		print(str)	
 		conn:close()
 		return
 	end]]--
-	rpk = cjson.decode(rpk:read_string())
-	local funname = rpk.f
-	local co = rpk.co
+	local request = cjson.decode(rpk:read_string())
+	local funname = request.f
+	local co = request.co
 	local func
 	if conn.rpcserver then
 		func = conn.rpcserver[funname]
@@ -38,7 +38,7 @@ local function RPC_Process_Call(conn,rpk)
 	if not func then
 		response.err = funname .. "not found"
 	else
-		response.ret = {func(table.unpack(rpk.arg))}
+		response.ret = {func(table.unpack(request.arg))}
 	end
 	local wpk = Packet.WPacket(512)
 	wpk:write_uint32(CMD_RPC_RESP)
@@ -52,7 +52,7 @@ local function RPC_Process_Response(conn,rpk)
 	if co then
 		co.response = response
 		conn.pending_rpc[co.identity] = nil
-		Sche.Schedule(co)
+		Sche.WakeUp(co)--Schedule(co)
 	end
 end
 
