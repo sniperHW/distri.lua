@@ -32,7 +32,7 @@ local now = GetSysTick()
 while true do 
 	now = GetSysTick()
 	if now - tick >= 1000 then
-		print(count*1000/(now-tick) .. " " .. now-tick)
+		print("count:" .. count*1000/(now-tick) .. " " .. now-tick)		
 		tick = now
 		count = 0
 	end

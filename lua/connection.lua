@@ -1,5 +1,6 @@
 local Socket = require "lua/socket"
 local Packet = require "lua/packet"
+--local Que = require "lua/queue"
 
 local connection = { }
 
@@ -17,23 +18,37 @@ function connection:send(wpk)
 end
 
 function connection:recv()
-	while true do		
-		local rpacket,err = self.decoder:unpack()
+	local len,ret,rpacket,err,data
+	while true do
+		rpacket,err = self.decoder:unpack()	
 		if err then
 			return nil,err
-		end
-
-		if rpacket then 
+		elseif rpacket then
 			return rpacket,nil
+		elseif self.spillover then
+			len = string.len(self.spillover)
+			ret = self.decoder:putdata(self.spillover,len)
+			len = len - ret		
+			if len > 0 then
+				self.spillover = string.sub(self.spillover,ret)
+			else
+				self.spillover = nil
+			end
+		else
+			data,err = self.sock:recv()
+			if err then		
+				return nil,err
+			end			
+			len = string.len(data)
+			ret = self.decoder:putdata(data,len)
+			len = len - ret
+			if len > 0 then
+				if self.spillover then
+					return nil,"packet too big3"
+				end
+				self.spillover = string.sub(data,ret)
+			end	
 		end
-
-		local data,err = self.sock:recv()
-		if err then		
-			return nil,err
-		end
-		if self.decoder:putdata(data) then
-			return nil,err
-		end		
 	end
 end
 
