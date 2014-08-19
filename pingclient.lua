@@ -17,7 +17,7 @@ local function on_disconnected(conn,err)
 end
 
 pingpong:run(function ()
-	for i=1,1000 do
+	for i=1,100 do
 		sche.Spawn(function () 
 			local client = socket.new(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 			if client:connect("127.0.0.1",8000) then

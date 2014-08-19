@@ -3,22 +3,25 @@ local Packet = require "lua/packet"
 local TcpServer = require "lua/tcpserver"
 local Connection = require "lua/connection"
 local App = require "lua/application"
+local RPC = require "lua/rpc"
+
 local count = 0
-local pingpong = App.Application()
-local function on_packet(conn,rpk)
-	count = count + 1
-	conn:send(rpk)	
-end
+local rpcserver = App.Application()
 
 local function on_disconnected(conn,err)
 	print("conn disconnected:" .. err)
 	conn:close()	
 end
 
-pingpong:run(function ()
+rpcserver:run(function ()
 	TcpServer.Listen("127.0.0.1",8000,function (client)
-		local  conn = Connection.Connection(client,Packet.RPacketDecoder(65535))		
-		pingpong:add(conn,on_packet,on_disconnected)		
+			print("on new client")
+			local  conn = Connection.Connection(client,Packet.RPacketDecoder(65535))		
+			RPC.RPCServer(conn,"Plus",function (a,b)
+				count = count + 1 
+				return a+b 
+			end)
+			rpcserver:add(conn,nil,on_disconnected)		
 	end)
 end)
 

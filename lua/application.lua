@@ -44,7 +44,7 @@ local function recver(app,conn)
 		--将packet投递到队列，供worker消费
 		push(conn.application,conn,rpk)	
 	end
-	app.connsp[conn] = nil	
+	app.conns[conn] = nil	
 end
 
 function application:add(conn,on_packet,on_disconnected)
@@ -55,7 +55,7 @@ function application:add(conn,on_packet,on_disconnected)
 		conn.on_disconnected = on_disconnected
 		if self.running then
 			--启动一个新的coroutine去接收conn的网络数据
-			Sche.Spawn(recver,conn)
+			Sche.Spawn(recver,self,conn)
 		end
 	end
 end
@@ -71,19 +71,20 @@ local function packet_worker(app)
 		else
 			local conn = task[1]
 			local rpk = task[2]
-			local cmd = rpk:peek_uint32()
-			if cmd then
-				--如果是rpc消息，执行rpc处理
-				if cmd == RPC.CMD_RPC_CALL then
-					RPC.RPC_Process_Call(conn,rpk)
-					return
-				else if cmd == RPC.CMD_RPC_RESP then
-					RPC.RPC_Process_Response(conn,rpk)
-					return
+			if rpk then
+				local cmd = rpk:peek_uint32()
+				if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
+					--如果是rpc消息，执行rpc处理
+					if cmd == RPC.CMD_RPC_CALL then
+						rpk:read_uint32()
+						RPC.RPC_Process_Call(conn,rpk)
+					elseif cmd == RPC.CMD_RPC_RESP then
+						rpk:read_uint32()
+						RPC.RPC_Process_Response(conn,rpk)
+					end						
+				elseif conn.on_packet then
+					conn.on_packet(conn,rpk)
 				end
-			end			
-			if conn.on_packet then
-				conn.on_packet(conn,rpk)
 			end
 		end
 	end
@@ -105,7 +106,7 @@ function application:stop()
 	self.running = false
 	--唤醒所有的blocking
 	local block = self.blocking:pop()
-	while block then
+	while block do
 		Sche.Schedule(block)
 		block = self.blocking:pop()
 	end	

@@ -2,6 +2,7 @@ local cjson = require "cjson"
 local Connection = require "lua/connection"
 local Sche = require "lua/sche"
 local cjson = require "cjson"
+local Packet = require "lua/packet"
 
 local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
@@ -17,7 +18,15 @@ local function RPCServer(conn,name,func)
 end
 
 local function RPC_Process_Call(conn,rpk)
-	rpk:read_uint32()
+--	local str = rpk:read_string()
+--[[	local status
+	local oldrpk = rpk
+	status,rpk = pcall(cjson.decode,str)
+	if not status then
+		print(rpk)	
+		conn:close()
+		return
+	end]]--
 	rpk = cjson.decode(rpk:read_string())
 	local funname = rpk.f
 	local co = rpk.co
@@ -42,7 +51,7 @@ local function RPC_Process_Response(conn,rpk)
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then
 		co.response = response
-		conn.pending_prc[co.identity] = nil
+		conn.pending_rpc[co.identity] = nil
 		Sche.Schedule(co)
 	end
 end
@@ -67,11 +76,14 @@ function rpcCaller:Call(...)
 	local wpk = Packet.WPacket(512)
 	wpk:write_uint32(CMD_RPC_CALL)
 	wpk:write_string(cjson.encode(request))
-	local ret = conn:send(wpk)
+	local ret = self.conn:send(wpk)
 	if ret then
 		return ret
 	else
-		conn.pending_prc[co.identity]  = co
+	    if not self.conn.pending_rpc then
+			self.conn.pending_rpc = {}
+	    end
+		self.conn.pending_rpc[co.identity]  = co
 		Sche.Block()
 		local response = co.response
 		co.response = nil

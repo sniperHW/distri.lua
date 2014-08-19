@@ -66,7 +66,7 @@ static int lua_bytebuffer_read_uint8(lua_State *L){
 	ARG_CHECK;
 	uint8_t val;
 	buffer_read(bbuffer->raw_buffer,pos,(int8_t*)&val,sizeof(val));
-	lua_pushnumber(L,val);
+	lua_pushinteger(L,val);
 	return 1;
 }
 
@@ -74,7 +74,7 @@ static int lua_bytebuffer_read_uint16(lua_State *L){
 	ARG_CHECK;
 	uint16_t val;
 	buffer_read(bbuffer->raw_buffer,pos,(int8_t*)&val,sizeof(val));
-	lua_pushnumber(L,val);
+	lua_pushinteger(L,val);
 	return 1;
 }
 
@@ -82,7 +82,7 @@ static int lua_bytebuffer_read_uint32(lua_State *L){
 	ARG_CHECK;
 	uint32_t val;
 	buffer_read(bbuffer->raw_buffer,pos,(int8_t*)&val,sizeof(val));
-	lua_pushnumber(L,val);
+	lua_pushinteger(L,val);
 	return 1;
 }
 
@@ -173,7 +173,7 @@ static int lua_bytebuffer_write_uint32(lua_State *L){
 static int lua_bytebuffer_write_float(lua_State *L){
 	ARG_CHECK;	
 	if(lua_type(L,3) != LUA_TNUMBER) return luaL_error(L,"arg 3 must be number");
-	float val = lua_tointeger(L,3);
+	float val = lua_tonumber(L,3);
 	size_t len;	
 	len = sizeof(val);
 	SIZE_CHECK;
@@ -184,7 +184,7 @@ static int lua_bytebuffer_write_float(lua_State *L){
 static int lua_bytebuffer_write_double(lua_State *L){
 	ARG_CHECK;	
 	if(lua_type(L,3) != LUA_TNUMBER) return luaL_error(L,"arg 3 must be number");
-	double val = lua_tointeger(L,3);
+	double val = lua_tonumber(L,3);
 	size_t len;	
 	len = sizeof(val);
 	SIZE_CHECK;
@@ -220,8 +220,8 @@ static int lua_bytebuffer_move(lua_State *L){
 	ARG_CHECK;	
 	if(lua_type(L,3) != LUA_TNUMBER) return luaL_error(L,"arg 3 must be number");
 	int len = lua_tointeger(L,3);
-	if(len > pos)
-		memmove(&bbuffer->raw_buffer->buf[0],&bbuffer->raw_buffer->buf[pos],len);
+	//if(pos + len > pos)
+	memmove(&bbuffer->raw_buffer->buf[0],&bbuffer->raw_buffer->buf[pos],len);
 	return 0;	
 }
 

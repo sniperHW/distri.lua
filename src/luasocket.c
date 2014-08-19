@@ -52,7 +52,7 @@ static int luasocket_new2(lua_State *L){
 static int  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
-	uint32_t len;	
+	uint32_t len = 0;	
 	const char *msg = rawpacket_data((rawpacket_t)p,&len);
 	const char *error = LuaCallTabFuncS(*obj,"__on_packet","S",msg,(size_t)len);
 	if(error){

@@ -38,7 +38,10 @@ function connection:recv()
 end
 
 function connection:close()
-	--唤醒所有等待响应的rpc调用
+	if self.application then
+		--唤醒所有等待响应的rpc调用
+		self.application.conns[self] = nil
+	end
 	self.sock:close()
 end
 

@@ -35,7 +35,7 @@ function rpacket:new(data)
 	  else
 			return nil
 	  end
-	  o.len  = o.bytebuffer:read_uint32(0) - 4 --除长度字段外有效数据的长度 
+	  o.len  = o.bytebuffer:read_uint32(0)
 	  o.ridx = 4
 	  o.data_remain = o.len  
 	  return o
@@ -113,7 +113,7 @@ function rpacket:peek_uint8()
 end
 
 function rpacket:peek_uint16()
-	 if self.data_remain < 1 then
+	 if self.data_remain < 2 then
 		return nil
 	 end
 	 local val = self.bytebuffer:read_uint16(self.ridx)
@@ -121,10 +121,10 @@ function rpacket:peek_uint16()
 end
 
 function rpacket:peek_uint32()
-	 if self.data_remain < 1 then
+	 if self.data_remain < 4 then
 		return nil
 	 end
-	 local val = self.bytebuffer:read_uint16(self.ridx)
+	 local val = self.bytebuffer:read_uint32(self.ridx)
 	 return val
 end
 
@@ -161,11 +161,12 @@ function Decoder:unpack()
 		elseif packet_len <= self.datasize then
 			--有完整的包
 			self.datasize = self.datasize - packet_len
+			local rpk = rpacket:new(CBuffer.bytebuffer(self.buffer:read_raw(0,packet_len)))	
 			if self.datasize > 0 then
 				--调整unpack_buffer中的数据
 				self.buffer:move(packet_len,self.datasize)
-			end
-			return rpacket:new(CBuffer.bytebuffer(self.buffer:read_raw(0,packet_len))),nil			
+			end			
+			return rpk,nil			
 		end		
 	else
 		return nil,nil
@@ -235,9 +236,9 @@ end
 function wpacket:write_string(val)
 	self.bytebuffer:write_string(self.widx,val)
 	self.widx = self.widx + 4 + string.len(val)
-	self.datasize = self.widx	
+	self.datasize = self.widx
 	self.bytebuffer:updatesize(self.datasize)	
-	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长		
+	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长
 end
 
 function wpacket:size()

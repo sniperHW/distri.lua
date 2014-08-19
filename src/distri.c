@@ -56,6 +56,10 @@ static void start(lua_State *L,const char *start_file)
 	kn_engine_run(g_engine);		
 }
 
+static int lua_debug(lua_State *L){
+	return 0;
+}
+
 int main(int argc,char **argv)
 {
 	if(argc < 2){
@@ -68,7 +72,7 @@ int main(int argc,char **argv)
     signal(SIGPIPE,SIG_IGN);
 	lua_register(L,"stop_program",lua_stop); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
-	   	
+	lua_register(L,"Debug",lua_debug);    	
 	reg_luasocket(L);
 	g_engine = kn_new_engine();
 	start(L,argv[1]);
