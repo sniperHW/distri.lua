@@ -55,8 +55,8 @@ static void start(lua_State *L,const char *start_file)
 		//Sche.Schedule() return Sche.Schedule",start_file);
 	int oldtop = lua_gettop(L);
 	luaL_loadstring(L,buf);
-	luaRef_t *Schedule = calloc(1,sizeof(*Schedule));
-	const char *error = luacall(L,":r",Schedule);
+	//luaRef_t *Schedule = calloc(1,sizeof(*Schedule));
+	const char *error = luacall(L,"");
 	if(error){
 		lua_settop(L,oldtop);
 		printf("%s\n",error);

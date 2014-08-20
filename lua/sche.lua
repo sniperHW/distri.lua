@@ -1,10 +1,10 @@
-local Timer = require "lua/timer"
+local MinHeap = require "lua/minheap"
 local Que =  require "lua/queue"
 
 
 local sche = {
 	ready_list = Que.Queue(),
-	timer = Timer.Timer(),
+	timer = MinHeap.MinHeap(),
 	allcos = {},
 	runningco = nil,
 }
@@ -23,15 +23,10 @@ local function add2Ready(co)
     sche.ready_list:push(co)
 end
 
-local function getSysTick()
-	return GetSysTick()
-end
-
-
 local function Sleep(ms)
 	local co = sche.runningco
 	if ms and ms > 0 then
-		co.timeout = getSysTick() + ms
+		co.timeout = GetSysTick() + ms
         if co.index == 0 then
             sche.timer:Insert(co)
         else
@@ -52,7 +47,7 @@ local function Block(ms)
 	local co = sche.runningco
     if ms and ms > 0 then
 		ms = ms * 1000
-        local nowtick = getSysTick()
+        local nowtick = GetSysTick()
         co.timeout = nowtick + ms
         if co.index == 0 then
             sche.timer:Insert(co)
@@ -95,7 +90,7 @@ local function Schedule(co)
 			end
 			co = readylist:pop()
 		end
-		local now = getSysTick()
+		local now = GetSysTick()
 		local timer = sche.timer
 		while timer:Min() ~=0 and timer:Min() <= now do
 			co = timer:PopMin()
@@ -130,7 +125,7 @@ end
 local g_counter = 0
 local function gen_identity()
 	g_counter = g_counter + 1
-	return "l" .. getSysTick() .. "" .. g_counter
+	return "l" .. GetSysTick() .. "" .. g_counter
 end
 
 --产生一个coroutine在下次调用Schedule时执行

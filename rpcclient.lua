@@ -1,16 +1,12 @@
 local Socket = require "lua/socket"
-local Sche = require "lua/sche"
 local Packet = require "lua/packet"
 local Connection = require "lua/connection"
 local App = require "lua/application"
 local RPC = require "lua/rpc"
+local Sche = require "lua/sche"
 
 local rpcclient = App.Application()
 
-local function on_disconnected(conn,err)
-	print("conn disconnected:" .. err)	
-end
-local count = 0
 rpcclient:run(function ()
 	for i=1,1 do
 		Sche.Spawn(function () 
@@ -30,8 +26,6 @@ rpcclient:run(function ()
 							print("rpc error:" .. err)
 							conn:close()
 							return
-						else
-							count = count + 1
 						end
 					end
 					print("co end")
@@ -40,15 +34,3 @@ rpcclient:run(function ()
 		end)	
 	end
 end)
-
-local tick = GetSysTick()
-local now = GetSysTick()
-while true do 
-	now = GetSysTick()
-	if now - tick >= 1000 then
-		print("count:" .. count*1000/(now-tick) .. " " .. now-tick)		
-		tick = now
-		count = 0
-	end
-	Sche.Sleep(10)
-end
