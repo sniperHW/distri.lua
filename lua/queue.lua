@@ -5,7 +5,7 @@ local queue = {
 }
 
 function queue:new(o)
-  o = o or {}   
+  local o = o or {}   
   setmetatable(o, self)
   self.__index = self
   o.size = 0
@@ -25,6 +25,14 @@ function queue:push(node)
 	self.size = self.size + 1
 end
 
+function queue:front()
+    if not self.head then
+		return nil
+	else
+		return self.head
+	end	
+end
+
 function queue:pop()
     if not self.head then
 		return nil
@@ -41,6 +49,31 @@ function queue:pop()
 		node.__next = nil
 		return node
 	end
+end
+
+function queue:remove(ele)
+	local cur = self.head
+	local pre = self.head
+	while cur do
+		if cur == ele then
+			self.size = self.size - 1
+			if self.size == 0 then
+				self.head = nil
+				self.tail = nil
+			elseif cur == self.head then
+				--head
+				self.head = cur.__next
+			else
+				--tail
+				pre.__next = nil
+				self.tail = pre
+			end			
+			return
+		else
+			pre = cur
+			cur = cur.__next
+		end	
+	end	
 end
 
 function queue:is_empty()

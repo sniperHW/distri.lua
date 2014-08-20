@@ -5,12 +5,14 @@
 #include "kn_time.h"
 
 __thread engine_t g_engine = NULL;
+__thread int      g_status = 1;
 
 static void sig_int(int sig){
+	g_status = 0;
 	kn_stop_engine(g_engine);
 }
 
-static int  cb_timer(kn_timer_t timer)
+/*static int  cb_timer(kn_timer_t timer)
 {
 	luaRef_t *Schedule = (luaRef_t*)kn_timer_getud(timer);
 	const char *err;
@@ -19,7 +21,7 @@ static int  cb_timer(kn_timer_t timer)
 		printf("lua error0:%s\n",err);
 	}
 	return 1;
-}
+}*/
 
 static int  lua_stop(lua_State *L){
 	kn_stop_engine(g_engine);
@@ -41,7 +43,16 @@ static void start(lua_State *L,const char *start_file)
 		local main,err= loadfile(\"%s\")\
 		if err then print(err) end\
 		Sche.Spawn(function () main() end)\
-		Sche.Schedule() return Sche.Schedule",start_file);
+		local ms = 5\
+		while RunOnce(ms) do\
+			if Sche.Schedule() > 0 then\
+				ms = 0\
+			else\
+				ms = 5\
+			end\
+		end",start_file);		
+		
+		//Sche.Schedule() return Sche.Schedule",start_file);
 	int oldtop = lua_gettop(L);
 	luaL_loadstring(L,buf);
 	luaRef_t *Schedule = calloc(1,sizeof(*Schedule));
@@ -52,12 +63,21 @@ static void start(lua_State *L,const char *start_file)
 		return;
 	}
 	lua_settop(L,oldtop);
-	kn_reg_timer(g_engine,1,cb_timer,Schedule);	
-	kn_engine_run(g_engine);		
+	//kn_reg_timer(g_engine,1,cb_timer,Schedule);	
+	//kn_engine_run(g_engine);		
 }
 
 static int lua_debug(lua_State *L){
 	return 0;
+}
+
+static int lua_RunOnce(lua_State *L){
+	if(g_status){ 
+		uint32_t ms = (uint32_t)lua_tointeger(L,1);
+		kn_engine_runonce(g_engine,ms);
+	}
+	lua_pushboolean(L,g_status);
+	return 1;
 }
 
 int main(int argc,char **argv)
@@ -72,7 +92,8 @@ int main(int argc,char **argv)
     signal(SIGPIPE,SIG_IGN);
 	lua_register(L,"stop_program",lua_stop); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
-	lua_register(L,"Debug",lua_debug);    	
+	lua_register(L,"Debug",lua_debug); 
+	lua_register(L,"RunOnce",lua_RunOnce); 	   	
 	reg_luasocket(L);
 	g_engine = kn_new_engine();
 	start(L,argv[1]);

@@ -5,7 +5,7 @@ local timer = {
 
 
 function timer:new(o)
-  o = o or {}   
+  local o = o or {}   
   setmetatable(o, self)
   self.__index = self
   o.m_size = 0

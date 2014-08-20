@@ -17,7 +17,7 @@ end
 
 pingpong:run(function ()
 	TcpServer.Listen("127.0.0.1",8000,function (client)
-		local  conn = Connection.Connection(client,Packet.RPacketDecoder(65535))		
+		local  conn = Connection.Connection(client,Packet.RPacketDecoder(1024))		
 		pingpong:add(conn,on_packet,on_disconnected)		
 	end)
 end)

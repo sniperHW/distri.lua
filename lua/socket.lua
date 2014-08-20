@@ -9,7 +9,7 @@ local function sock_init(sock)
 end
 
 function socket:new(domain,type,protocal)
-  o = {}
+  local o = {}
   self.__index = self      
   setmetatable(o,self)
   o.luasocket = CSocket.new1(o,domain,type,protocal)
@@ -20,7 +20,7 @@ function socket:new(domain,type,protocal)
 end
 
 function socket:new2(sock)
-  o = {}
+  local o = {}
   self.__index = self          
   setmetatable(o, self)
   o.luasocket = CSocket.new2(o,sock)
@@ -28,6 +28,7 @@ function socket:new2(sock)
 end
 
 function socket:close()
+	print("socket:close")
 	if not self.closing then
 		self.closing = true	
 		CSocket.close(self.luasocket)
@@ -69,12 +70,12 @@ local function on_disconnected(self,errno)
 		end
 	end
 
-	while self.block_recv do
+	while true do
 		co = self.block_recv:pop()
 		if co then
 			Sche.WakeUp(co)--Schedule(co) 
 		else
-			self.block_recv = nil
+			break
 		end
 	end
 	
@@ -85,7 +86,7 @@ end
 
 local function on_packet(self,packet)
 	self.packet:push({packet})
-	local co = self.block_recv:pop()
+	local co = self.block_recv:front()
 	if co then
 	    self.timeout = nil
 		--Sche.Schedule(co)
@@ -167,7 +168,7 @@ function socket:connect(ip,port,max_packet_size)
 end
 
 
-function socket:recv(timeout)
+function socket:recv()
 	if self.closing then
 		return nil,"socket close"	
 	elseif not self.isestablish then
@@ -182,17 +183,20 @@ function socket:recv(timeout)
 		if not co then
 			return nil,"recv must be call in a coroutine context"
 		end		
-		self.block_recv:push(co)
-		
+		self.block_recv:push(co)		
 		if timeout then
 			self.timeout = timeout
 		end
-		Sche.Block(timeout)		
-		if self.closing then
-			return nil,self.errno
-		elseif self.timeout then
+		Sche.Block(timeout)
+		if self.timeout then
 		    self.timeout = nil
+		    self.block_recv:remove(co)
 			return nil,"recv timeout"
+		else
+			self.block_recv:pop()
+			if self.closing then
+				return nil,self.errno
+			end			
 		end
 	end
 end

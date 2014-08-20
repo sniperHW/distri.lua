@@ -1,7 +1,7 @@
 local rawpacket = {}
 
 function rawpacket:new(data)
-	  o = {}
+	  local o = {}
 	  self.__index = self      
 	  setmetatable(o,self)
 	  if type(data) == "string" then

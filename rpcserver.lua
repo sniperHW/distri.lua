@@ -9,19 +9,19 @@ local count = 0
 local rpcserver = App.Application()
 
 local function on_disconnected(conn,err)
-	print("conn disconnected:" .. err)
-	conn:close()	
+	print("conn disconnected:" .. err)	
 end
+
+--注册一个RPC服务
+rpcserver:RPCService("Plus",function (a,b)
+	count = count + 1 
+	return a+b 
+end)
 
 rpcserver:run(function ()
 	TcpServer.Listen("127.0.0.1",8000,function (client)
 			print("on new client")
-			local  conn = Connection.Connection(client,Packet.RPacketDecoder(4096))		
-			RPC.RPCServer(conn,"Plus",function (a,b)
-				count = count + 1 
-				return a+b 
-			end)
-			rpcserver:add(conn,nil,on_disconnected)		
+			rpcserver:add(Connection.Connection(client,Packet.RPacketDecoder(65535)),nil,on_disconnected)		
 	end)
 end)
 

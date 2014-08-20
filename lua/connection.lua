@@ -1,16 +1,36 @@
 local Socket = require "lua/socket"
 local Packet = require "lua/packet"
+local Sche = require "lua/sche"
 --local Que = require "lua/queue"
 
 local connection = { }
 
 function connection:new(sock,decoder)
-	o = {}
+	local o = {}
   	self.__index = self          
 	setmetatable(o, self)
 	o.sock = sock
 	o.decoder = decoder
 	o.closing = false
+	sock.__old__on_disconnected = sock.__on_disconnected
+	sock.__on_disconnected = function(s,e)
+		sock.__old__on_disconnected(s,e)
+		if o.pending_rpc then
+			--唤醒所有等待响应的rpc调用
+			for k,v in pairs(o.pending_rpc) do
+				print("process pending")
+				v.response = {"remote connection lose",nil}
+				Sche.Schedule(v)
+			end					
+		end
+		if o.application then
+			o.application.conns[o] = nil
+			o.application = nil
+		end
+		if o.on_disconnected then
+			o.on_disconnected(o,e)
+		end		
+	end
 	return o
 end
 
@@ -54,14 +74,9 @@ function connection:recv()
 end
 
 function connection:close()
-	if not self.closing then
-		if self.application then
-			--唤醒所有等待响应的rpc调用
-			self.application.conns[self] = nil
-		end
-		self.sock:close()
-		self.closing = true
-	end
+	self.closing = true
+	self.close = function() end--替换成空函数
+	self.sock:close()	
 end
 
 return {

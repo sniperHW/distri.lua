@@ -133,6 +133,7 @@ local function gen_identity()
 	return "l" .. getSysTick() .. "" .. g_counter
 end
 
+--产生一个coroutine在下次调用Schedule时执行
 local function Spawn(func,...)
     local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
     co.coroutine = coroutine.create(start_fun)
@@ -143,8 +144,20 @@ local function Spawn(func,...)
     add2Ready(co)
 end
 
+--产生一个coroutine立刻执行
+local function SpawnAndRun(func,...)
+    local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
+    co.coroutine = coroutine.create(start_fun)
+    if not sche.mainco then
+		sche.mainco = co
+    end   
+    sche.allcos[co.identity] = co
+    Schedule(co)
+end
+
 return {
 		Spawn = Spawn,
+		SpawnAndRun = SpawnAndRun,
 		Yield = Yield,
 		Sleep = Sleep,
 		Block = Block,

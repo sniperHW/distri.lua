@@ -17,14 +17,14 @@ local function on_disconnected(conn,err)
 end
 
 pingpong:run(function ()
-	for i=1,100 do
+	for i=1,10 do
 		sche.Spawn(function () 
 			local client = socket.new(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 			if client:connect("127.0.0.1",8000) then
 				print("connect to 127.0.0.1:8000 error")
 				return
 			end
-			local conn = Connection.Connection(client,Packet.RPacketDecoder(65535))
+			local conn = Connection.Connection(client,Packet.RPacketDecoder(1024))
 			local wpk = Packet.WPacket(64)
 			wpk:write_string("hello")
 			conn:send(wpk) -- send the first packet
