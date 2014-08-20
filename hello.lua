@@ -1,3 +1,4 @@
+--二进制封包echo
 local sche = require "lua/sche"
 local Packet = require "lua/packet"
 local TcpServer = require "lua/tcpserver"
