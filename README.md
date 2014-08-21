@@ -35,16 +35,6 @@ Post feedback and issues on the [bug tracker](https://github.com/sniperHW/distri
 build
 ------
 ```
-cd deps/jemalloc
-./configure
-make
-cd ../
-
-cd deps/lua-cjson-2.1.0
-make
-mv cjson.so ../../
-
-cd ../../
 make distrilua
 ```
 
