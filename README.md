@@ -41,9 +41,18 @@ make distrilua
 running tests
 -------------
 ```
-./distrilua hello.lua
-./distrilua pingclient.lua
+pingpong test
+
+./distrilua samples/hello.lua
+./distrilua samples/pingclient.lua
+
+rpc tst
+
+./distrilua samples/rpcserver.lua
+./distrilua samples/rpcclient.lua
+
 ```
+
 
 to-do list
 ----------
