@@ -1,8 +1,11 @@
+--[[
+对socket的一层封装,提供了RPC的处理和面向封包的Recv
+]]--
+
+
 local Socket = require "lua/socket"
 local Packet = require "lua/packet"
 local Sche = require "lua/sche"
---local Que = require "lua/queue"
-
 local connection = { }
 
 function connection:new(sock,decoder)
@@ -38,7 +41,12 @@ function connection:Send(wpk)
 	return self.sock:Send(wpk.bytebuffer)	
 end
 
-function connection:Recv()
+--[[
+面向封包的Recv,如果调用成功返回一个由使用者提供的Decoder解出的完整封包,否则返回nil和错误描述.
+如果socket接收到的数据中不能构成完整的封包,Recv将被阻塞,直到timeou或出现错误.
+]]--
+
+function connection:Recv(timeout)
 	local len,ret,rpacket,err,data
 	while true do
 		rpacket,err = self.decoder:Unpack()	
@@ -56,7 +64,7 @@ function connection:Recv()
 				self.spillover = nil
 			end
 		else
-			data,err = self.sock:Recv()
+			data,err = self.sock:Recv(timeout)
 			if err then		
 				return nil,err
 			end			

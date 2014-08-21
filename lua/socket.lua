@@ -1,3 +1,8 @@
+--[[
+对CluaSocket的一层lua封装,提供协程化的阻塞接口,使得在应用上以阻塞的方式调用
+Recv,Send,Connect,Accept等接口,而实际是异步处理的
+]]--
+
 local Sche = require "lua/sche"
 local Que  = require "lua/queue"
 local socket = {}
@@ -27,6 +32,10 @@ function socket:new2(sock)
   return sock_init(o)
 end
 
+--[[
+关闭socket对象，同时关闭底层的luasocket对象,这将导致连接断开。
+务必保证对产生的每个socket对象调用Close。
+]]--
 function socket:Close()
 	print("socket:close")
 	if not self.closing then
@@ -44,6 +53,9 @@ local function on_new_conn(self,sock)
 	end
 end
 
+--[[
+在ip:port上建立TCP监听
+]]--
 function socket:Listen(ip,port)
 	if self.closing then
 		return "socket close"
@@ -103,7 +115,9 @@ local function establish(sock,max_packet_size)
 	sock.packet = Que.New()	
 end
 
-
+--[[
+接受一个TCP连接,并将新连接的接收缓冲设为max_packet_size
+]]--
 function socket:Accept(max_packet_size)
 	if self.closing then
 		return nil,"socket close"
@@ -145,6 +159,9 @@ local function cb_connect(self,s,err)
 	Sche.WakeUp(co)--Schedule(co)	
 end
 
+--[[
+尝试与ip:port建立TCP连接，如果连接成功建立，将连接的接收缓冲设为max_packet_size
+]]--
 function socket:Connect(ip,port,max_packet_size)
 	local ret = CSocket.connect(self.luasocket,ip,port)
 	if ret then
@@ -167,8 +184,13 @@ function socket:Connect(ip,port,max_packet_size)
 	end
 end
 
-
-function socket:Recv()
+--[[
+尝试从套接口中接收数据,如果成功返回数据,如果失败返回nil,错误描述
+timeout参数如果为nil,则当socket没有数据可被接收时Recv调用将一直阻塞
+直到有数据可返回或出现错误.否则在有数据可返回或出现错误之前Recv最少阻塞
+timeout毫秒
+]]--
+function socket:Recv(timeout)
 	if self.closing then
 		return nil,"socket close"	
 	elseif not self.isestablish then
@@ -201,6 +223,10 @@ function socket:Recv()
 	end
 end
 
+--[[
+将packet发送给对端，如果成功返回nil,否则返回错误描述.
+(此函数不会阻塞,立即返回)
+]]--
 function socket:Send(packet)
 	if self.closing then
 		return "socket close"

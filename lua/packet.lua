@@ -1,3 +1,11 @@
+--[[
+提供一组封包处理
+]]--
+
+
+--[[
+原始的二进制数据
+]]--
 local rawpacket = {}
 
 function rawpacket:new(data)
@@ -23,6 +31,14 @@ function rawpacket:Write_rawbin(data)
 		self.bytebuffer:write_raw(0,data)
 	end
 end
+
+--[[
+rpacket和wpacket提供了一组配对的二进制封包格式,其中rpacket用于读取
+wpacket用于发送.
+封包格式为|4字节数据长度|任意字节长度的数据|
+当数据为数字类型时,数据的二进制表示被直接添加到封包的末尾.
+如果数据是变长则首先写入4字节的长度,接着是数据内容
+]]--
 
 local rpacket = {}
 
@@ -132,7 +148,13 @@ function rpacket:Size()
 	return self.len
 end
 
-
+--[[
+rpacket解包器,套接字接收到数据时通过调用Putdata将数据添加到解包器中.
+之后调用Unpack,如果接收到的数据中有完整的包被解出,则Unpack返回一个rpacket对象.
+否则返回nil.需要为解包器的构造函数提供一个maxpacket_size,这意味则解包器最大可
+解出的包的数据长度加上包头不可超过maxpacket_size,如果发现有包的大小超过maxpacket_size
+则认为出现了错误。
+]]--
 local Decoder = {}
 function Decoder:new(maxpacket_size)
 	  o = {}
