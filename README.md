@@ -46,7 +46,7 @@ pingpong test
 ./distrilua samples/hello.lua
 ./distrilua samples/pingclient.lua
 
-rpc tst
+rpc test
 
 ./distrilua samples/rpcserver.lua
 ./distrilua samples/rpcclient.lua
