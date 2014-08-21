@@ -122,12 +122,8 @@ function minheap:Clear()
     self.m_size = 0
 end
 
-local function MinHeap()
-	return minheap:new()
-end
-
 return {
-	MinHeap = MinHeap
+	New = function () return minheap:new() end
 }
 
 

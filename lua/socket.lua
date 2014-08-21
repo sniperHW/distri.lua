@@ -27,7 +27,7 @@ function socket:new2(sock)
   return sock_init(o)
 end
 
-function socket:close()
+function socket:Close()
 	print("socket:close")
 	if not self.closing then
 		self.closing = true	
@@ -37,22 +37,22 @@ function socket:close()
 end
 
 local function on_new_conn(self,sock)
-	self.new_conn:push({sock})	
-	local co = self.block_onaccept:pop()
+	self.new_conn:Push({sock})	
+	local co = self.block_onaccept:Pop()
 	if co then
 		Sche.WakeUp(co)--Schedule(co)
 	end
 end
 
-function socket:listen(ip,port)
+function socket:Listen(ip,port)
 	if self.closing then
 		return "socket close"
 	end
 	if self.block_onaccept or self.new_conn then
 		return "already listening"
 	end
-	self.block_onaccept = Que.Queue()
-	self.new_conn = Que.Queue()
+	self.block_onaccept = Que.New()
+	self.new_conn = Que.New()
 	self.__on_new_connection = on_new_conn
 	return CSocket.listen(self.luasocket,ip,port)
 end
@@ -62,7 +62,7 @@ local function on_disconnected(self,errno)
 	self.closing = true
 	local co
 	while self.block_noaccept do
-		co = self.block_onaccept:pop()
+		co = self.block_onaccept:Pop()
 		if co then
 			Sche.WakeUp(co)--Schedule(co)
 		else
@@ -71,7 +71,7 @@ local function on_disconnected(self,errno)
 	end
 
 	while true do
-		co = self.block_recv:pop()
+		co = self.block_recv:Pop()
 		if co then
 			Sche.WakeUp(co)--Schedule(co) 
 		else
@@ -85,8 +85,8 @@ local function on_disconnected(self,errno)
 end
 
 local function on_packet(self,packet)
-	self.packet:push({packet})
-	local co = self.block_recv:front()
+	self.packet:Push({packet})
+	local co = self.block_recv:Front()
 	if co then
 	    self.timeout = nil
 		--Sche.Schedule(co)
@@ -98,13 +98,13 @@ local function establish(sock,max_packet_size)
 	sock.isestablish = true
 	sock.__on_packet = on_packet
 	sock.__on_disconnected = on_disconnected
-	sock.block_recv = Que.Queue()	
+	sock.block_recv = Que.New()	
 	CSocket.establish(sock.luasocket,max_packet_size)
-	sock.packet = Que.Queue()	
+	sock.packet = Que.New()	
 end
 
 
-function socket:accept(max_packet_size)
+function socket:Accept(max_packet_size)
 	if self.closing then
 		return nil,"socket close"
 	end
@@ -113,7 +113,7 @@ function socket:accept(max_packet_size)
 		return nil,"invaild socket"
 	else	
 		while true do
-			local s = self.new_conn:pop()
+			local s = self.new_conn:Pop()
 			if s then
 			    s = s[1]
 				local sock = socket:new2(s)
@@ -124,7 +124,7 @@ function socket:accept(max_packet_size)
 				if not co then
 					return nil,"accept must be call in a coroutine context"
 				end
-				self.block_onaccept:push(co)
+				self.block_onaccept:Push(co)
 				Sche.Block()
 				if  self.closing then
 					return nil,"socket close" --socket被关闭
@@ -145,7 +145,7 @@ local function cb_connect(self,s,err)
 	Sche.WakeUp(co)--Schedule(co)	
 end
 
-function socket:connect(ip,port,max_packet_size)
+function socket:Connect(ip,port,max_packet_size)
 	local ret = CSocket.connect(self.luasocket,ip,port)
 	if ret then
 		return ret
@@ -168,14 +168,14 @@ function socket:connect(ip,port,max_packet_size)
 end
 
 
-function socket:recv()
+function socket:Recv()
 	if self.closing then
 		return nil,"socket close"	
 	elseif not self.isestablish then
 		return nil,"invaild socket"
 	end
 	while true do
-		local packet = self.packet:pop()
+		local packet = self.packet:Pop()
 		if packet then
 			return packet[1],nil
 		end		
@@ -183,17 +183,17 @@ function socket:recv()
 		if not co then
 			return nil,"recv must be call in a coroutine context"
 		end		
-		self.block_recv:push(co)		
+		self.block_recv:Push(co)		
 		if timeout then
 			self.timeout = timeout
 		end
 		Sche.Block(timeout)
 		if self.timeout then
 		    self.timeout = nil
-		    self.block_recv:remove(co)
+		    self.block_recv:Remove(co)
 			return nil,"recv timeout"
 		else
-			self.block_recv:pop()
+			self.block_recv:Pop()
 			if self.closing then
 				return nil,self.errno
 			end			
@@ -201,7 +201,7 @@ function socket:recv()
 	end
 end
 
-function socket:send(packet)
+function socket:Send(packet)
 	if self.closing then
 		return "socket close"
 	end
@@ -212,6 +212,6 @@ function socket:send(packet)
 end
 
 return {
-	new = function (domain,type,protocal) return socket:new(domain,type,protocal) end
+	New = function (domain,type,protocal) return socket:new(domain,type,protocal) end
 }
 

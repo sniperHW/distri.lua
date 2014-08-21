@@ -8,7 +8,7 @@ local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
 
 local function RPC_Process_Call(app,conn,rpk)
-	local request = cjson.decode(rpk:read_string())
+	local request = cjson.decode(rpk:Read_string())
 	local funname = request.f
 	local co = request.co
 	local func = app._RPCService[funname]
@@ -18,14 +18,14 @@ local function RPC_Process_Call(app,conn,rpk)
 	else
 		response.ret = {func(table.unpack(request.arg))}
 	end
-	local wpk = Packet.WPacket(512)
-	wpk:write_uint32(CMD_RPC_RESP)
-	wpk:write_string(cjson.encode(response))
-	conn:send(wpk)
+	local wpk = Packet.WPacket.New(512)
+	wpk:Write_uint32(CMD_RPC_RESP)
+	wpk:Write_string(cjson.encode(response))
+	conn:Send(wpk)
 end
 
 local function RPC_Process_Response(conn,rpk)
-	local response = cjson.decode(rpk:read_string())
+	local response = cjson.decode(rpk:Read_string())
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then
 		co.response = response
@@ -51,10 +51,10 @@ function rpcCaller:Call(...)
 	request.f = self.funcname
 	request.co = co.identity
 	request.arg = {...}
-	local wpk = Packet.WPacket(512)
-	wpk:write_uint32(CMD_RPC_CALL)
-	wpk:write_string(cjson.encode(request))
-	local ret = self.conn:send(wpk)
+	local wpk = Packet.WPacket.New(512)
+	wpk:Write_uint32(CMD_RPC_CALL)
+	wpk:Write_string(cjson.encode(request))
+	local ret = self.conn:Send(wpk)
 	if ret then
 		return ret
 	else

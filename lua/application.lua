@@ -17,22 +17,22 @@ end
 
 local function recver(app,conn)
 	while app.running do
-		local rpk,err = conn:recv()
+		local rpk,err = conn:Recv()
 		if err then
-			conn:close()
+			conn:Close()
 			break
 		end
 		--将packet投递到队列，供worker消费
-		local cmd = rpk:peek_uint32()
+		local cmd = rpk:Peek_uint32()
 		if not conn.closing and rpk then
-			local cmd = rpk:peek_uint32()
+			local cmd = rpk:Peek_uint32()
 			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
 				--如果是rpc消息，执行rpc处理
 				if cmd == RPC.CMD_RPC_CALL then
-					rpk:read_uint32()
+					rpk:Read_uint32()
 					RPC.ProcessCall(app,conn,rpk)
 				elseif cmd == RPC.CMD_RPC_RESP then
-					rpk:read_uint32()
+					rpk:Read_uint32()
 					RPC.ProcessResponse(conn,rpk)
 				end						
 			elseif conn.on_packet then
@@ -43,7 +43,7 @@ local function recver(app,conn)
 	app.conns[conn] = nil	
 end
 
-function application:add(conn,on_packet,on_disconnected)
+function application:Add(conn,on_packet,on_disconnected)
 	if not self.conns[conn] then
 		self.conns[conn] = conn
 		conn.application = self
@@ -52,8 +52,8 @@ function application:add(conn,on_packet,on_disconnected)
 		local app = self
 		--改变conn.sock.__on_packet的行为
 		conn.sock.__on_packet = function (sock,packet)
-			sock.packet:push({packet})
-			local co = sock.block_recv:front()
+			sock.packet:Push({packet})
+			local co = sock.block_recv:Front()
 			if co then
 				sock.timeout = nil
 				--Sche.Schedule(co)
@@ -70,18 +70,18 @@ function application:RPCService(name,func)
 	self._RPCService[name] = func
 end
 
-function application:run(start_fun)
+function application:Run(start_fun)
 	start_fun()
 	self.running = true
 end
 
-function application:stop()
+function application:Stop()
 	self.running = false
 	for k,v in pairs(self.conns) do
-		v:close()
+		v:Close()
 	end
 end
 
 return {
-	Application =  function () return application:new() end
+	New =  function () return application:new() end
 }

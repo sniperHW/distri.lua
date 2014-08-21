@@ -34,21 +34,21 @@ function connection:new(sock,decoder)
 	return o
 end
 
-function connection:send(wpk)
-	return self.sock:send(wpk.bytebuffer)	
+function connection:Send(wpk)
+	return self.sock:Send(wpk.bytebuffer)	
 end
 
-function connection:recv()
+function connection:Recv()
 	local len,ret,rpacket,err,data
 	while true do
-		rpacket,err = self.decoder:unpack()	
+		rpacket,err = self.decoder:Unpack()	
 		if err then
 			return nil,err
 		elseif rpacket then
 			return rpacket,nil
 		elseif self.spillover then
 			len = string.len(self.spillover)
-			ret = self.decoder:putdata(self.spillover,len)
+			ret = self.decoder:Putdata(self.spillover,len)
 			len = len - ret		
 			if len > 0 then
 				self.spillover = string.sub(self.spillover,ret+1)
@@ -56,12 +56,12 @@ function connection:recv()
 				self.spillover = nil
 			end
 		else
-			data,err = self.sock:recv()
+			data,err = self.sock:Recv()
 			if err then		
 				return nil,err
 			end			
 			len = string.len(data)
-			ret = self.decoder:putdata(data,len)
+			ret = self.decoder:Putdata(data,len)
 			len = len - ret
 			if len > 0 then
 				if self.spillover then
@@ -73,12 +73,12 @@ function connection:recv()
 	end
 end
 
-function connection:close()
+function connection:Close()
 	self.closing = true
 	self.close = function() end--替换成空函数
-	self.sock:close()	
+	self.sock:Close()	
 end
 
 return {
-	Connection = function (sock,decoder) return connection:new(sock,decoder) end
+	New = function (sock,decoder) return connection:new(sock,decoder) end
 }

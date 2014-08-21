@@ -3,8 +3,8 @@ local Que =  require "lua/queue"
 
 
 local sche = {
-	ready_list = Que.Queue(),
-	timer = MinHeap.MinHeap(),
+	ready_list = Que.New(),
+	timer = MinHeap.New(),
 	allcos = {},
 	runningco = nil,
 }
@@ -20,7 +20,7 @@ local function add2Ready(co)
         return
     end
     co.status = stat_ready
-    sche.ready_list:push(co)
+    sche.ready_list:Push(co)
 end
 
 local function Sleep(ms)
@@ -80,7 +80,7 @@ local function Schedule(co)
 		sche.runningco = pre_co
 	else
 		local yields = {}
-		co = readylist:pop()
+		co = readylist:Pop()
 		while co do
 			sche.runningco = co
 			coroutine.resume(co.coroutine,co)
@@ -88,7 +88,7 @@ local function Schedule(co)
 				table.insert(yields,co)
 			--elseif co.status == stat_dead then
 			end
-			co = readylist:pop()
+			co = readylist:Pop()
 		end
 		local now = GetSysTick()
 		local timer = sche.timer
@@ -102,7 +102,7 @@ local function Schedule(co)
 			add2Ready(v)
 		end
     end
-    return sche.ready_list:len()
+    return sche.ready_list:Len()
 end
 
 local function Running()

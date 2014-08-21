@@ -14,11 +14,11 @@ function rawpacket:new(data)
 	  return o
 end
 
-function rawpacket:read_rawbin()
+function rawpacket:Read_rawbin()
 	return self.bytebuffer:read_raw(0)
 end
 
-function rawpacket:write_rawbin(data)
+function rawpacket:Write_rawbin(data)
 	if type(data) == "string" then
 		self.bytebuffer:write_raw(0,data)
 	end
@@ -41,7 +41,7 @@ function rpacket:new(data)
 	  return o
 end
 
-function rpacket:read_uint8()
+function rpacket:Read_uint8()
 	 if self.data_remain < 1 then
 		return nil
 	 end
@@ -51,7 +51,7 @@ function rpacket:read_uint8()
 	 return val
 end
 
-function rpacket:read_uint16()
+function rpacket:Read_uint16()
 	 if self.data_remain < 2 then
 		return nil
 	 end
@@ -61,7 +61,7 @@ function rpacket:read_uint16()
 	 return val
 end
 
-function rpacket:read_uint32()
+function rpacket:Read_uint32()
 	 if self.data_remain < 4 then
 		return nil
 	 end
@@ -71,7 +71,7 @@ function rpacket:read_uint32()
 	 return val
 end
 
-function rpacket:read_float()
+function rpacket:Read_float()
 	 if self.data_remain < 4 then
 		return nil
 	 end
@@ -81,7 +81,7 @@ function rpacket:read_float()
 	 return val
 end
 
-function rpacket:read_double()
+function rpacket:Read_double()
 	 if self.data_remain < 8 then
 		return nil
 	 end
@@ -91,7 +91,7 @@ function rpacket:read_double()
 	 return val
 end
 
-function rpacket:read_string()
+function rpacket:Read_string()
 	 if self.data_remain < 4 then
 		return nil
 	 end
@@ -104,7 +104,7 @@ function rpacket:read_string()
 	 return val
 end
 
-function rpacket:peek_uint8()
+function rpacket:Peek_uint8()
 	 if self.data_remain < 1 then
 		return nil
 	 end
@@ -112,7 +112,7 @@ function rpacket:peek_uint8()
 	 return val
 end
 
-function rpacket:peek_uint16()
+function rpacket:Peek_uint16()
 	 if self.data_remain < 2 then
 		return nil
 	 end
@@ -120,7 +120,7 @@ function rpacket:peek_uint16()
 	 return val
 end
 
-function rpacket:peek_uint32()
+function rpacket:Peek_uint32()
 	 if self.data_remain < 4 then
 		return nil
 	 end
@@ -128,7 +128,7 @@ function rpacket:peek_uint32()
 	 return val
 end
 
-function rpacket:size()
+function rpacket:Size()
 	return self.len
 end
 
@@ -145,7 +145,7 @@ function Decoder:new(maxpacket_size)
 	  return o
 end
 
-function Decoder:putdata(data,len)
+function Decoder:Putdata(data,len)
 	local space = self.maxpacket_size - self.widx
 	if len > space and self.ridx > 0 then		
 		local datasize = self.widx - self.ridx	
@@ -169,7 +169,7 @@ function Decoder:putdata(data,len)
 	end
 end
 
-function Decoder:unpack()
+function Decoder:Unpack()
 	local datasize = self.widx - self.ridx
 	if datasize >= 4 then		
 		local packet_len = self.buffer:read_uint32(self.ridx) + 4 --加上包头大小
@@ -204,7 +204,7 @@ function wpacket:new(data)
    return o
 end
 
-function wpacket:write_uint8(val)
+function wpacket:Write_uint8(val)
 	self.bytebuffer:write_uint8(self.widx,val)
 	self.widx = self.widx + 1
 	self.datasize = self.datasize + 1
@@ -212,7 +212,7 @@ function wpacket:write_uint8(val)
 	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长	
 end
 
-function wpacket:write_uint16(val)
+function wpacket:Write_uint16(val)
 	self.bytebuffer:write_uint16(self.widx,val)
 	self.widx = self.widx + 2
 	self.datasize = self.datasize + 2
@@ -220,7 +220,7 @@ function wpacket:write_uint16(val)
 	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长	
 end
 
-function wpacket:write_uint32(val)
+function wpacket:Write_uint32(val)
 	self.bytebuffer:write_uint32(self.widx,val)
 	self.widx = self.widx + 4
 	self.datasize = self.datasize + 4
@@ -229,7 +229,7 @@ function wpacket:write_uint32(val)
 end
 
 
-function wpacket:write_float(val)
+function wpacket:Write_float(val)
 	self.bytebuffer:write_float(self.widx,val)
 	self.widx = self.widx + 4
 	self.datasize = self.datasize + 4
@@ -237,7 +237,7 @@ function wpacket:write_float(val)
 	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长	
 end
 
-function wpacket:write_double(val)
+function wpacket:Write_double(val)
 	self.bytebuffer:write_double(self.widx,val)
 	self.widx = self.widx + 8
 	self.datasize = self.datasize + 8
@@ -245,7 +245,7 @@ function wpacket:write_double(val)
 	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长	
 end
 
-function wpacket:write_string(val)
+function wpacket:Write_string(val)
 	self.bytebuffer:write_string(self.widx,val)
 	self.widx = self.widx + 4 + string.len(val)
 	self.datasize = self.widx
@@ -253,16 +253,16 @@ function wpacket:write_string(val)
 	self.bytebuffer:write_uint32(0,self.datasize-4)--更新包长
 end
 
-function wpacket:size()
+function wpacket:Size()
 	return self.bytebuffer:read_uint32(0) --不含长度字段
 end
 
 
 return {
-	RawPacket = function (...) return rawpacket:new(...) end,
-	RPacket = function (...) return rpacket:new(...) end,
-	WPacket = function (...) return wpacket:new(...) end,
-	RPacketDecoder = function (maxpacket_size) return Decoder:new(maxpacket_size) end,		
+	RawPacket = {New = function (...) return rawpacket:new(...) end},
+	RPacket = {New = function (...) return rpacket:new(...) end},
+	WPacket = {New = function (...) return wpacket:new(...) end},
+	RPacketDecoder = {New = function (maxpacket_size) return Decoder:new(maxpacket_size) end},		
 }
 
 

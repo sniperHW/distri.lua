@@ -14,7 +14,7 @@ function queue:new(o)
   return o
 end
 
-function queue:push(node)
+function queue:Push(node)
     if not self.tail then
         self.head = node
         self.tail = node
@@ -25,7 +25,7 @@ function queue:push(node)
 	self.size = self.size + 1
 end
 
-function queue:front()
+function queue:Front()
     if not self.head then
 		return nil
 	else
@@ -33,7 +33,7 @@ function queue:front()
 	end	
 end
 
-function queue:pop()
+function queue:Pop()
     if not self.head then
 		return nil
 	else
@@ -51,7 +51,7 @@ function queue:pop()
 	end
 end
 
-function queue:remove(ele)
+function queue:Remove(ele)
 	local cur = self.head
 	local pre = self.head
 	while cur do
@@ -76,14 +76,14 @@ function queue:remove(ele)
 	end	
 end
 
-function queue:is_empty()
+function queue:IsEmpty()
 	return self.size == 0
 end
 
-function queue:len()
+function queue:Len()
 	return self.size
 end
 
 return {
-	Queue = function () return queue:new() end
+	New = function () return queue:new() end
 }

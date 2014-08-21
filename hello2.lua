@@ -2,8 +2,8 @@
 local Socket = require "lua/socket"
 local Sche = require "lua/sche"
 
-local server = Socket.new(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-if not server:listen("127.0.0.1",8010) then
+local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+if not server:Listen("127.0.0.1",8010) then
 		print("server listen on 127.0.0.1 8010")
 else
 	print("create server on 127.0.0.1 8010 error")
@@ -27,18 +27,18 @@ Sche.Spawn(function ()
 end)
 
 while true do
-	local client = server:accept()
+	local client = server:Accept()
 	print("new client")
 	Sche.Spawn(function ()
 		while true do
-			local packet,err = client:recv()
+			local packet,err = client:Recv()
 			if err then
 				print("client disconnected err:" .. err)			
-				client:close()
+				client:Close()
 				return
 			end
 			count = count + 1			
-			client:send(packet)
+			client:Send(packet)
 		end
 	end)
 end

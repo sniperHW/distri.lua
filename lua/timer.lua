@@ -9,7 +9,7 @@ function timer:new(o)
   local o = o or {}   
   setmetatable(o, self)
   self.__index = self
-  o.minheap = MinHeap.MinHeap()
+  o.minheap = MinHeap.New()
   return o
 end
 
@@ -58,6 +58,6 @@ function timer:Run()
 end
 
 return {
-	Timer = function () return timer:new() end
+	New = function () return timer:new() end
 }
 
