@@ -154,6 +154,11 @@ rpacket解包器,套接字接收到数据时通过调用Putdata将数据添加�
 否则返回nil.需要为解包器的构造函数提供一个maxpacket_size,这意味则解包器最大可
 解出的包的数据长度加上包头不可超过maxpacket_size,如果发现有包的大小超过maxpacket_size
 则认为出现了错误。
+
+
+Decoder作为一个通用接口,使用者可以提供自定义的解包器去解符合需求的封包,
+只要为自定义的解包器提供Putdata(data,len),和Unpack函数即可.
+
 ]]--
 local Decoder = {}
 function Decoder:new(maxpacket_size)
