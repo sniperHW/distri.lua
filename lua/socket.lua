@@ -106,19 +106,22 @@ local function on_packet(self,packet)
 	end
 end
 
-local function establish(sock,max_packet_size)
+local function establish(sock,max_packet_size,decoder)
 	sock.isestablish = true
 	sock.__on_packet = on_packet
 	sock.__on_disconnected = on_disconnected
 	sock.block_recv = Que.New()	
-	CSocket.establish(sock.luasocket,max_packet_size)
+	if not decoder then
+		decoder = CSocket.rawdecoder()
+	end
+	CSocket.establish(sock.luasocket,max_packet_size,decoder)
 	sock.packet = Que.New()	
 end
 
 --[[
 接受一个TCP连接,并将新连接的接收缓冲设为max_packet_size
 ]]--
-function socket:Accept(max_packet_size)
+function socket:Accept(max_packet_size,decoder)
 	if self.closing then
 		return nil,"socket close"
 	end
@@ -131,7 +134,7 @@ function socket:Accept(max_packet_size)
 			if s then
 			    s = s[1]
 				local sock = socket:new2(s)
-				establish(sock,max_packet_size or 65535)
+				establish(sock,max_packet_size or 65535,decoder)
 				return sock,nil
 			else
 				local co = Sche.Running()
@@ -162,7 +165,7 @@ end
 --[[
 尝试与ip:port建立TCP连接，如果连接成功建立，将连接的接收缓冲设为max_packet_size
 ]]--
-function socket:Connect(ip,port,max_packet_size)
+function socket:Connect(ip,port,max_packet_size,decoder)
 	local ret = CSocket.connect(self.luasocket,ip,port)
 	if ret then
 		return ret
@@ -178,7 +181,7 @@ function socket:Connect(ip,port,max_packet_size)
 		elseif self.err then
 			return self.err
 		else
-			establish(self,max_packet_size or 65535)	
+			establish(self,max_packet_size or 65535,decoder)	
 			return nil
 		end				
 	end

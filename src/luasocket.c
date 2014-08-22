@@ -1,7 +1,8 @@
 #include "kendynet.h"
 #include "stream_conn.h"
 #include "luasocket.h"
-#include "luabytebuffer.h"
+#include "luapacket.h"
+//#include "luabytebuffer.h"
 
 extern __thread engine_t g_engine;
 static __thread lua_State *g_L;
@@ -51,14 +52,24 @@ static int luasocket_new2(lua_State *L){
 
 static int  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
-	luaRef_t  *obj = &luasock->luaObj;
-	uint32_t len = 0;	
-	const char *msg = rawpacket_data((rawpacket_t)p,&len);
-	const char *error = LuaCallTabFuncS(*obj,"__on_packet","S",msg,(size_t)len);
-	if(error){
-		printf("error on __on_packet:%s\n",error);
+	luaRef_t  *obj = &luasock->luaObj;	
+	int __result;
+	lua_State *__L = obj->L;
+	int __oldtop = lua_gettop(__L);
+	lua_rawgeti(__L,LUA_REGISTRYINDEX,obj->rindex);
+	lua_pushstring(__L,"__on_packet");
+	lua_gettable(__L,-2);
+	lua_insert(__L,-2);
+	push_luapacket(__L,p);
+	__result = lua_pcall(__L,2,0,0);
+	if(__result){
+		const char *error = lua_tostring(__L,-1);
+		if(error){
+			printf("error on __on_packet:%s\n",error);
+		}	
 	}
-	return 1;	
+	lua_settop(__L,__oldtop);	
+	return 0;	
 }
 
 static void on_disconnected(stream_conn_t c,int err){
@@ -75,10 +86,11 @@ static void on_disconnected(stream_conn_t c,int err){
 
 static int luasocket_establish(lua_State *L){
 	luasocket_t luasock = (luasocket_t)lua_touserdata(L,1);
-	uint32_t     max_packet_size = lua_tointeger(L,2);
+	uint32_t    max_packet_size = lua_tointeger(L,2);
+	decoder*    _decoder = (decoder*)lua_touserdata(L,3);
 	max_packet_size = size_of_pow2(max_packet_size);
     if(max_packet_size < 1024) max_packet_size = 1024;
-	stream_conn_t conn = new_stream_conn(luasock->sock,max_packet_size,RAWPACKET);
+	stream_conn_t conn = new_stream_conn(luasock->sock,max_packet_size,_decoder);
 	stream_conn_associate(g_engine,conn,on_packet,on_disconnected);	
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
@@ -129,20 +141,6 @@ static int luasocket_connect(lua_State *L){
 static void on_new_conn(handle_t s,void* ud){
 	luasocket_t luasock = (luasocket_t)ud;
 	luaRef_t  *obj = &luasock->luaObj;
-
-	/*const char *__result;
-	lua_State *__L = (*obj).L;
-	int __oldtop = lua_gettop(__L);
-	lua_rawgeti(__L,LUA_REGISTRYINDEX,(*obj).rindex);
-	lua_pushstring(__L,"__on_new_connection");
-	lua_gettable(__L,-2);
-	lua_remove(__L,-2);
-	char __tmp[32];
-	snprintf(__tmp,32,"r%s","p");
-	__result = luacall(__L,__tmp,*obj,s);
-	lua_settop(__L,__oldtop);
-	*/	
-
 	const char*error = LuaCallTabFuncS(*obj,"__on_new_connection","p",s);
 	if(error){
 		printf("error on __on_new_connection:%s\n",error);
@@ -189,33 +187,23 @@ static int luasocket_close(lua_State *L){
 	return 0;
 }
 
-inline static lua_bytebuffer_t lua_getbytebuffer(lua_State *L, int index) {
-    return (lua_bytebuffer_t)luaL_testudata(L, index, BYTEBUFFER_METATABLE);
-}
 static int luasocket_send(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type != _STREAM_CONN){
 		lua_pushstring(L,"invaild socket");
 		return 1;
-	}	
-	rawpacket_t pk;
-	if(lua_type(L,2) == LUA_TSTRING){
-		size_t len;
-		const char *msg = lua_tolstring(L,2,&len);
-		pk = rawpacket_create2((void*)msg,(uint32_t)len);
-	}else{
-		lua_bytebuffer_t bbuffer = lua_getbytebuffer(L,2);
-		if(!bbuffer){
-			lua_pushstring(L,"invaild data");
-			return 1;			
-		}else{
-			pk = rawpacket_create1(bbuffer->raw_buffer,0,bbuffer->raw_buffer->size);
-		}
 	}
-	if(0 != stream_conn_send(luasock->streamconn,(packet_t)pk))
+	
+	lua_packet_t pk = lua_getluapacket(L,2);
+	if(pk->_packet->type == RPACKET){
+		lua_pushstring(L,"invaild data");
+		return 1;				
+	} 
+	if(0 != stream_conn_send(luasock->streamconn,(packet_t)pk->_packet))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);
+	pk->_packet = NULL;
 	return 1;
 }
 
@@ -230,7 +218,17 @@ static int luasocket_send(lua_State *L){
 	lua_pushstring(L,NAME);\
 	lua_pushcfunction(L,FUNC);\
 	lua_settable(L, -3);\
-}while(0)	
+}while(0)
+
+int lua_new_rawdecoder(lua_State *L){
+	lua_pushlightuserdata(L,new_rawpk_decoder());
+	return 1;
+}
+
+int lua_new_rpkdecoder(lua_State *L){
+	lua_pushlightuserdata(L,new_rpk_decoder());
+	return 1;
+}		
 
 void reg_luasocket(lua_State *L){
 	lua_newtable(L);
@@ -250,8 +248,11 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("send",luasocket_send);
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
+	REGISTER_FUNCTION("rawdecoder",lua_new_rawdecoder);	
+	REGISTER_FUNCTION("rpkdecoder",lua_new_rpkdecoder);	
+	
 	lua_setglobal(L,"CSocket");
-	reg_luabytebuffer(L);	
+	reg_luapacket(L);	
 	g_L = L;
 }
 

@@ -30,7 +30,7 @@ function on_connected(s,remote_addr,err)
 end
 print("echoclient")
 for i=1,100 do
-	Tcp.Connect4({ip="127.0.0.1",port=8010},nil,on_connected,3000)
+	Tcp.Connect4({ip="127.0.0.1",port=8000},nil,on_connected,3000)
 end
 
 local tick = C.GetSysTick()

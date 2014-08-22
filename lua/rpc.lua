@@ -1,13 +1,11 @@
 local cjson = require "cjson"
-local Connection = require "lua/connection"
 local Sche = require "lua/sche"
 local cjson = require "cjson"
-local Packet = require "lua/packet"
 
 local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
 
-local function RPC_Process_Call(app,conn,rpk)
+local function RPC_Process_Call(app,s,rpk)
 	local request = cjson.decode(rpk:Read_string())
 	local funname = request.f
 	local co = request.co
@@ -18,29 +16,29 @@ local function RPC_Process_Call(app,conn,rpk)
 	else
 		response.ret = {func(table.unpack(request.arg))}
 	end
-	local wpk = Packet.WPacket.New(512)
+	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
 	wpk:Write_uint32(CMD_RPC_RESP)
 	wpk:Write_string(cjson.encode(response))
-	conn:Send(wpk)
+	s:Send(wpk)
 end
 
-local function RPC_Process_Response(conn,rpk)
+local function RPC_Process_Response(s,rpk)
 	local response = cjson.decode(rpk:Read_string())
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then
 		co.response = response
-		conn.pending_rpc[co.identity] = nil
+		s.pending_rpc[co.identity] = nil
 		Sche.WakeUp(co)--Schedule(co)
 	end
 end
 
 local rpcCaller = {}
 
-function rpcCaller:new(conn,funcname)
+function rpcCaller:new(s,funcname)
   local o = {}
   self.__index = self      
   setmetatable(o,self)
-  o.conn = conn
+  o.s = s
   o.funcname = funcname
   return o
 end
@@ -51,17 +49,17 @@ function rpcCaller:Call(...)
 	request.f = self.funcname
 	request.co = co.identity
 	request.arg = {...}
-	local wpk = Packet.WPacket.New(512)
+	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
 	wpk:Write_string(cjson.encode(request))
-	local ret = self.conn:Send(wpk)
+	local ret = self.s:Send(wpk)
 	if ret then
 		return ret
 	else
-	    if not self.conn.pending_rpc then
-			self.conn.pending_rpc = {}
+	    if not self.s.pending_rpc then
+			self.s.pending_rpc = {}
 	    end
-		self.conn.pending_rpc[co.identity]  = co
+		self.s.pending_rpc[co.identity]  = co
 		Sche.Block()
 		local response = co.response
 		co.response = nil
@@ -73,8 +71,8 @@ function rpcCaller:Call(...)
 	end	
 end
 
-local function RPC_MakeCaller(conn,funcname)
-	return rpcCaller:new(conn,funcname)
+local function RPC_MakeCaller(s,funcname)
+	return rpcCaller:new(s,funcname)
 end
 
 return {

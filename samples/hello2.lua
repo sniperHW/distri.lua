@@ -3,10 +3,10 @@ local Socket = require "lua/socket"
 local Sche = require "lua/sche"
 
 local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-if not server:Listen("127.0.0.1",8010) then
-		print("server listen on 127.0.0.1 8010")
+if not server:Listen("127.0.0.1",8000) then
+		print("server listen on 127.0.0.1 8000")
 else
-	print("create server on 127.0.0.1 8010 error")
+	print("create server on 127.0.0.1 8000 error")
 	return
 end
 

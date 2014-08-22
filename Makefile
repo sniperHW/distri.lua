@@ -28,7 +28,7 @@ distrilua:deps/KendyNet/libkendynet.a\
 		  cjson.so\
 		  src/luasocket.h\
 		  src/luasocket.c\
-		  src/luabytebuffer.h\
-		  src/luabytebuffer.c\
+		  src/luapacket.h\
+		  src/luapacket.c\
 		  src/distri.c	
-		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luabytebuffer.c -lkendynet -lhiredis $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c -lkendynet -lhiredis $(INCLUDE) $(LDFLAGS) $(DEFINE)

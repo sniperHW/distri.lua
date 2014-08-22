@@ -1,6 +1,4 @@
-local Packet = require "lua/packet"
 local TcpServer = require "lua/tcpserver"
-local Connection = require "lua/connection"
 local App = require "lua/application"
 local RPC = require "lua/rpc"
 local Timer = require "lua/timer"
@@ -19,9 +17,9 @@ rpcserver:RPCService("Plus",function (a,b)
 end)
 
 rpcserver:Run(function ()
-	TcpServer.Listen("127.0.0.1",8000,function (client)
+	TcpServer.Listen("127.0.0.1",8000,65535,CSocket.rpkdecoder(),function (client)
 			print("on new client")
-			rpcserver:Add(Connection.New(client,Packet.RPacketDecoder.New(65535)),nil,on_disconnected)		
+			rpcserver:Add(client,nil,on_disconnected)		
 	end)
 end)
 
