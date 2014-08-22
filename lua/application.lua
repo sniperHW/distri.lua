@@ -20,7 +20,7 @@ local function recver(app,socket)
 			socket:Close()
 			break
 		end
-		if not socket.closing and rpk then
+		if rpk then
 			local cmd = rpk:Peek_uint32()
 			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
 				--如果是rpc消息，执行rpc处理

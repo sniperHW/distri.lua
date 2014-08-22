@@ -11,7 +11,7 @@ end
 
 local function on_disconnected(s,err)
 	print("conn disconnected:" .. err)
-	s:Close()	
+	--s:Close()	
 end
 
 pingpong:Run(function ()

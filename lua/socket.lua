@@ -38,11 +38,9 @@ end
 ]]--
 function socket:Close()
 	print("socket:close")
-	if not self.closing then
-		self.closing = true	
-		CSocket.close(self.luasocket)
-		self.luasocket = nil
-	end
+	self.closing = true
+	CSocket.close(self.luasocket)		
+	self.Close = function () end --将Close替换成空函数	
 end
 
 local function on_new_conn(self,sock)
@@ -69,9 +67,10 @@ function socket:Listen(ip,port)
 	return CSocket.listen(self.luasocket,ip,port)
 end
 
-local function on_disconnected(self,errno)
+local function process_c_disconnect_event(self,errno)
 	self.errno = errno
 	self.closing = true
+	self.Close = function () end --将Close替换成空函数	
 	local co
 	while self.block_noaccept do
 		co = self.block_onaccept:Pop()
@@ -93,10 +92,26 @@ local function on_disconnected(self,errno)
 	
 	if self.connect_co then
 		Sche.WakeUp(self.connect_co)--Schedule(self.connect_co)
-	end	
+	end
+	
+	if self.pending_rpc then
+		--唤醒所有等待响应的rpc调用
+		for k,v in pairs(self.pending_rpc) do
+			print("process pending")
+			v.response = {"remote connection lose",nil}
+			Sche.Schedule(v)
+		end					
+	end
+	if self.application then
+		self.application.sockets[self] = nil
+		self.application = nil
+	end
+	if self.on_disconnected then
+		self.on_disconnected(self,errno)
+	end				
 end
 
-local function on_packet(self,packet)
+local function process_c_packet_event(self,packet)
 	self.packet:Push({packet})
 	local co = self.block_recv:Front()
 	if co then
@@ -108,8 +123,8 @@ end
 
 function socket:Establish(decoder,max_packet_size)
 	self.isestablish = true
-	self.__on_packet = on_packet
-	self.__on_disconnected = on_disconnected
+	self.__on_packet = process_c_packet_event
+	self.__on_disconnected = process_c_disconnect_event
 	self.block_recv = Que.New()	
 	if not decoder then
 		decoder = CSocket.rawdecoder()
@@ -198,34 +213,33 @@ timeout参数如果为nil,则当socket没有数据可被接收时Recv调用将�
 timeout毫秒
 ]]--
 function socket:Recv(timeout)
-	if self.closing then
-		return nil,"socket close"	
-	elseif not self.isestablish then
+	if not self.isestablish then
 		return nil,"invaild socket"
-	end
-	while true do
-		local packet = self.packet:Pop()
-		if packet then
-			return packet[1],nil
-		end		
-		local co = Sche.Running()
-		if not co then
-			return nil,"recv must be call in a coroutine context"
-		end		
-		self.block_recv:Push(co)		
-		if timeout then
-			self.timeout = timeout
-		end
-		Sche.Block(timeout)
-		if self.timeout then
-		    self.timeout = nil
-		    self.block_recv:Remove(co)
-			return nil,"recv timeout"
-		else
-			self.block_recv:Pop()
+	else
+		while true do
 			if self.closing then
 				return nil,self.errno
 			end			
+			local packet = self.packet:Pop()
+			if packet then
+				return packet[1],nil
+			end		
+			local co = Sche.Running()
+			if not co then
+				return nil,"recv must be call in a coroutine context"
+			end		
+			self.block_recv:Push(co)		
+			if timeout then
+				self.timeout = timeout
+			end
+			Sche.Block(timeout)
+			if self.timeout then
+				self.timeout = nil
+				self.block_recv:Remove(co)
+				return nil,"recv timeout"
+			else
+				self.block_recv:Pop()	
+			end
 		end
 	end
 end
