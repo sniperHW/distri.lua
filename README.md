@@ -62,3 +62,16 @@ to-do list
 * Lighted HttpServer
 * SSL Connection
 * WebSocket
+
+
+levent
+1 3W/s
+10 7.1W/s
+100 7.1W/s
+1000 6W/s
+
+distri.lua
+1       2W/s
+10     8W/s
+100   8.4W/s
+1000 6.6W/s
