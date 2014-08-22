@@ -28,6 +28,7 @@ end)
 
 while true do
 	local client = server:Accept()
+	client:Establish()
 	print("new client")
 	Sche.Spawn(function ()
 		while true do

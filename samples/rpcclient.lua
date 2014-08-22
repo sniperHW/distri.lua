@@ -9,11 +9,11 @@ rpcclient:Run(function ()
 	for i=1,1 do
 		Sche.Spawn(function () 
 			local client = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-			if client:Connect("127.0.0.1",8000,65535,CSocket.rpkdecoder()) then
+			if client:Connect("127.0.0.1",8000) then
 				print("connect to 127.0.0.1:8000 error")
 				return
-			end
-			rpcclient:Add(client,nil,on_disconnected)
+			end		
+			rpcclient:Add(client:Establish(CSocket.rpkdecoder()),nil,on_disconnected)
 			for j=1,5000 do
 				Sche.Spawn(function (client)
 					while true do			

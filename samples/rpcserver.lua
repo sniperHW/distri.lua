@@ -17,9 +17,9 @@ rpcserver:RPCService("Plus",function (a,b)
 end)
 
 rpcserver:Run(function ()
-	TcpServer.Listen("127.0.0.1",8000,65535,CSocket.rpkdecoder(),function (client)
-			print("on new client")
-			rpcserver:Add(client,nil,on_disconnected)		
+	TcpServer.Listen("127.0.0.1",8000,function (client)
+			print("on new client")		
+			rpcserver:Add(client:Establish(CSocket.rpkdecoder()),nil,on_disconnected)		
 	end)
 end)
 

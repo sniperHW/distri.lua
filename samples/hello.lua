@@ -15,7 +15,8 @@ local function on_disconnected(s,err)
 end
 
 pingpong:Run(function ()
-	TcpServer.Listen("127.0.0.1",8000,65535,CSocket.rpkdecoder(),function (client)		
+	TcpServer.Listen("127.0.0.1",8000,function (client)
+		client:Establish(CSocket.rpkdecoder())
 		pingpong:Add(client,on_packet,on_disconnected)		
 	end)
 end)
