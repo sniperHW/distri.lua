@@ -25,9 +25,7 @@ Install lua 5.2 or newer.
 
 Clone [the repository](https://github.com/sniperHW/distri.lua).
 
-cd distri.lua/deps
-
-Clone [the repository](https://github.com/sniperHW/KendyNet).
+git submodule update
 
 Post feedback and issues on the [bug tracker](https://github.com/sniperHW/distri.lua/issues),
 
@@ -56,7 +54,6 @@ rpc test
 
 to-do list
 ----------
-* Rpc support used json
 * Cooperative dns query
 * MutilThread
 * Lighted HttpServer
