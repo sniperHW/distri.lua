@@ -5,15 +5,6 @@ local App = require "lua/application"
 
 local pingpong = App.New()
 
-local function on_packet(s,rpk)
-	s:Send(CPacket.NewWPacket(rpk))		
-end
-
-local function on_disconnected(conn,err)
-	print("conn disconnected:" .. err)
-	conn:Close()	
-end
-
 pingpong:Run(function ()
 	for i=1,1 do
 		sche.Spawn(function () 
@@ -26,11 +17,9 @@ pingpong:Run(function ()
 			local wpk = CPacket.NewWPacket(64)
 			wpk:Write_string("hello")
 			client:Send(wpk) -- send the first packet
-			pingpong:Add(client,on_packet,on_disconnected)
+			pingpong:Add(client,function (s,rpk)
+									s:Send(CPacket.NewWPacket(rpk))		
+						        end)
 		end)	
 	end
 end)
-
-while true do
-	sche.Sleep(100)
-end

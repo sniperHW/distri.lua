@@ -2,6 +2,8 @@
 local sche = require "lua/sche"
 local TcpServer = require "lua/tcpserver"
 local App = require "lua/application"
+local Timer = require "lua/timer"
+
 local count = 0
 local pingpong = App.New()
 local function on_packet(s,rpk)
@@ -9,29 +11,26 @@ local function on_packet(s,rpk)
 	s:Send(CPacket.NewWPacket(rpk))	
 end
 
-local function on_disconnected(s,err)
-	print("conn disconnected:" .. err)
-	--s:Close()	
-end
+local success
 
 pingpong:Run(function ()
-	TcpServer.Listen("127.0.0.1",8000,function (client)
+	success = not TcpServer.Listen("127.0.0.1",8000,function (client)
 		client:Establish(CSocket.rpkdecoder())
-		pingpong:Add(client,on_packet,on_disconnected)		
+		pingpong:Add(client,on_packet)		
 	end)
 end)
 
-print("server start on 127.0.0.1:8000")
-
-local tick = GetSysTick()
-local now = GetSysTick()
-while true do 
-	now = GetSysTick()
-	if now - tick >= 1000 then
-		print("count:" .. count*1000/(now-tick) .. " " .. now-tick)		
-		tick = now
+if success then
+	print("server start on 127.0.0.1:8000")
+	local last = GetSysTick()
+	local timer = Timer.New():Register(function ()
+		local now = GetSysTick()
+		print("count:" .. count*1000/(now-last) .. " " .. now-last)
 		count = 0
-	end
-	sche.Sleep(10)
+		last = now
+		return true --return true to register once again	
+	end,1000):Run()
+else
+	print("server start error\n")
 end
 
