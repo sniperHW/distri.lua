@@ -60,6 +60,7 @@ function application:Add(socket,on_packet,on_disconnected)
 			end
 		end
 	end
+	return self
 end
 
 function application:RPCService(name,func)
@@ -67,7 +68,9 @@ function application:RPCService(name,func)
 end
 
 function application:Run(start_fun)
-	start_fun()
+	if start_fun then
+		start_fun()
+	end
 	self.running = true
 end
 

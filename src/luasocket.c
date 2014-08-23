@@ -187,6 +187,14 @@ static int luasocket_close(lua_State *L){
 	return 0;
 }
 
+static int luasocket_tostring(lua_State *L){
+	luasocket_t luasock = lua_touserdata(L,1);
+	char buf[16];
+	sprintf(buf,"%x",luasock);
+	lua_pushstring(L,buf);
+	return 1;
+}
+
 static int luasocket_send(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type != _STREAM_CONN){
@@ -248,6 +256,7 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("send",luasocket_send);
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
+	REGISTER_FUNCTION("tostring",luasocket_tostring);	
 	REGISTER_FUNCTION("rawdecoder",lua_new_rawdecoder);	
 	REGISTER_FUNCTION("rpkdecoder",lua_new_rpkdecoder);	
 	

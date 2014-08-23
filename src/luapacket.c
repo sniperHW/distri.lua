@@ -10,11 +10,13 @@ static int lua_new_packet(lua_State *L,int type){
 		lua_setmetatable(L, -2);
 		p->_packet = (packet_t)wpk_create(len);
 		return 1;
-	}else if(lua_type(L,2) == LUA_TSTRING){
+	}else if(lua_type(L,1) == LUA_TSTRING){
 		//参数为string,构造一个函数数据data的rawpacket
 		size_t len;
-		char *data = (char*)lua_tolstring(L,2,&len);
-		lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));		
+		char *data = (char*)lua_tolstring(L,1,&len);
+		lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+		luaL_getmetatable(L, LUAPACKET_METATABLE);
+		lua_setmetatable(L, -2);				
 		p->_packet = (packet_t)rawpacket_create2(data,len);
 		return 1;				
 	}else if(lua_type(L,1) == LUA_TUSERDATA){
@@ -178,7 +180,7 @@ static int _read_string(lua_State *L){
 
 static int _read_rawbin(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
-	if(!p->_packet || p->_packet->type != WPACKET)
+	if(!p->_packet || p->_packet->type != RAWPACKET)
 		return luaL_error(L,"invaild opration");
 	rawpacket_t rawpk = (rawpacket_t)p->_packet;
 	uint32_t len;
@@ -199,18 +201,22 @@ static int _peek_uint8(lua_State *L){
 static int _peek_uint16(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet->type != RPACKET)
-		return luaL_error(L,"invaild opration");
-	rpacket_t rpk = (rpacket_t)p->_packet;
-	lua_pushinteger(L,rpk_read_uint16(rpk));
+		lua_pushnil(L);	
+	else{
+		rpacket_t rpk = (rpacket_t)p->_packet;
+		lua_pushinteger(L,rpk_read_uint16(rpk));
+	}
 	return 1;	
 }
 
 static int _peek_uint32(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet->type != RPACKET)
-		return luaL_error(L,"invaild opration");
-	rpacket_t rpk = (rpacket_t)p->_packet;
-	lua_pushinteger(L,rpk_peek_uint32(rpk));
+		lua_pushnil(L);	
+	else{
+		rpacket_t rpk = (rpacket_t)p->_packet;
+		lua_pushinteger(L,rpk_peek_uint32(rpk));
+	}
 	return 1;	
 }
 
@@ -218,9 +224,11 @@ static int _peek_uint32(lua_State *L){
 static int _peek_double(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet->type != RPACKET)
-		return luaL_error(L,"invaild opration");
-	rpacket_t rpk = (rpacket_t)p->_packet;
-	lua_pushnumber(L,rpk_peek_double(rpk));
+		lua_pushnil(L);	
+	else{
+		rpacket_t rpk = (rpacket_t)p->_packet;
+		lua_pushnumber(L,rpk_peek_double(rpk));
+	}
 	return 1;	
 }
 

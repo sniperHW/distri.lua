@@ -258,6 +258,10 @@ function socket:Send(packet)
 	return CSocket.send(self.luasocket,packet)
 end
 
+function socket:tostring()
+	return CSocket.tostring(self.luasocket)
+end
+
 return {
 	New = function (domain,type,protocal) return socket:new(domain,type,protocal) end
 }

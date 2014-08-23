@@ -5,8 +5,8 @@ local Timer = require "lua/timer"
 
 local count = 0
 local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-if not server:Listen("127.0.0.1",8000) then
-		print("server listen on 127.0.0.1 8000")
+if not server:Listen("127.0.0.1",8001) then
+		print("hello2 listen on 127.0.0.1 8001")
 		Sche.Spawn(function ()
 						local last = GetSysTick()
 						local timer = Timer.New():Register(function ()
@@ -35,6 +35,6 @@ if not server:Listen("127.0.0.1",8000) then
 			end)
 		end		
 else
-	print("create server on 127.0.0.1 8000 error")
+	print("create server on 127.0.0.1 8001 error")
 end
 

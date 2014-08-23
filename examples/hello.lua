@@ -21,7 +21,7 @@ pingpong:Run(function ()
 end)
 
 if success then
-	print("server start on 127.0.0.1:8000")
+	print("hello start on 127.0.0.1:8000")
 	local last = GetSysTick()
 	local timer = Timer.New():Register(function ()
 		local now = GetSysTick()
@@ -31,6 +31,6 @@ if success then
 		return true --return true to register once again	
 	end,1000):Run()
 else
-	print("server start error\n")
+	print("hello start error\n")
 end
 
