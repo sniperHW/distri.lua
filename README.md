@@ -25,6 +25,10 @@ Install lua 5.2 or newer.
 
 Clone [the repository](https://github.com/sniperHW/distri.lua).
 
+cd distri.lua
+
+git submodule init
+
 git submodule update
 
 Post feedback and issues on the [bug tracker](https://github.com/sniperHW/distri.lua/issues),
