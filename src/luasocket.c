@@ -86,11 +86,11 @@ static void on_disconnected(stream_conn_t c,int err){
 
 static int luasocket_establish(lua_State *L){
 	luasocket_t luasock = (luasocket_t)lua_touserdata(L,1);
-	uint32_t    max_packet_size = lua_tointeger(L,2);
+	uint32_t    recvbuf_size = lua_tointeger(L,2);
 	decoder*    _decoder = (decoder*)lua_touserdata(L,3);
-	max_packet_size = size_of_pow2(max_packet_size);
-    if(max_packet_size < 1024) max_packet_size = 1024;
-	stream_conn_t conn = new_stream_conn(luasock->sock,max_packet_size,_decoder);
+	recvbuf_size = size_of_pow2(recvbuf_size);
+    if(recvbuf_size < 1024) recvbuf_size = 1024;
+	stream_conn_t conn = new_stream_conn(luasock->sock,recvbuf_size,_decoder);
 	stream_conn_associate(g_engine,conn,on_packet,on_disconnected);	
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
@@ -234,7 +234,10 @@ int lua_new_rawdecoder(lua_State *L){
 }
 
 int lua_new_rpkdecoder(lua_State *L){
-	lua_pushlightuserdata(L,new_rpk_decoder());
+	uint32_t maxpacket_size = 4096;
+	if(lua_gettop(L) == 1)
+		maxpacket_size = lua_tointeger(L,1);
+	lua_pushlightuserdata(L,new_rpk_decoder(maxpacket_size));
 	return 1;
 }		
 

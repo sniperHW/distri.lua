@@ -121,7 +121,7 @@ local function process_c_packet_event(self,packet)
 	end
 end
 
-function socket:Establish(decoder,max_packet_size)
+function socket:Establish(decoder,recvbuf_size)
 	self.isestablish = true
 	self.__on_packet = process_c_packet_event
 	self.__on_disconnected = process_c_disconnect_event
@@ -129,10 +129,10 @@ function socket:Establish(decoder,max_packet_size)
 	if not decoder then
 		decoder = CSocket.rawdecoder()
 	end
-	if not max_packet_size then
-		max_packet_size = 65535
+	if not recvbuf_size then
+		recvbuf_size = 65535
 	end	
-	CSocket.establish(self.luasocket,max_packet_size,decoder)
+	CSocket.establish(self.luasocket,recvbuf_size,decoder)
 	self.packet = Que.New()
 	return self	
 end
