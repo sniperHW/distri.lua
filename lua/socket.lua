@@ -115,7 +115,6 @@ local function process_c_packet_event(self,packet)
 	local co = self.block_recv:Front()
 	if co then
 	    self.timeout = nil
-		--Sche.Schedule(co)
 		Sche.WakeUp(co)		
 	end
 end
@@ -156,9 +155,6 @@ function socket:Accept()
 				return sock,nil
 			else
 				local co = Sche.Running()
-				if not co then
-					return nil,"accept must be call in a coroutine context"
-				end
 				self.block_onaccept:Push(co)
 				Sche.Block()
 				if  self.closing then
@@ -189,9 +185,6 @@ function socket:Connect(ip,port)
 		return ret
 	else
 		self.connect_co = Sche.Running()
-		if not self.connect_co then
-			return "connect must be call in a coroutine context"
-		end
 		self.___cb_connect = cb_connect
 		Sche.Block()
 		if self.closing then
@@ -215,22 +208,14 @@ function socket:Recv(timeout)
 	if not self.isestablish then
 		return nil,"invaild socket"
 	else
-		while true do
-			if self.closing then
-				return nil,self.errno
-			end			
+		while not self.closing do	
 			local packet = self.packet:Pop()
 			if packet then
 				return packet[1],nil
 			end		
-			local co = Sche.Running()
-			if not co then
-				return nil,"recv must be call in a coroutine context"
-			end		
+			local co = Sche.Running()	
 			self.block_recv:Push(co)		
-			if timeout then
-				self.timeout = timeout
-			end
+			self.timeout = timeout
 			Sche.Block(timeout)
 			if self.timeout then
 				self.timeout = nil
@@ -240,6 +225,7 @@ function socket:Recv(timeout)
 				self.block_recv:Pop()	
 			end
 		end
+		return nil,self.errno		
 	end
 end
 

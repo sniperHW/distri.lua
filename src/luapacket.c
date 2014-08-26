@@ -190,7 +190,7 @@ static int _read_rawbin(lua_State *L){
 		return luaL_error(L,"invaild opration");
 	if(p->_packet->type == RAWPACKET){
 		rawpacket_t rawpk = (rawpacket_t)p->_packet;
-		uint32_t len;
+		uint32_t len = 0;
 		const char *data = rawpacket_data(rawpk,&len);
 		lua_pushlstring(L,data,(size_t)len);
 		return 1;

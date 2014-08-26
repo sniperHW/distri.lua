@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic 
-LDFLAGS = -lpthread -lrt -llua5.2 -lm -ldl -ltcmalloc
+LDFLAGS = -lpthread -lrt -llua5.2 -lm -ldl 
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
@@ -36,4 +36,4 @@ distrilua:deps/KendyNet/libkendynet.a\
 		  src/luapacket.c\
 		  src/luahttp.c\
 		  src/distri.c	
-		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c src/luahttp.c -lkendynet -lhiredis -lhttp_parser $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c src/luahttp.c -lkendynet -lhiredis -lhttp_parser deps/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)

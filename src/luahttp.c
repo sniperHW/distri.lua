@@ -31,7 +31,8 @@ struct luahttp_parser{
 	http_parser_settings settings;	
 	stream_conn_t c;
 	uint32_t maxsize;
-	buffer_t buf;	
+	buffer_t buf;
+	int parser_type;	
 };
 
 struct httpdecoder{
@@ -116,36 +117,39 @@ static int on_message_complete(http_parser *_parser){
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(NULL,0,0,ON_MESSAGE_COMPLETE);
 	parser->c->on_packet(parser->c,(packet_t)p);
+	//printf("%d:%s\n",cc,parser->buf->buf);
 	parser->buf->size = 0;
-	//printf("%s\n",parser->buf->buf);
+	http_parser_init(_parser,parser->parser_type);	
 	return 0;	
 }
 
 static int unpack(decoder *d,stream_conn_t c){
-	
 	uint32_t pk_len = 0;
 	struct httpdecoder *httpd = (struct httpdecoder*)d;
-	if(!httpd->parser.c) httpd->parser.c = c; 
-	pk_len = c->unpack_buf->size - c->unpack_pos;
-	if(!pk_len) return 0;
-	
-	if(pk_len + httpd->parser.buf->size > httpd->parser.maxsize) 
-		return decode_packet_too_big;
+	if(!httpd->parser.c) httpd->parser.c = c;
+	do{ 
+		pk_len = c->unpack_buf->size - c->unpack_pos;
+		if(!pk_len) return 0;
 		
-	uint32_t idx = httpd->parser.buf->size;		
-	buffer_write(httpd->parser.buf,idx,&c->unpack_buf->buf[c->unpack_pos],pk_len);		
-	size_t nparsed = http_parser_execute((http_parser*)&httpd->parser,&httpd->parser.settings,(char*)&httpd->parser.buf->buf[idx],pk_len);		
-	if(nparsed != pk_len)
-		return decode_unknow_error;									
-	c->unpack_pos  += pk_len;
-	c->unpack_size -= pk_len;
-	if(c->unpack_pos >= c->unpack_buf->capacity)
-	{
-		assert(c->unpack_buf->next);
-		c->unpack_pos = 0;
-		c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
-	}
-	if(c->is_close) return decode_socket_close;
+		if(pk_len + httpd->parser.buf->size > httpd->parser.maxsize) 
+			return decode_packet_too_big;
+			
+		uint32_t idx = httpd->parser.buf->size;		
+		buffer_write(httpd->parser.buf,idx,&c->unpack_buf->buf[c->unpack_pos],pk_len);		
+		httpd->parser.buf->size += pk_len;
+		size_t nparsed = http_parser_execute((http_parser*)&httpd->parser,&httpd->parser.settings,(char*)&httpd->parser.buf->buf[idx],pk_len);		
+		if(nparsed != pk_len)
+			return decode_unknow_error;									
+		c->unpack_pos  += pk_len;
+		c->unpack_size -= pk_len;
+		if(c->unpack_pos >= c->unpack_buf->capacity)
+		{
+			assert(c->unpack_buf->next);
+			c->unpack_pos = 0;
+			c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
+		}
+		if(c->is_close) return decode_socket_close;
+	}while(1);
 	return 0;
 }
 
@@ -169,6 +173,7 @@ int new_http_decoder(lua_State *L){
 	d->parser.maxsize = maxsize;
 	d->parser.buf = buffer_create(maxsize);
 	d->base.unpack = unpack;
+	d->parser.parser_type = parser_type;
 	http_parser_init((http_parser*)&d->parser,parser_type);
 	lua_pushlightuserdata(L,d);
 	return 1;
