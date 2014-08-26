@@ -80,6 +80,7 @@ static int lua_RunOnce(lua_State *L){
 	return 1;
 }
 
+void reg_luahttp(lua_State *L);
 int main(int argc,char **argv)
 {
 	if(argc < 2){
@@ -95,6 +96,7 @@ int main(int argc,char **argv)
 	lua_register(L,"Debug",lua_debug); 
 	lua_register(L,"RunOnce",lua_RunOnce); 	   	
 	reg_luasocket(L);
+	reg_luahttp(L);
 	g_engine = kn_new_engine();
 	start(L,argv[1]);
 	return 0;

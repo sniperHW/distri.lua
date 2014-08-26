@@ -4,7 +4,7 @@ SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
 INCLUDE = -Ideps/KendyNet/include -Ideps -I/usr/include/lua5.2 
-LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/ -L deps/http-parser/
+LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/ -L deps/http-parser
 		
 test:test.c
 	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
@@ -34,5 +34,6 @@ distrilua:deps/KendyNet/libkendynet.a\
 		  src/luasocket.c\
 		  src/luapacket.h\
 		  src/luapacket.c\
+		  src/luahttp.c\
 		  src/distri.c	
-		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c -lkendynet -lhiredis $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c src/luahttp.c -lkendynet -lhiredis -lhttp_parser $(INCLUDE) $(LDFLAGS) $(DEFINE)
