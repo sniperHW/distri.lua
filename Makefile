@@ -4,7 +4,7 @@ SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
 INCLUDE = -Ideps/KendyNet/include -Ideps -I/usr/include/lua5.2 
-LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/
+LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/ -L deps/http-parser/
 		
 test:test.c
 	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
@@ -18,6 +18,9 @@ deps/jemalloc/lib/libjemalloc.a:
 		cd deps/jemalloc;./configure;make
 deps/hiredis/libhiredis.a:
 		cd deps/hiredis/;make
+
+deps/http-parser/libhttp_parser.a:		
+		cd deps/http-parser/;make package		
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./
@@ -25,6 +28,7 @@ cjson.so:
 distrilua:deps/KendyNet/libkendynet.a\
 		  deps/jemalloc/lib/libjemalloc.a\
 		  deps/hiredis/libhiredis.a\
+		  deps/http-parser/libhttp_parser.a\
 		  cjson.so\
 		  src/luasocket.h\
 		  src/luasocket.c\
