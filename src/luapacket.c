@@ -194,8 +194,11 @@ static int _read_rawbin(lua_State *L){
 		const char *data = rawpacket_data(rawpk,&len);
 		lua_pushlstring(L,data,(size_t)len);
 		return 1;
-	}else if(p->_packet->type == HTTPPACKET){		
-		lua_pushlstring(L,(const char*)packet_buf(p->_packet),(size_t)packet_datasize(p->_packet));
+	}else if(p->_packet->type == HTTPPACKET){
+		if(packet_datasize(p->_packet))
+			lua_pushlstring(L,(const char*)packet_buf(p->_packet),(size_t)packet_datasize(p->_packet));
+		else
+			lua_pushnil(L);
 		return 1;
 	}else
 		return luaL_error(L,"invaild opration");		
@@ -230,7 +233,8 @@ static int _to_string(lua_State *L){
 	else if(p->_packet->type == RAWPACKET)
 		lua_pushstring(L,"RAWPACKET");
 	else if(p->_packet->type == HTTPPACKET){
-		lua_pushstring(L,((httppacket_t)p->_packet)->ev_type);
+		const char *ev_type = ((httppacket_t)p->_packet)->ev_type;
+		lua_pushstring(L,ev_type);
 	}
 	else
 		lua_pushnil(L);	

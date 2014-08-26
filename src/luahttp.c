@@ -3,7 +3,8 @@
 #include "http-parser/http_parser.h"
 #include "lua_util.h"
 
-enum{ ON_MESSAGE_BEGIN = 0,
+enum{ 
+	  ON_MESSAGE_BEGIN = 0,
 	  ON_URL,
 	  ON_STATUS,
 	  ON_HEADER_FIELD,
@@ -40,12 +41,12 @@ struct httpdecoder{
 };
 
 
-static inline httppacket_t httppacket_create(buffer_t buf,uint32_t begpos,uint32_t len,uint8_t ev_type){
+static  httppacket_t httppacket_create(buffer_t buf,uint32_t begpos,uint32_t len,uint8_t ev_type){
     httppacket_t p = calloc(1,sizeof(*p));
     p->ev_type = event_type[ev_type];
+	packet_type(p) = HTTPPACKET;    
     if(buf){
 		packet_buf(p) = buf;
-		packet_type(p) = HTTPPACKET;
 		packet_begpos(p) = begpos;
 		packet_datasize(p) = len;
 	}
@@ -55,6 +56,7 @@ static inline httppacket_t httppacket_create(buffer_t buf,uint32_t begpos,uint32
 
 
 static int on_message_begin (http_parser *_parser){
+	printf("on_message_begin\n");
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;	
 	httppacket_t p = httppacket_create(NULL,0,0,ON_MESSAGE_BEGIN);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -62,6 +64,7 @@ static int on_message_begin (http_parser *_parser){
 }
 
 static int on_url(http_parser *_parser, const char *at, size_t length){
+	printf("on_url\n");
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_URL);
 	parser->c->on_packet(parser->c,(packet_t)p);	
@@ -69,6 +72,7 @@ static int on_url(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_status(http_parser *_parser, const char *at, size_t length){
+	printf("on_status\n");	
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_STATUS);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -76,6 +80,7 @@ static int on_status(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_header_field(http_parser *_parser, const char *at, size_t length){
+	printf("on_header_field\n");		
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_HEADER_FIELD);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -83,6 +88,7 @@ static int on_header_field(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_header_value(http_parser *_parser, const char *at, size_t length){
+	printf("on_header_value\n");		
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_HEADER_VALUE);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -90,6 +96,7 @@ static int on_header_value(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_headers_complete(http_parser *_parser){
+	printf("on_headers_complete\n");	
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(NULL,0,0,ON_HEADERS_COMPLETE);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -97,6 +104,7 @@ static int on_headers_complete(http_parser *_parser){
 }
 
 static int on_body(http_parser *_parser, const char *at, size_t length){
+	printf("on_body\n");		
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_BODY);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -104,6 +112,7 @@ static int on_body(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_message_complete(http_parser *_parser){
+	printf("on_message_complete\n");	
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(NULL,0,0,ON_MESSAGE_COMPLETE);
 	parser->c->on_packet(parser->c,(packet_t)p);
