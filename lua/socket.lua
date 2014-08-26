@@ -37,7 +37,6 @@ end
 务必保证对产生的每个socket对象调用Close。
 ]]--
 function socket:Close()
-	print("socket:close")
 	self.closing = true
 	CSocket.close(self.luasocket)		
 	self.Close = function () end --将Close替换成空函数	

@@ -56,7 +56,7 @@ static  httppacket_t httppacket_create(buffer_t buf,uint32_t begpos,uint32_t len
 
 
 static int on_message_begin (http_parser *_parser){
-	printf("on_message_begin\n");
+	//printf("on_message_begin\n");
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;	
 	httppacket_t p = httppacket_create(NULL,0,0,ON_MESSAGE_BEGIN);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -64,7 +64,7 @@ static int on_message_begin (http_parser *_parser){
 }
 
 static int on_url(http_parser *_parser, const char *at, size_t length){
-	printf("on_url\n");
+	//printf("on_url\n");
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_URL);
 	parser->c->on_packet(parser->c,(packet_t)p);	
@@ -72,7 +72,7 @@ static int on_url(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_status(http_parser *_parser, const char *at, size_t length){
-	printf("on_status\n");	
+	//printf("on_status\n");	
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_STATUS);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -80,7 +80,7 @@ static int on_status(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_header_field(http_parser *_parser, const char *at, size_t length){
-	printf("on_header_field\n");		
+	//printf("on_header_field\n");		
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_HEADER_FIELD);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -88,7 +88,7 @@ static int on_header_field(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_header_value(http_parser *_parser, const char *at, size_t length){
-	printf("on_header_value\n");		
+	//printf("on_header_value\n");		
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_HEADER_VALUE);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -96,7 +96,7 @@ static int on_header_value(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_headers_complete(http_parser *_parser){
-	printf("on_headers_complete\n");	
+	//printf("on_headers_complete\n");	
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(NULL,0,0,ON_HEADERS_COMPLETE);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -104,7 +104,7 @@ static int on_headers_complete(http_parser *_parser){
 }
 
 static int on_body(http_parser *_parser, const char *at, size_t length){
-	printf("on_body\n");		
+	//printf("on_body\n");		
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(parser->buf,(uint32_t)(at - (const char*)parser->buf->buf),length,ON_BODY);
 	parser->c->on_packet(parser->c,(packet_t)p);
@@ -112,11 +112,12 @@ static int on_body(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_message_complete(http_parser *_parser){
-	printf("on_message_complete\n");	
+	//printf("on_message_complete\n");	
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	httppacket_t p = httppacket_create(NULL,0,0,ON_MESSAGE_COMPLETE);
 	parser->c->on_packet(parser->c,(packet_t)p);
 	parser->buf->size = 0;
+	//printf("%s\n",parser->buf->buf);
 	return 0;	
 }
 
@@ -148,11 +149,15 @@ static int unpack(decoder *d,stream_conn_t c){
 	return 0;
 }
 
+static void http_decoder_destroy(struct decoder *d){
+	buffer_release(((struct httpdecoder*)d)->parser.buf);
+}
 
 int new_http_decoder(lua_State *L){
 	int parser_type = lua_tointeger(L,1);
 	uint32_t maxsize = lua_tointeger(L,2);	
 	struct httpdecoder *d = calloc(1,sizeof(*d));
+	d->base.destroy = http_decoder_destroy;
 	d->parser.settings.on_message_begin = on_message_begin;
 	d->parser.settings.on_url = on_url;
 	d->parser.settings.on_status = on_status;
