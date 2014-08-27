@@ -1,5 +1,3 @@
-#include "kendynet.h"
-#include "stream_conn.h"
 #include "luasocket.h"
 #include "luapacket.h"
 //#include "luabytebuffer.h"
@@ -10,13 +8,6 @@ enum{
 	_SOCKET = 1,
 	_STREAM_CONN = 2,
 };
-
-typedef struct {
-	handle_t      sock;
-	stream_conn_t streamconn;
-	int           type;
-	luaRef_t      luaObj;	
-}*luasocket_t;
 
 static int luasocket_new1(lua_State *L){
 	luaRef_t obj = toluaRef(L,1);
@@ -83,7 +74,8 @@ static void on_disconnected(stream_conn_t c,int err){
 	free(luasock);		
 }
 
-
+int mask_http_decode;
+int on_http_cb(stream_conn_t c,packet_t p);
 static int luasocket_establish(lua_State *L){
 	luasocket_t luasock = (luasocket_t)lua_touserdata(L,1);
 	uint32_t    recvbuf_size = lua_tointeger(L,2);
@@ -91,7 +83,7 @@ static int luasocket_establish(lua_State *L){
 	recvbuf_size = size_of_pow2(recvbuf_size);
     if(recvbuf_size < 1024) recvbuf_size = 1024;
 	stream_conn_t conn = new_stream_conn(luasock->sock,recvbuf_size,_decoder);
-	stream_conn_associate(g_engine,conn,on_packet,on_disconnected);	
+	stream_conn_associate(g_engine,conn,_decoder->mask == mask_http_decode?on_http_cb:on_packet,on_disconnected);	
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
 	stream_conn_setud(conn,luasock);

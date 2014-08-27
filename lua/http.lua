@@ -2,6 +2,8 @@ local Socket = require "lua/socket"
 local Sche = require "lua/sche"
 local Cjson = require "cjson"
 
+local chttp = CHttp
+CHttp = nil
 
 local http_response = {}
 
@@ -49,32 +51,31 @@ end
 local function process_server(connection,on_request)
 	local request
 	while true do
-		local packet,err = connection:Recv()
+		local httpevent,err = connection:Recv()
 		if err then	
 			connection:Close()
 			return
 		else
-			local ev_type = packet:ToString()
+			local ev_type = httpevent:Event()
 			if ev_type == "ON_MESSAGE_BEGIN" then
-				local t = Cjson.decode(packet:Read_rawbin())
 				request = {}
 				request.header = {}
-				request.method = t.method
+				request.method = httpevent:Method()
 			elseif ev_type == "ON_URL" then
-				request.url = packet:Read_rawbin()
+				request.url = httpevent:Content()
 			elseif ev_type == "ON_HEADER_FIELD" then
-				local packet1,err1 = connection:Recv()
+				local httpevent1,err1 = connection:Recv()
 				if err1 then		
 					connection:Close()
 					return
 				end
-				if packet1:ToString() ~= "ON_HEADER_VALUE" then
+				if httpevent1:Event() ~= "ON_HEADER_VALUE" then
 					connection:Close()
 					return					
 				end
-				request.header[packet:Read_rawbin()] = packet1:Read_rawbin()
+				request.header[httpevent:Content()] = httpevent1:Content()
 			elseif ev_type == "ON_BODY" then
-				request.body = packet:Read_rawbin() 
+				request.body = httpevent:Content()
 			elseif ev_type == "ON_MESSAGE_COMPLETE" then
 				local response = http_response:new()
 				on_request(request,response)
@@ -101,7 +102,7 @@ function http_server:Listen(ip,port)
 		Sche.Spawn(function () 	
 			while true do
 				local connection = s.socket:Accept()
-				connection:Establish(CHttp.http_decoder(CHttp.HTTP_REQUEST,512),65535)
+				connection:Establish(chttp.http_decoder(chttp.HTTP_REQUEST,512),65535)
 				Sche.Spawn(process_server,connection,s.on_request)
 			end
 		end)

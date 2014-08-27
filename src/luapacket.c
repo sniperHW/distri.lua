@@ -65,12 +65,7 @@ void push_luapacket(lua_State *L,packet_t pk){
 static int destroy_luapacket(lua_State *L) {
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet){ 
-		if(p->_packet->type != HTTPPACKET)
-			destroy_packet(p->_packet);
-		else{
-			buffer_release(packet_buf(p->_packet));
-			free(p->_packet);
-		}
+		destroy_packet(p->_packet);
 	}
     return 0;
 }
@@ -187,26 +182,14 @@ static int _read_string(lua_State *L){
 
 static int _read_rawbin(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
-	if(!p->_packet)// || p->_packet->type != RAWPACKET)
+	if(!p->_packet || p->_packet->type != RAWPACKET)
 		return luaL_error(L,"invaild opration");
-	if(p->_packet->type == RAWPACKET){
-		rawpacket_t rawpk = (rawpacket_t)p->_packet;
-		uint32_t len = 0;
-		const char *data = rawpacket_data(rawpk,&len);
-		lua_pushlstring(L,data,(size_t)len);
-		return 1;
-	}else if(p->_packet->type == HTTPPACKET){
-		if(packet_datasize(p->_packet)){
-			uint32_t begpos = packet_begpos(p->_packet);
-			buffer_t buf = packet_buf(p->_packet);
-			char *ptr = (char*)&buf->buf[begpos];
-			lua_pushlstring(L,(const char*)ptr,(size_t)packet_datasize(p->_packet));
-		}
-		else
-			lua_pushnil(L);
-		return 1;
-	}else
-		return luaL_error(L,"invaild opration");		
+		
+	rawpacket_t rawpk = (rawpacket_t)p->_packet;
+	uint32_t len = 0;
+	const char *data = rawpacket_data(rawpk,&len);
+	lua_pushlstring(L,data,(size_t)len);
+	return 1;						
 }
 
 static int _peek_uint8(lua_State *L){
@@ -227,23 +210,6 @@ static int _peek_uint16(lua_State *L){
 		lua_pushinteger(L,rpk_read_uint16(rpk));
 	}
 	return 1;	
-}
-
-static int _to_string(lua_State *L){
-	lua_packet_t p = lua_getluapacket(L,1);
-	if(p->_packet->type == RPACKET)
-		lua_pushstring(L,"RPACKET");
-	else if(p->_packet->type == WPACKET)
-		lua_pushstring(L,"WPACKET");
-	else if(p->_packet->type == RAWPACKET)
-		lua_pushstring(L,"RAWPACKET");
-	else if(p->_packet->type == HTTPPACKET){
-		const char *ev_type = ((httppacket_t)p->_packet)->ev_type;
-		lua_pushstring(L,ev_type);
-	}
-	else
-		lua_pushnil(L);	
-	return 1;
 }
 
 static int _peek_uint32(lua_State *L){
@@ -306,7 +272,6 @@ void reg_luapacket(lua_State *L){
         {"Write_uint32", _write_uint32},
         {"Write_double",_write_double},        
         {"Write_string",_write_string},
-        {"ToString",_to_string},
         {NULL, NULL}
     };
 
