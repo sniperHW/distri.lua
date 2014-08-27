@@ -3,6 +3,8 @@
 #include "http-parser/http_parser.h"
 #include "lua_util.h"
 
+static __thread lua_State *g_L = NULL;
+
 enum{ 
 	  ON_MESSAGE_BEGIN = 0,
 	  ON_URL,
@@ -47,7 +49,7 @@ static  httppacket_t httppacket_create(buffer_t buf,uint32_t begpos,uint32_t len
     p->ev_type = event_type[ev_type];
 	packet_type(p) = HTTPPACKET;    
     if(buf){
-		packet_buf(p) = buf;
+		packet_buf(p) = buffer_acquire(NULL,buf);
 		packet_begpos(p) = begpos;
 		packet_datasize(p) = len;
 	}
@@ -59,8 +61,37 @@ static  httppacket_t httppacket_create(buffer_t buf,uint32_t begpos,uint32_t len
 static int on_message_begin (http_parser *_parser){
 	//printf("on_message_begin\n");
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;	
-	httppacket_t p = httppacket_create(NULL,0,0,ON_MESSAGE_BEGIN);
+	
+	if(!g_L){ 
+		g_L = luaL_newstate();
+		luaL_openlibs(g_L);
+	} 
+	/*
+	*   {type=HTTP_REQUEST|HTTP_RESPONSE|HTTP_BOTH,method=xx,status=xx,version=x.x}
+	*/ 
+	char tmp[1024];
+	snprintf(tmp,1024,"\
+			 local Cjson = require \"cjson\"\
+			 return Cjson.encode({type=%d,method='%s',status=%d,version='%d.%d'})",
+			 _parser->type,http_method_str(_parser->method),_parser->status_code,_parser->http_major,_parser->http_minor);
+	
+	int oldtop = lua_gettop(g_L);
+	luaL_loadstring(g_L,tmp);
+	size_t len;
+	const char *str;	
+	const char *error = luacall(g_L,":S",&str,&len);
+	if(error){
+		lua_settop(g_L,oldtop);
+		printf("%s\n",error);
+		return -1;
+	}	
+	buffer_t buf = buffer_create((uint32_t)len);
+	buffer_write(buf,0,(int8_t*)str,(uint32_t)len);
+	buf->size = len;
+	lua_settop(g_L,oldtop);		
+	httppacket_t p = httppacket_create(buf,0,len,ON_MESSAGE_BEGIN);
 	parser->c->on_packet(parser->c,(packet_t)p);
+	buffer_release(buf);
 	return 0;
 }
 
@@ -197,7 +228,7 @@ void reg_luahttp(lua_State *L){
 	REGISTER_CONST(HTTP_REQUEST);
 	REGISTER_CONST(HTTP_RESPONSE);
 	REGISTER_CONST(HTTP_BOTH);			
-	lua_setglobal(L,"CHttp");	
+	lua_setglobal(L,"CHttp");
 }
 
 

@@ -68,6 +68,7 @@ static int destroy_luapacket(lua_State *L) {
 		if(p->_packet->type != HTTPPACKET)
 			destroy_packet(p->_packet);
 		else{
+			buffer_release(packet_buf(p->_packet));
 			free(p->_packet);
 		}
 	}
@@ -195,8 +196,12 @@ static int _read_rawbin(lua_State *L){
 		lua_pushlstring(L,data,(size_t)len);
 		return 1;
 	}else if(p->_packet->type == HTTPPACKET){
-		if(packet_datasize(p->_packet))
-			lua_pushlstring(L,(const char*)packet_buf(p->_packet),(size_t)packet_datasize(p->_packet));
+		if(packet_datasize(p->_packet)){
+			uint32_t begpos = packet_begpos(p->_packet);
+			buffer_t buf = packet_buf(p->_packet);
+			char *ptr = (char*)&buf->buf[begpos];
+			lua_pushlstring(L,(const char*)ptr,(size_t)packet_datasize(p->_packet));
+		}
 		else
 			lua_pushnil(L);
 		return 1;
