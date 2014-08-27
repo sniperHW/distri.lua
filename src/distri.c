@@ -40,6 +40,7 @@ static void start(lua_State *L,const char *start_file)
 	char buf[4096];
 	snprintf(buf,4096,"\
 		local Sche = require \"lua/sche\"\
+		local Http = require \"lua/http\"\
 		local main,err= loadfile(\"%s\")\
 		if err then print(err) end\
 		Sche.Spawn(function () main() end)\
