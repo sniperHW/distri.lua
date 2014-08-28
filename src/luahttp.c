@@ -26,7 +26,6 @@ const char *event_type[] = {
 	  "ON_MESSAGE_COMPLETE",
 };
 
-
 struct luahttp_parser{
 	http_parser base;
 	http_parser_settings settings;	
@@ -55,19 +54,19 @@ inline static struct httpevent* lua_gethttpevent(lua_State *L, int index) {
     return (struct httpevent*)luaL_testudata(L, index, HTTPEVENT_METATABLE);
 }
 
-int lua_get_method(lua_State *L){
+static int lua_get_method(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
 	ev ? lua_pushstring(L,http_method_str(((http_parser*)ev->parser)->method)) : lua_pushnil(L);
 	return 1;
 }
 
-int lua_get_status(lua_State *L){
+static int lua_get_status(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
 	ev ? lua_pushinteger(L,((http_parser*)ev->parser)->status_code) : lua_pushnil(L);
 	return 1;
 }
 
-int lua_get_content(lua_State *L){
+static int lua_get_content(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
 	if(!ev || !ev->len) 
 		lua_pushnil(L);
@@ -76,13 +75,13 @@ int lua_get_content(lua_State *L){
 	return 1;
 }
 
-int lua_get_evtype(lua_State *L){
+static int lua_get_evtype(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
 	ev ? lua_pushstring(L,ev->event) : lua_pushnil(L);
 	return 1;	
 }
 
-void create_httpevent(lua_State *L,struct luahttp_parser *parser,const char *evtype,uint32_t pos,uint32_t len){
+static void create_httpevent(lua_State *L,struct luahttp_parser *parser,const char *evtype,uint32_t pos,uint32_t len){
 		struct httpevent *ev = (struct httpevent*)lua_newuserdata(L, sizeof(*ev));
 		luaL_getmetatable(L, HTTPEVENT_METATABLE);
 		lua_setmetatable(L, -2);
@@ -92,8 +91,7 @@ void create_httpevent(lua_State *L,struct luahttp_parser *parser,const char *evt
 		ev->len = len;
 }
 
-
-int  on_http_cb(stream_conn_t c,packet_t p){
+static int  on_http_cb(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;	
 	int __result;
@@ -115,7 +113,6 @@ int  on_http_cb(stream_conn_t c,packet_t p){
 	lua_settop(__L,__oldtop);	
 	return 0;	
 }
-
 
 static inline int _http_data_cb(http_parser *_parser, const char *at, size_t length,int evtype){
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;

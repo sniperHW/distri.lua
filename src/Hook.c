@@ -341,7 +341,7 @@ void* HookFunction(void* function, void* hook)
     //#define HEAP_CREATE_ENABLE_EXECUTE 0x00040000
 
     // Jump instruction is 5 bytes.
-    const int jumpSize = 9;//9 in 64bit system
+    const int jumpSize = 5;
 
     // Compute the instruction boundary so we don't override half an instruction.
     int boundary = GetInstructionBoundary(function, jumpSize);
