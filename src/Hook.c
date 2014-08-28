@@ -19,7 +19,6 @@ You should have received a copy of the GNU General Public License
 along with Decoda.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-
 #include "Hook.h"
 #include <assert.h>
 #include <sys/mman.h>
@@ -28,6 +27,7 @@ along with Decoda.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <malloc.h>
 
 /**
  * Returns the size of the instruction at the specified point.
@@ -341,14 +341,14 @@ void* HookFunction(void* function, void* hook)
     //#define HEAP_CREATE_ENABLE_EXECUTE 0x00040000
 
     // Jump instruction is 5 bytes.
-    const int jumpSize = 5;
+    const int jumpSize = 9;//9 in 64bit system
 
     // Compute the instruction boundary so we don't override half an instruction.
     int boundary = GetInstructionBoundary(function, jumpSize);
     
     size_t pagesize = sysconf(_SC_PAGE_SIZE);
     unsigned char* trampoline = NULL;
-    trampoline = (unsigned char*)aligned_alloc(pagesize,pagesize);
+    trampoline = (unsigned char*)/*aligned_alloc*/memalign(pagesize,pagesize);
 	if(mprotect(trampoline, pagesize, PROT_WRITE|PROT_READ|PROT_EXEC)){
 		free(trampoline);
 		return NULL;

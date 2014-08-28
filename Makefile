@@ -39,5 +39,7 @@ distrilua:deps/KendyNet/libkendynet.a\
 		  src/luapacket.h\
 		  src/luapacket.c\
 		  src/luahttp.c\
+		  src/Hook.c \
+		  src/debug.c \
 		  src/distri.c	
-		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c src/luahttp.c -lkendynet -lhiredis -lhttp_parser deps/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c src/luahttp.c src/debug.c src/Hook.c -lkendynet -lhiredis -lhttp_parser deps/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)

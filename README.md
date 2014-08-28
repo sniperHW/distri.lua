@@ -14,6 +14,7 @@ Features include:
 * Lighted HttpServer
 * SSL Connection
 * WebSocket
+* local and remote debug of lua
 
 distri.lua is licensed under GPL license.
 
@@ -61,6 +62,7 @@ to-do list
 * Lighted HttpServer
 * SSL Connection
 * WebSocket
+* local and remote debug of lua
 
 test httpserver
 ----------
