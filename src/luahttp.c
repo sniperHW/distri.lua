@@ -57,21 +57,13 @@ inline static struct httpevent* lua_gethttpevent(lua_State *L, int index) {
 
 int lua_get_method(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
-	if(!ev) 
-		lua_pushnil(L);
-	else{
-		lua_pushstring(L,http_method_str(((http_parser*)ev->parser)->method));
-	}	
+	ev ? lua_pushstring(L,http_method_str(((http_parser*)ev->parser)->method)) : lua_pushnil(L);
 	return 1;
 }
 
 int lua_get_status(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
-	if(!ev) 
-		lua_pushnil(L);
-	else{
-		lua_pushinteger(L,((http_parser*)ev->parser)->status_code);
-	}		
+	ev ? lua_pushinteger(L,((http_parser*)ev->parser)->status_code) : lua_pushnil(L);
 	return 1;
 }
 
@@ -79,19 +71,14 @@ int lua_get_content(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
 	if(!ev || !ev->len) 
 		lua_pushnil(L);
-	else{
-		lua_pushlstring(L,(char*)&ev->parser->buf->buf[ev->pos],(size_t)ev->len);
-	}		
+	else
+		lua_pushlstring(L,(char*)&ev->parser->buf->buf[ev->pos],(size_t)ev->len);	
 	return 1;
 }
 
 int lua_get_evtype(lua_State *L){
 	struct httpevent *ev = lua_gethttpevent(L,1);
-	if(!ev) 
-		lua_pushnil(L);
-	else{
-		lua_pushstring(L,ev->event);
-	}		
+	ev ? lua_pushstring(L,ev->event) : lua_pushnil(L);
 	return 1;	
 }
 
@@ -130,11 +117,22 @@ int  on_http_cb(stream_conn_t c,packet_t p){
 }
 
 
-
-static int on_message_begin (http_parser *_parser){
+static inline int _http_data_cb(http_parser *_parser, const char *at, size_t length,int evtype){
 	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
 	struct httpevent tmp = {
-		.event = event_type[ON_MESSAGE_BEGIN],
+		.event = event_type[evtype],
+		.parser = parser,
+		.pos = (uint32_t)(at - (const char*)parser->buf->buf),
+		.len = length,
+	};
+	parser->c->on_packet(parser->c,(packet_t)&tmp);
+	return 0;	
+}
+
+static inline int _http_cb(http_parser *_parser,int evtype){
+	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
+	struct httpevent tmp = {
+		.event = event_type[evtype],
 		.parser = parser,
 		.pos = 0,
 		.len = 0,
@@ -143,88 +141,37 @@ static int on_message_begin (http_parser *_parser){
 	return 0;
 }
 
+
+static int on_message_begin (http_parser *_parser){
+	return _http_cb(_parser,ON_MESSAGE_BEGIN);
+}
+
 static int on_url(http_parser *_parser, const char *at, size_t length){	
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_URL],
-		.parser = parser,
-		.pos = (uint32_t)(at - (const char*)parser->buf->buf),
-		.len = length,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;		
+	return _http_data_cb(_parser,at,length,ON_URL);	
 }
 
 static int on_status(http_parser *_parser, const char *at, size_t length){
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_STATUS],
-		.parser = parser,
-		.pos = (uint32_t)(at - (const char*)parser->buf->buf),
-		.len = length,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;			
+	return _http_data_cb(_parser,at,length,ON_STATUS);				
 }
 
 static int on_header_field(http_parser *_parser, const char *at, size_t length){
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_HEADER_FIELD],
-		.parser = parser,
-		.pos = (uint32_t)(at - (const char*)parser->buf->buf),
-		.len = length,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;		
+	return _http_data_cb(_parser,at,length,ON_HEADER_FIELD);				
 }
 
 static int on_header_value(http_parser *_parser, const char *at, size_t length){
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_HEADER_VALUE],
-		.parser = parser,
-		.pos = (uint32_t)(at - (const char*)parser->buf->buf),
-		.len = length,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;		
+	return _http_data_cb(_parser,at,length,ON_HEADER_VALUE);			
 }
 
 static int on_headers_complete(http_parser *_parser){	
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_HEADERS_COMPLETE],
-		.parser = parser,
-		.pos = 0,
-		.len = 0,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;	
+	return _http_cb(_parser,ON_HEADERS_COMPLETE);		
 }
 
-static int on_body(http_parser *_parser, const char *at, size_t length){	
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_BODY],
-		.parser = parser,
-		.pos = (uint32_t)(at - (const char*)parser->buf->buf),
-		.len = length,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;		
+static int on_body(http_parser *_parser, const char *at, size_t length){
+	return _http_data_cb(_parser,at,length,ON_BODY);			
 }
 
 static int on_message_complete(http_parser *_parser){	
-	struct luahttp_parser *parser = (struct luahttp_parser*)_parser;
-	struct httpevent tmp = {
-		.event = event_type[ON_MESSAGE_COMPLETE],
-		.parser = parser,
-		.pos = 0,
-		.len = 0,
-	};
-	parser->c->on_packet(parser->c,(packet_t)&tmp);
-	return 0;		
+	return _http_cb(_parser,ON_MESSAGE_COMPLETE);			
 }
 
 static int unpack(decoder *d,stream_conn_t c){
