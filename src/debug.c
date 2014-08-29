@@ -8,8 +8,10 @@ int my_luaL_loadfilex(lua_State *L, const char *filename,const char *mode){
 	return ori_luaL_loadfilex(L,filename,mode);
 }
 
+static char luaL_loadfilex_buf[4096] __attribute__((aligned(4096)));
+
 int debug_init(){
-	ori_luaL_loadfilex = HookFunction(luaL_loadfilex,my_luaL_loadfilex);
+	ori_luaL_loadfilex = HookFunction(luaL_loadfilex,my_luaL_loadfilex,luaL_loadfilex_buf,4096);
 	if(!ori_luaL_loadfilex){
 		return -1;
 	}	

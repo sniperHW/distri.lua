@@ -20,14 +20,6 @@ along with Decoda.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 #include "Hook.h"
-#include <assert.h>
-#include <sys/mman.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <errno.h>
-#include <malloc.h>
 
 /**
  * Returns the size of the instruction at the specified point.
@@ -240,7 +232,7 @@ void WriteJump(void* dst, void* address)
 
     // Setup a jump instruction.
     jump[0] = 0xE9;
-    *((unsigned long*)(&jump[1])) = (unsigned long)(address) - (unsigned long)(dst) - 5;
+    *((unsigned int*)(&jump[1])) = (unsigned int)(address) - (unsigned int)(dst) - 5;
 
 }
 
@@ -252,7 +244,7 @@ void* ReadJump(void* src)
     const unsigned char* jump = (unsigned char*)(src);
     if (jump[0] == 0xE9)
     {   
-        address = (void*)(*((unsigned long*)(&jump[1])) + (unsigned long)(jump) + 5);
+        address = (void*)(*((unsigned int*)(&jump[1])) + (unsigned int)(jump) + 5);
     }
     //}
     //__except (EXCEPTION_EXECUTE_HANDLER)
@@ -286,8 +278,8 @@ void AdjustRelativeJumps(void* function, int length, int offset)
             // Relative jump/call instruction.
             if (operandSize == 4)
             {
-                unsigned long address = *((unsigned long*)(p + i + n - operandSize));
-                *((unsigned long*)(p + i + n - operandSize)) = address + offset;
+                unsigned int address = *((unsigned int*)(p + i + n - operandSize));
+                *((unsigned int*)(p + i + n - operandSize)) = address + offset;
             }
             else if (operandSize == 2)
             {
@@ -325,7 +317,9 @@ int GetIsHooked(void* function, void* hook)
 
 }
 
-void* HookFunction(void* function, void* hook)
+//static char ori_fun[4096] __attribute__((aligned(4096)));
+
+void* HookFunction(void* function, void* hook,void *saveaddr,size_t saveaddr_size)
 {
 
     // Don't allow rehooking of the same function since that screws things up.
@@ -346,21 +340,21 @@ void* HookFunction(void* function, void* hook)
     // Compute the instruction boundary so we don't override half an instruction.
     int boundary = GetInstructionBoundary(function, jumpSize);
     
+    if(saveaddr_size < (size_t)boundary) return NULL;
+    
     size_t pagesize = sysconf(_SC_PAGE_SIZE);
-    unsigned char* trampoline = NULL;
-    trampoline = (unsigned char*)/*aligned_alloc*/memalign(pagesize,pagesize);
-	if(mprotect(trampoline, pagesize, PROT_WRITE|PROT_READ|PROT_EXEC)){
-		free(trampoline);
+	if(mprotect(saveaddr, boundary, PROT_WRITE|PROT_READ|PROT_EXEC)){
+		//free(trampoline);
 		return NULL;
 	}
 
     // Copy the original bytes to the trampoline area and append a jump back
     // to the original function (after our jump).
 
-    memcpy(trampoline, function, boundary);
-    AdjustRelativeJumps(trampoline, boundary, ((unsigned char*)function) - trampoline);
+    memcpy(saveaddr, function, boundary);
+    AdjustRelativeJumps(saveaddr, boundary, ((unsigned char*)function) - (unsigned char*)saveaddr);
 
-    WriteJump(trampoline + boundary, ((unsigned char*)function) + boundary);
+    WriteJump(saveaddr + boundary, ((unsigned char*)function) + boundary);
 
 	void *ptr = (void*)(((size_t)function/pagesize)*pagesize);
     // Give ourself write access to the region.
@@ -377,12 +371,11 @@ void* HookFunction(void* function, void* hook)
         // Flush the cache so we know that our new code gets executed.
         //FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
 
-        return trampoline;
+        return saveaddr;
         //return 0;
     
     }    
 
-	free(trampoline);
 	return NULL;
 	
     //return -1;

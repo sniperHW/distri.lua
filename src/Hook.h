@@ -27,6 +27,15 @@ along with Decoda.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef HOOK_H
 #define HOOK_H
 
+#include <assert.h>
+#include <sys/mman.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
+#include <malloc.h>
+
 /**
  * Returns true if the specified function is already hooked. Functions
  * cannot be rehooked to the same hook, so this should be tested before
@@ -39,7 +48,7 @@ int GetIsHooked(void* function, void* hook);
  * function. The function returns a pointer to a new function that can
  * be used to call the original function (or NULL if there was an error).
  */
-void* HookFunction(void* function, void* hook);
+void* HookFunction(void* function, void* hook,void *saveaddr,size_t saveaddr_size);
 
 /**
  * Installs a hook function that will be called instead of the original
