@@ -168,7 +168,9 @@ static int on_body(http_parser *_parser, const char *at, size_t length){
 }
 
 static int on_message_complete(http_parser *_parser){	
-	return _http_cb(_parser,ON_MESSAGE_COMPLETE);			
+	int ret = _http_cb(_parser,ON_MESSAGE_COMPLETE);
+	((struct luahttp_parser*)_parser)->buf->size = 0;
+	return ret;			
 }
 
 static int unpack(decoder *d,stream_conn_t c){
