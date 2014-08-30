@@ -232,7 +232,7 @@ void WriteJump(void* dst, void* address)
 
     // Setup a jump instruction.
     jump[0] = 0xE9;
-    *((unsigned int*)(&jump[1])) = (unsigned int)(address) - (unsigned int)(dst) - 5;
+    *((unsigned int*)(&jump[1])) = (unsigned int)((unsigned long)(address) - (unsigned long)(dst) - 5);
 
 }
 
@@ -244,7 +244,7 @@ void* ReadJump(void* src)
     const unsigned char* jump = (unsigned char*)(src);
     if (jump[0] == 0xE9)
     {   
-        address = (void*)(*((unsigned int*)(&jump[1])) + (unsigned int)(jump) + 5);
+        address = (void*)((unsigned int)(*((unsigned long*)(&jump[1])) + (unsigned long)(jump) + 5));
     }
     //}
     //__except (EXCEPTION_EXECUTE_HANDLER)
