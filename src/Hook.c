@@ -134,7 +134,8 @@ int GetInstructionSize(void* address, unsigned char* opcodeOut, int* operandSize
         } 
         else if(!twoByte) 
         { 
-            if((opcode & 0xC7) == 0x04 || 
+            if((opcode == 0x41) ||//added by huangweilook@21cn.com
+			   (opcode & 0xC7) == 0x04 || 
                (opcode & 0xFE) == 0x6A ||   // PUSH/POP/IMUL 
                (opcode & 0xF0) == 0x70 ||   // Jcc 
                opcode == 0x80 || 
@@ -155,8 +156,9 @@ int GetInstructionSize(void* address, unsigned char* opcodeOut, int* operandSize
             else if((opcode & 0xF7) == 0xC2) 
             { 
                 func += 2;   // RET 
-            } 
-            else if((opcode & 0xFC) == 0x80 || 
+            }else if(opcode == 0x49){//added by huangweilook@21cn.com
+				func += 3;
+            }else if((opcode & 0xFC) == 0x80 || 
                     (opcode & 0xC7) == 0x05 || 
                     (opcode & 0xF8) == 0xB8 ||
                     (opcode & 0xFE) == 0xE8 ||      // CALL/Jcc 
