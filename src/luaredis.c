@@ -20,6 +20,7 @@ static void cb_connect(redisconn_t conn,int err,void *ud){
 }
 
 static void cb_disconnected(redisconn_t conn,void *ud){
+	printf("cb_disconnected\n");	
 	luaRef_t   *cbObj = (luaRef_t*)ud;
 	const char *error = LuaCallTabFuncS(*cbObj,"__on_disconnected",NULL);
 	if(error){

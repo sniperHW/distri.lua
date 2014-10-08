@@ -15,7 +15,7 @@ CC:=$(shell sh -c 'type $(CC) >/dev/null 2>/dev/null && echo $(CC) || echo gcc')
 OPTIMIZATION?=
 WARNINGS=-Wall -W -Wstrict-prototypes -Wwrite-strings
 DEBUG?= -g -ggdb
-REAL_CFLAGS=$(OPTIMIZATION) -fPIC $(CFLAGS) $(WARNINGS) $(DEBUG) $(ARCH)
+REAL_CFLAGS=$(OPTIMIZATION) -O2 -fPIC $(CFLAGS) $(WARNINGS) $(DEBUG) $(ARCH)
 REAL_LDFLAGS=$(LDFLAGS) $(ARCH)
 
 DYLIBSUFFIX=so

@@ -58,7 +58,6 @@ static void start(lua_State *L,const char *start_file)
 }
 
 
-
 static int lua_RunOnce(lua_State *L){
 	if(g_status){ 
 		uint32_t ms = (uint32_t)lua_tointeger(L,1);

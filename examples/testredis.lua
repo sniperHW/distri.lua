@@ -3,31 +3,56 @@ local Sche = require "lua/sche"
 local Timer = require "lua/timer"
 
 local count = 0
+local toredis
 
-local err,conn = Redis.Connect("127.0.0.1",6379,function (conn)
-		print("redis conn disconnected")
-	end)
-if err then
-	print(err)
-else	
-	for j=1,5000 do
-		Sche.Spawn(function ()
-			while true do
-				local err,result = conn:Command("hgetall global")
-				if result then
-					count = count + 1
-				end			
+local function connect_to_redis()
+	print("here")
+    if toredis then
+		print("to redis disconnected")
+    end
+    toredis = nil
+	Sche.Spawn(function ()
+		while true do
+			local err
+			err,toredis = Redis.Connect("127.0.0.1",6379,connect_to_redis)
+			if toredis then
+				break
 			end
-		end)
-	end	
-	local last = GetSysTick()
-	local timer = Timer.New():Register(function ()
-		local now = GetSysTick()
-		print("count:" .. count*1000/(now-last) .. " " .. now-last)
-		count = 0
-		last = now
-		return true --return true to register once again	
-	end,1000):Run()	
+			print("try to connect after 1 sec")
+			Sche.Sleep(1000)
+		end
+	end)	
+end
+
+
+connect_to_redis()
+
+while not toredis do
+	Sche.Yield()
 end
 	
-	
+for j=1,1000 do
+	Sche.Spawn(function ()
+		while true do
+			if toredis then
+				local err,result = toredis:Command("hgetall global")
+				if result then
+					count = count + 1
+				else
+					print(err)
+				end
+			else
+				Sche.Sleep(1000)
+			end			
+		end
+	end)
+end	
+local last = GetSysTick()
+local timer = Timer.New():Register(function ()
+	local now = GetSysTick()
+	print("count:" .. count*1000/(now-last) .. " " .. now-last)
+	count = 0
+	last = now
+	return true --return true to register once again	
+end,1000):Run()		
+
