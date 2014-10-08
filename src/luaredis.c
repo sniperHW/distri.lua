@@ -12,10 +12,10 @@ static void cb_connect(redisconn_t conn,int err,void *ud){
 	luaRef_t   *cbObj = (luaRef_t*)ud;
 	const char *e = errmsg[err == 0 ? 0:1];
 	const char *error = LuaCallTabFuncS(*cbObj,"__cb_connect","ps",conn,e);
-	if(error){
-		printf("error on lua redis __cb_connect:%s\n",error);
+	if(error) printf("error on lua redis __cb_connect:%s\n",error);
+	if(error || e){	
 		release_luaRef(cbObj);
-		free(cbObj);			
+		free(cbObj);
 	}			
 }
 
