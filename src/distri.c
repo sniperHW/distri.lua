@@ -1,6 +1,7 @@
 #include "kendynet.h"
 #include "lua_util.h"
 #include "luasocket.h"
+#include "luaredis.h"
 #include "kn_timer.h"
 #include "kn_time.h"
 #include "debug.h"
@@ -89,6 +90,7 @@ int main(int argc,char **argv)
 	lua_register(L,"RunOnce",lua_RunOnce); 	   	
 	reg_luasocket(L);
 	reg_luahttp(L);
+	reg_luaredis(L);
 	g_engine = kn_new_engine();
 	start(L,argv[1]);
 	return 0;

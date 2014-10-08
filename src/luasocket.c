@@ -3,7 +3,7 @@
 //#include "luabytebuffer.h"
 
 extern __thread engine_t g_engine;
-static __thread lua_State *g_L;
+//static __thread lua_State *g_L;
 enum{
 	_SOCKET = 1,
 	_STREAM_CONN = 2,
@@ -43,7 +43,7 @@ static int luasocket_new2(lua_State *L){
 
 static int  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
-	luaRef_t  *obj = &luasock->luaObj;	
+	luaRef_t  *obj = &luasock->luaObj;
 	int __result;
 	lua_State *__L = obj->L;
 	int __oldtop = lua_gettop(__L);
@@ -59,7 +59,7 @@ static int  on_packet(stream_conn_t c,packet_t p){
 			printf("error on __on_packet:%s\n",error);
 		}	
 	}
-	lua_settop(__L,__oldtop);	
+	lua_settop(__L,__oldtop);
 	return 0;	
 }
 
@@ -257,7 +257,7 @@ void reg_luasocket(lua_State *L){
 	
 	lua_setglobal(L,"CSocket");
 	reg_luapacket(L);	
-	g_L = L;
+	//g_L = L;
 }
 
 
