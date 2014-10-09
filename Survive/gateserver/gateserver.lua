@@ -4,49 +4,68 @@ local RPC = require "lua/rpc"
 local Player = require "Survive/gateserver/gateplayer"
 local NetCmd = require "Survive/netcmd/netcmd"
 local MsgHandler = require "Survive/netcmd/msghandler"
-local Redis = require "lua/redis"
 local Sche = require "lua/sche"
 local Socket = require "lua/socket"
-
+local Db = require "Survive/common/db"
 
 local togroup
-local toredis
+
 local toinner = App.New()
 local toclient = App.New()
 
---建立到redis的连接
-local function connect_to_redis()
-    if toredis then
-		print("to redis disconnected")
-    end
-    toredis = nil
-	Sche.Spawn(function ()
-		while true do
-			local err
-			err,toredis = Redis.Connect("127.0.0.1",6379,connect_to_redis)
-			if toredis then
-				print("connect to redis success")
-				break
-			end
-			print("try to connect to redis after 1 sec")			
-			Sche.Sleep(1000)
-		end
-	end)	
+local function ForwardGame(sock,rpk)
+	local player = Player.GetPlayerBySock(sock)
+	if player and player.gamesession then		
+		local wpk = CPacket.NewWPacket(rpk)
+		wpk:Write_uint32(player.gamesession.id)
+		player.gamesession.sock:Send(wpk)
+	end	
+end
+
+local function ForwardGroup(sock,rpk)
+	local player = Player.GetPlayerBySock(sock)
+	if player and player.groupsession then
+		local wpk = CPacket.NewWPacket(rpk)
+		wpk:Write_uint32(player.groupsession.id)		
+		player.groupsession.sock:Send(wpk)	
+	end
+end
+
+local function OnClientMsg(sock,rpk)
+	local cmd = rpk:Peek_uint16()
+	if cmd >= NetCmd.CMD_CG_BEGIN and cmd <= NetCmd.CMD_CG_END then
+		ForwardGroup(sock,rpk)
+	elseif cmd >= NetCmd.CMD_CS_BEGIN and cmd <= NetCmd.CMD_CS_END then
+		ForwardGame(sock,rpk)
+	else
+		MsgHandler.OnMsg(sock,rpk)
+	end
+end
+
+local function OnInnerMsg(sock,rpk)
+	local cmd = rpk:Peek_uint16()
+	print(cmd)
+	if (cmd >= NetCmd.CMD_GC_BEGIN and cmd <= NetCmd.CMD_GC_END) or
+	   (cmd >= NetCmd.CMD_SC_BEGIN and cmd <= NetCmd.CMD_SC_END) then
+		--转发到客户端
+	else
+		MsgHandler.OnMsg(sock,rpk)
+	end
 end
 
 
 local name2game = {}
 
 local function connect_to_game(name,ip,port)
-	print("connect_to_game")
 	Sche.Spawn(function ()
 		while true do
 			local sock = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+			print("connect_to_game",ip,port)
 			if not sock:Connect(ip,port) then
 				sock:Establish(CSocket.rpkdecoder(65535))				
-				toinner:Add(sock,MsgHandler.onMsg,
+				toinner:Add(sock,OnInnerMsg,
 							function (s,errno)
-								name2game[name] = nil
+								name2game[name].sock = nil
 								print(name .. " disconnected")
 								connect_to_game(name,ip,port)
 							end)
@@ -61,8 +80,12 @@ local function connect_to_game(name,ip,port)
 					sock:Close()
 					break							
 				end
-				print("connect to " .. name .. "success")				
-				name2game[name] = sock
+				print("connect to " .. name .. " success")				
+				if name2game[name] then
+					name2game[name].sock = sock
+				else
+					name2game[name] = {sock = sock}
+				end
 				break	
 			end
 			print("try to connect to " .. name .. "after 1 sec")
@@ -74,10 +97,10 @@ end
 --有game连接上group
 MsgHandler.RegHandler(NetCmd.CMD_GA_NOTIFY_GAME,function (sock,rpk)
 	local name = rpk:Read_string()
-	if not name2game[name] then
+	if not name2game[name] or not name2game[name].sock then
 		local ip = rpk:Read_string()
 		local port = rpk:Read_uint16()
-		connect_to_game(name,ip,port)
+		connect_to_game(name,ip,port)		
 	end
 end)
 
@@ -92,7 +115,7 @@ local function connect_to_group()
 			local sock = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 			if not sock:Connect("127.0.0.1",8811) then
 				sock:Establish(CSocket.rpkdecoder(65535))
-				toinner:Add(sock,MsgHandler.onMsg,connect_to_group)								
+				toinner:Add(sock,OnInnerMsg,connect_to_group)								
 				--登录到groupserver
 				local rpccaller = RPC.MakeRPC(sock,"GateLogin")
 				local err,ret = rpccaller:Call("gate1")
@@ -119,18 +142,68 @@ local function connect_to_group()
 end
 
 
-connect_to_redis()
+MsgHandler.RegHandler(NetCmd.CMD_CA_LOGIN,function (sock,rpk)	
+	local type = rpk:Read_uint8()
+	local actname = rpk:Read_string()
+	local player = Player.GetPlayerBySock(sock)
+	if player.status then
+		return
+	end	
+	player.status = Player.verifying
+	local err,result = Db.Command("get " .. actname)		
+	if not Player.IsVaild(player) then
+		Player.DestroyPlayer(player) --玩家连接已经提前断开
+		return
+	end		
+	if err then
+		player.status = nil	
+	elseif not result then
+		player.status = nil
+		--通知密码错误
+	else
+		if not togroup then
+			--通知系统繁忙
+			player.status = nil
+		else
+			--验证通过,登录到group
+			local rpccaller = RPC.MakeRPC(togroup,"PlayerLogin")
+			player.status = Player.login2group
+			local err,ret = rpccaller:Call(actname,result[1],player.idx,player.timestamp)
+			if not Player.IsVaild(player) then
+				Player.DestroyPlayer(player) --玩家连接已经提前断开
+				return
+			end					
+			if err then
+				player.status = nil
+			else
+				player.groupsession = {id = ret[1]}
+				if ret[2] == "create" then
+					--通知客户端创建角色						
+					local wpk = CPacket.NewWPacket(64)
+					wpk:Write_uint16(NetCmd.CMD_GC_CREATE)
+					sock:Send(wpk)						
+					player.status = Player.createcha
+				else
+					player.status = Player.playing
+				end
+			end		
+		end	
+	end
+end)
+
+
+Db.Init()
 connect_to_group()
 toinner:Run()
 toclient:Run()
 
-while not togroup or not toredis do
+while not togroup or not Db.Finish() do
 	Sche.Yield()
 end
 
 if TcpServer.Listen("127.0.0.1",8810,function (sock)
 		sock:Establish(CSocket.rpkdecoder(4096))
-		toclient:Add(sock,MsgHandler.onMsg,Player.OnPlayerDisconnected)		
+		toclient:Add(sock,OnClientMsg,Player.OnPlayerDisconnected)		
 	end) then
 	print("start server on 127.0.0.1:8810 error")
 	stop_program()	

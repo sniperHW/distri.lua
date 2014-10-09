@@ -4,34 +4,13 @@ local RPC = require "lua/rpc"
 local Player = require "Survive/groupserver/groupplayer"
 local NetCmd = require "Survive/netcmd/netcmd"
 local MsgHandler = require "Survive/netcmd/msghandler"
-local Redis = require "lua/redis"
+local Db = require "Survive/common/db"
 local Sche = require "lua/sche"
 local Gate = require "Survive/groupserver/gate"
 local Game = require "Survive/groupserver/game"
-local toredis
---建立到redis的连接
-local function connect_to_redis()
-    if toredis then
-		print("to redis disconnected")
-    end
-    toredis = nil
-	Sche.Spawn(function ()
-		while true do
-			local err
-			err,toredis = Redis.Connect("127.0.0.1",6379,connect_to_redis)
-			if toredis then
-				print("connect to redis success")
-				break
-			end
-			print("try to connect to redis after 1 sec")			
-			Sche.Sleep(1000)
-		end
-	end)	
-end
 
-connect_to_redis()
-
-while not toredis do
+Db.Init()
+while not Db.Finish() do
 	Sche.Yield()
 end
 
@@ -50,7 +29,7 @@ end
 groupApp:Run(function ()
 	success = not TcpServer.Listen("127.0.0.1",8811,function (sock)
 		sock:Establish(CSocket.rpkdecoder(65535))
-		groupApp:Add(sock,MsgHandler.onMsg,on_disconnected)		
+		groupApp:Add(sock,MsgHandler.OnMsg,on_disconnected)		
 	end)
 end)
 

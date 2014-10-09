@@ -19,6 +19,29 @@ local function RegRpcService(app)
 			wpk:Write_string(ip)
 			wpk:Write_uint16(port)
 			BoradCast2Gate(wpk)
+			
+			--[[
+			for test
+			local wpk1 = CPacket.NewWPacket(128)
+			wpk1:Write_uint16(NetCmd.CMD_GA_NOTIFY_GAME)
+			wpk1:Write_string(name)
+			wpk1:Write_string(ip)
+			wpk1:Write_uint16(port)
+			
+			local wpk2 = CPacket.NewWPacket(64)
+			wpk2:Write_wpk(wpk1)
+			local rpk = CPacket.NewRPacket(wpk2) 
+			local wpk3 = CPacket.NewWPacket(rpk:Read_string())
+			
+			
+			--local rpk2 = CPacket.NewRPacket(wpk3)
+			
+			--print(rpk2:Read_uint16())
+			--print(rpk2:Read_string())
+			
+			
+			BoradCast2Gate(wpk3)]]--
+			
 			return "Login Success"
 		else
 			return "Login failed"
@@ -35,7 +58,7 @@ local function GetGames()
 end
 
 local function OnGameDisconnected(sock,errno)
-	local game = sock2gate[sock]
+	local game = sock2game[sock]
 	if game then
 		print(game.name .. " disconnected")
 		for k,v in pairs(game.players) do

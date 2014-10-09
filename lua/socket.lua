@@ -106,7 +106,8 @@ local function process_c_disconnect_event(self,errno)
 		self.application = nil
 	end
 	if self.on_disconnected then
-		self.on_disconnected(self,errno)
+		--在一个协程上下文下调用on_disconnected,以使得在on_disconnected中可以使用协程相关功能
+		Sche.Spawn(self.on_disconnected,self,errno)
 	end				
 end
 

@@ -61,8 +61,9 @@ local function NewGatePly(sock)
 	return ply
 end
 
-local function PlayerDisconnected(ply)
-	if ply.idx then
+local function DestroyPlayer(ply)
+	if ply.idx then		
+		--通知group和game连接断开
 		id2player[ply.idx] = nil
 		sock2player[ply.sock] = nil
 		ReleaseIdx(ply.idx)
@@ -72,15 +73,29 @@ end
 
 local function OnPlayerDisconnected(sock,errno)
 	local ply = GetPlayerBySock(sock)
-	if ply then
-		PlayerDisconnected(ply)
+	if not ply then
+		return
+	end	
+	if ply.status == verifying or ply.status == login2group then
+		ply.status = "closing"	
+	else
+		DestroyPlayer(ply)
 	end
 end
 
+local function IsVaild(ply)
+	return ply.status ~= "closing"
+end
 
 return {
 	NewGatePly = NewGatePly,
 	GetPlayerBySock = GetPlayerBySock,
 	GetPlayerById = GetPlayerById,
+	DestroyPlayer = DestroyPlayer,
 	OnPlayerDisconnected = OnPlayerDisconnected,
+	IsVaild = IsVaild,
+	verifying = 1,
+	login2group = 2,
+	createcha = 3,
+	playing = 4,
 }
