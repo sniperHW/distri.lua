@@ -3,6 +3,10 @@ local Game = require "Survive/groupserver/game"
 local sock2gate = {}
 local name2gate = {}
 
+local GetGateBySock(sock)
+	return sock2gate[sock]
+end
+
 local function RegRpcService(app)
 	--gateserver登录到groupserver
 	app:RPCService("GateLogin",function (sock,name)
@@ -51,6 +55,7 @@ function BoradCast2Gate(wpk)
 end
 
 return {
+	GetGateBySock = GetGateBySock,
 	Bind = Bind,
 	UnBind = UnBind,
 	OnGateDisconnected = OnGateDisconnected,

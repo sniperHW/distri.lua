@@ -12,7 +12,9 @@ local Gate = require "Survive/gameserver/gate"
 local togroup
 local gameApp = App.New()
 
+--注册gate模块的RPC服务
 Gate.RegRpcService(gameApp)
+
 local function connect_to_group()
 	if togroup then
 		print("togroup disconnected")
@@ -50,10 +52,11 @@ connect_to_group()
 Db.Init()
 gameApp:Run()
 
+
 while not togroup or not Db.Finish() do
 	Sche.Yield()
 end
-print("here")
+
 if TcpServer.Listen("127.0.0.1",8812,function (sock)
 		sock:Establish(CSocket.rpkdecoder(65535))
 		gameApp:Add(sock,MsgHandler.OnMsg,Gate.OnGateDisconnected)		

@@ -17,7 +17,6 @@ end
 local groupApp = App.New()
 
 local success
-
 local function on_disconnected(sock,errno)
 	if sock.type == "gate" then
 		Gate.OnGateDisconnected(sock,errno)
