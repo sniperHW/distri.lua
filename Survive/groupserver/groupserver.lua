@@ -15,6 +15,12 @@ while not Db.Finish() do
 end
 
 local groupApp = App.New()
+--注册Gate模块提供的RPC服务
+Gate.RegRpcService(groupApp)
+--注册Game模块提供的RPC服务	
+Game.RegRpcService(groupApp)
+--注册Player模块提供的RPC服务
+Player.RegRpcService(groupApp)
 
 local success
 local function on_disconnected(sock,errno)
@@ -36,10 +42,6 @@ if not success then
 	print("start server on 127.0.0.1:8811 error")
 	stop_program()		
 else
-	--注册Gate模块提供的RPC服务
-	Gate.RegRpcService(groupApp)
-	--注册Game模块提供的RPC服务	
-	Game.RegRpcService(groupApp)
 	print("start server on 127.0.0.1:8811")
 end
 
