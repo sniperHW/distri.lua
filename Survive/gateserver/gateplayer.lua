@@ -15,6 +15,7 @@ local function GetIdx()
 		return n.v
 	else
 		return nil
+	end
 end
 
 local function ReleaseIdx(idx)
@@ -69,10 +70,17 @@ local function PlayerDisconnected(ply)
 	end
 end
 
+local function OnPlayerDisconnected(sock,errno)
+	local ply = GetPlayerBySock(sock)
+	if ply then
+		PlayerDisconnected(ply)
+	end
+end
+
 
 return {
 	NewGatePly = NewGatePly,
-	PlayerDisconnected = PlayerDisconnected,
 	GetPlayerBySock = GetPlayerBySock,
 	GetPlayerById = GetPlayerById,
+	OnPlayerDisconnected = OnPlayerDisconnected,
 }

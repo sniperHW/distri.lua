@@ -97,7 +97,7 @@ local function process_c_disconnect_event(self,errno)
 		--唤醒所有等待响应的rpc调用
 		for k,v in pairs(self.pending_rpc) do
 			print("process pending")
-			v.response = {"remote connection lose",nil}
+			v.response = {err="remote connection lose",ret=nil}
 			Sche.Schedule(v)
 		end					
 	end

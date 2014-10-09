@@ -18,7 +18,7 @@ local function RPC_Process_Call(app,s,rpk)
 	if not func then
 		response.err = funname .. "not found"
 	else
-		response.ret = {func(table.unpack(request.arg))}
+		response.ret = {func(s,table.unpack(request.arg))}
 	end
 	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
 	wpk:Write_uint32(CMD_RPC_RESP)

@@ -120,7 +120,11 @@ local function NextCmdNum()
 end
 
 local netcmd = {
+	--client <-> gate
 	CMD_CA_LOGIN = SetCmdNum(1),
+	
+	
+	--client <-> game
 	
 	CMD_CS_MOV = SetCmdNum(200),
 	CMD_CS_USESKILL = NextCmdNum(),
@@ -136,13 +140,18 @@ local netcmd = {
 	CMD_SC_NOTISUFFER = NextCmdNum(),      
 	CMD_SC_ATTRUPDATE = NextCmdNum(),
 	
+	--client <-> group
+	
 	CMD_CG_CREATE = SetCmdNum(400),
 	CMD_CG_ENTERMAP = NextCmdNum(), 
 	
 	CMD_GC_CREATE = SetCmdNum(500),
 	CMD_GC_BEGINPLY = NextCmdNum(), 
 	CMD_GC_ATTRUPDATE = NextCmdNum(), 
-	CMD_GC_ERROR = NextCmdNum(), 	 		
+	CMD_GC_ERROR = NextCmdNum(), 
+	
+	--group <-> gate
+	CMD_GA_NOTIFY_GAME = SetCmdNum(600),	 		
 			
 }
 

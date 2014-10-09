@@ -75,10 +75,10 @@ int main(int argc,char **argv)
 		return 0;
 	}
 	
-	if(debug_init()){
+	/*if(debug_init()){
 		printf("debug_init failed\n");
 		return 0;
-	}
+	}*/
 	
 	lua_State *L = luaL_newstate();	
 	luaL_openlibs(L);

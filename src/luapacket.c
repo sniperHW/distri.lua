@@ -132,6 +132,82 @@ static int _write_string(lua_State *L){
 	return 0;	
 }
 
+static int _rewrite_uint8(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != WPACKET)
+		return luaL_error(L,"invaild opration");
+	if(lua_type(L,2) != LUA_TTABLE)
+		return luaL_error(L,"invaild arg2");
+	if(lua_type(L,3) != LUA_TNUMBER)
+		return luaL_error(L,"invaild arg3");	
+	write_pos wpos;
+	lua_rawgeti(L,2,1);
+	wpos.buf = lua_touserdata(L,-1);
+	lua_pop(L,1);
+	lua_rawgeti(L,2,2);
+	wpos.wpos = (uint32_t)lua_tointeger(L,-1);
+	lua_pop(L,1);
+	wpk_rewrite_uint8(&wpos,(uint8_t)lua_tointeger(L,3));	
+	return 0;	
+}
+
+static int _rewrite_uint16(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != WPACKET)
+		return luaL_error(L,"invaild opration");
+	if(lua_type(L,2) != LUA_TTABLE)
+		return luaL_error(L,"invaild arg2");
+	if(lua_type(L,3) != LUA_TNUMBER)
+		return luaL_error(L,"invaild arg3");	
+	write_pos wpos;
+	lua_rawgeti(L,2,1);
+	wpos.buf = lua_touserdata(L,-1);
+	lua_pop(L,1);
+	lua_rawgeti(L,2,2);
+	wpos.wpos = (uint32_t)lua_tointeger(L,-1);
+	lua_pop(L,1);
+	wpk_rewrite_uint16(&wpos,(uint16_t)lua_tointeger(L,3));	
+	return 0;	
+}
+
+static int _rewrite_uint32(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != WPACKET)
+		return luaL_error(L,"invaild opration");
+	if(lua_type(L,2) != LUA_TTABLE)
+		return luaL_error(L,"invaild arg2");
+	if(lua_type(L,3) != LUA_TNUMBER)
+		return luaL_error(L,"invaild arg3");	
+	write_pos wpos;
+	lua_rawgeti(L,2,1);
+	wpos.buf = lua_touserdata(L,-1);
+	lua_pop(L,1);
+	lua_rawgeti(L,2,2);
+	wpos.wpos = (uint32_t)lua_tointeger(L,-1);
+	lua_pop(L,1);
+	wpk_rewrite_uint32(&wpos,(uint32_t)lua_tointeger(L,3));	
+	return 0;	
+}
+
+static int _rewrite_double(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != WPACKET)
+		return luaL_error(L,"invaild opration");
+	if(lua_type(L,2) != LUA_TTABLE)
+		return luaL_error(L,"invaild arg2");
+	if(lua_type(L,3) != LUA_TNUMBER)
+		return luaL_error(L,"invaild arg3");	
+	write_pos wpos;
+	lua_rawgeti(L,2,1);
+	wpos.buf = lua_touserdata(L,-1);
+	lua_pop(L,1);
+	lua_rawgeti(L,2,2);
+	wpos.wpos = (uint32_t)lua_tointeger(L,-1);
+	lua_pop(L,1);
+	wpk_rewrite_double(&wpos,(double)lua_tonumber(L,3));		
+	return 0;	
+}
+
 static int _read_uint8(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet->type != RPACKET)
@@ -248,6 +324,19 @@ static int lua_new_rawpacket(lua_State *L){
 	return lua_new_packet(L,RAWPACKET);
 }
 
+static int _get_write_pos(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(!p->_packet || p->_packet->type != WPACKET)
+		return luaL_error(L,"invaild opration");		
+	write_pos wpos = wpk_get_writepos((wpacket_t)p->_packet);
+	lua_newtable(L);
+	lua_pushlightuserdata(L,wpos.buf);
+	lua_rawseti(L,-2,1);
+	lua_pushinteger(L,wpos.wpos);
+	lua_rawseti(L,-2,2);
+	return 1;		
+}
+
 
 void reg_luapacket(lua_State *L){
     luaL_Reg packet_mt[] = {
@@ -272,6 +361,14 @@ void reg_luapacket(lua_State *L){
         {"Write_uint32", _write_uint32},
         {"Write_double",_write_double},        
         {"Write_string",_write_string},
+
+        {"Rewrite_uint8",  _rewrite_uint8},
+        {"Rewrite_uint16", _rewrite_uint16},
+        {"Rewrite_uint32", _rewrite_uint32},
+        {"Rewrite_double", _rewrite_double},        
+     
+		{"Get_write_pos", _get_write_pos},
+		
         {NULL, NULL}
     };
 

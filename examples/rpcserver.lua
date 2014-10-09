@@ -7,7 +7,7 @@ local count = 0
 
 local rpcserver = App.New()
 
-rpcserver:RPCService("Plus",function (a,b)
+rpcserver:RPCService("Plus",function (_,a,b)
 	count = count + 1 
 	return a+b 
 end)
