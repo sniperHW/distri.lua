@@ -51,6 +51,12 @@ function player:GetTStamp()
 	return bit32.band(self.sessionid,0x0000FFFF)
 end
 
+function player:Send2Client(wpk)
+	if self.sock then
+		self.sock:Send(wpk)
+	end
+end
+
 
 local function GetPlayerById(sessionid)
 	return id2player[sessionid]

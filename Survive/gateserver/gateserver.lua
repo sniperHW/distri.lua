@@ -25,17 +25,20 @@ end
 
 --转发到groupserver
 local function ForwardGroup(sock,rpk)
-	local player = Player.GetPlayerBySock(sock)
-	if player and player.groupsession then
-		local wpk = CPacket.NewWPacket(rpk)
-		wpk:Write_uint32(player.groupsession.id)		
-		player.groupsession.sock:Send(wpk)	
+	if togroup then
+		local player = Player.GetPlayerBySock(sock)
+		if player and player.groupsession then
+			local wpk = CPacket.NewWPacket(rpk)
+			wpk:Write_uint32(player.groupsession)		
+			togroup:Send(wpk)	
+		end
 	end
 end
 
 --处理来自客户端的网络消息
 local function OnClientMsg(sock,rpk)
 	local cmd = rpk:Peek_uint16()
+	print("OnClientMsg",cmd)
 	if cmd >= NetCmd.CMD_CG_BEGIN and cmd <= NetCmd.CMD_CG_END then
 		ForwardGroup(sock,rpk)
 	elseif cmd >= NetCmd.CMD_CS_BEGIN and cmd <= NetCmd.CMD_CS_END then
@@ -48,10 +51,20 @@ end
 --处理来自内部服务器的网络消息
 local function OnInnerMsg(sock,rpk)
 	local cmd = rpk:Peek_uint16()
-	print(cmd)
 	if (cmd >= NetCmd.CMD_GC_BEGIN and cmd <= NetCmd.CMD_GC_END) or
 	   (cmd >= NetCmd.CMD_SC_BEGIN and cmd <= NetCmd.CMD_SC_END) then
 		--转发到客户端
+		rpk:Read_uint16() --丢弃命令头
+		local wpk = CPacket.NewWPacket(rpk:Read_string())
+		--将wpk转发给所有需要接收的玩家
+		local size = rpk:Read_uint16()
+		for i = 1,size do
+			local gatesession = rpk:Read_uint32()
+			local ply = Player.GetPlayerById(gatesession)
+			if ply then
+				ply:Send2Client(CPacket.NewWPacket(wpk))
+			end
+		end		
 	else
 		MsgHandler.OnMsg(sock,rpk)
 	end
@@ -69,53 +82,62 @@ MsgHandler.RegHandler(NetCmd.CMD_GA_NOTIFY_GAME,function (sock,rpk)
 	end
 end)
 
-MsgHandler.RegHandler(NetCmd.CMD_CA_LOGIN,function (sock,rpk)	
+MsgHandler.RegHandler(NetCmd.CMD_CA_LOGIN,function (sock,rpk)
+	print("CMD_CA_LOGIN")
 	local type = rpk:Read_uint8()
 	local actname = rpk:Read_string()
-	local player = Player.GetPlayerBySock(sock)
+	local player = Player.GetPlayerBySock(sock) or Player.NewGatePly(sock)
+	if not player then
+		--通知服务器繁忙
+		return
+	end
 	if player.status then
 		return
-	end	
+	end
 	player.status = Player.verifying
 	local err,result = Db.Command("get " .. actname)		
 	if not Player.IsVaild(player) then
 		Player.ReleasePlayer(player) --玩家连接已经提前断开
 		return
-	end		
+	end
 	if err then
 		player.status = nil	
-	elseif not result then
+	end
+	local chaid = 0
+	if result then
+		chaid = result
+	end
+	if not togroup then
+		--通知系统繁忙
 		player.status = nil
-		--通知密码错误
 	else
-		if not togroup then
-			--通知系统繁忙
+		--验证通过,登录到group
+		local rpccaller = RPC.MakeRPC(togroup,"PlayerLogin")
+		player.status = Player.login2group
+		local err,ret = rpccaller:Call(actname,chaid,player.sessionid)
+		if not Player.IsVaild(player) then
+			Player.ReleasePlayer(player) --玩家连接已经提前断开
+			return
+		end					
+		if err then
 			player.status = nil
 		else
-			--验证通过,登录到group
-			local rpccaller = RPC.MakeRPC(togroup,"PlayerLogin")
-			player.status = Player.login2group
-			local err,ret = rpccaller:Call(actname,result[1],player.sessionid)
-			if not Player.IsVaild(player) then
-				Player.ReleasePlayer(player) --玩家连接已经提前断开
-				return
-			end					
-			if err then
-				player.status = nil
-			else
-				--[[player.groupsession = {id = ret[1]}
-				if ret[2] == "create" then
+			if ret[1] then
+				player.groupsession = ret[2]
+				if ret[3] then
 					--通知客户端创建角色						
 					local wpk = CPacket.NewWPacket(64)
 					wpk:Write_uint16(NetCmd.CMD_GC_CREATE)
 					sock:Send(wpk)						
-					player.status = Player.createcha
+					player.status = Player.createcha					
 				else
 					player.status = Player.playing
-				end]]--
-			end		
-		end	
-	end
+				end
+			else
+				
+			end	
+		end		
+	end	
 end)
 
 
@@ -209,6 +231,7 @@ end
 
 if TcpServer.Listen("127.0.0.1",8810,function (sock)
 		sock:Establish(CSocket.rpkdecoder(4096))
+		print("client connected")
 		toclient:Add(sock,OnClientMsg,Player.OnPlayerDisconnected)		
 	end) then
 	print("start server on 127.0.0.1:8810 error")

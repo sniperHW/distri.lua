@@ -355,14 +355,14 @@ static int _read_rawbin(lua_State *L){
 	return 1;						
 }
 
-static int _reset_rpos(lua_State *L){
+/*static int _reset_rpos(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet->type != RPACKET)
 		return luaL_error(L,"invaild opration");
 	rpacket_t rpk = (rpacket_t)p->_packet;
 	reset_rpos(rpk);
 	return 0;	
-}
+}*/
 
 static int _peek_uint8(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
@@ -379,7 +379,7 @@ static int _peek_uint16(lua_State *L){
 		lua_pushnil(L);	
 	else{
 		rpacket_t rpk = (rpacket_t)p->_packet;
-		lua_pushinteger(L,rpk_read_uint16(rpk));
+		lua_pushinteger(L,rpk_peek_uint16(rpk));
 	}
 	return 1;	
 }
@@ -451,7 +451,7 @@ void reg_luapacket(lua_State *L){
         {"Peek_uint16", _peek_uint16},
         {"Peek_uint32", _peek_uint32},
         {"Peek_double", _peek_double},
-        {"Reset_rpos",  _reset_rpos},                     
+        //{"Reset_rpos",  _reset_rpos},                     
         
         {"Write_uint8", _write_uint8},
         {"Write_uint16", _write_uint16},

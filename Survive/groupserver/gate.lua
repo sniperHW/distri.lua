@@ -3,7 +3,7 @@ local Game = require "Survive/groupserver/game"
 local sock2gate = {}
 local name2gate = {}
 
-local GetGateBySock(sock)
+local function GetGateBySock(sock)
 	return sock2gate[sock]
 end
 

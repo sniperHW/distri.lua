@@ -1,6 +1,7 @@
 local handler = {}
 
 local function regHandler(cmd,f)
+	print("regHandler",cmd,f)
 	handler[cmd] = f
 end
 
@@ -9,6 +10,8 @@ local function onMsg(sock,rpacket)
 	local f = handler[cmd]
 	if f then
 		f(sock,rpacket)
+	else
+		print("unknow cmd",cmd)
 	end
 end
 
