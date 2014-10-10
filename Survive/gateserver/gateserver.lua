@@ -62,6 +62,9 @@ local function OnInnerMsg(sock,rpk)
 			local gatesession = rpk:Read_uint32()
 			local ply = Player.GetPlayerById(gatesession)
 			if ply then
+				if cmd == NetCmd.CMD_SC_ENTERMAP then
+					ply.gamesession = {sock=sock,id=rpk:Read_uint32()}
+				end
 				ply:Send2Client(CPacket.NewWPacket(wpk))
 			end
 		end		
@@ -134,7 +137,8 @@ MsgHandler.RegHandler(NetCmd.CMD_CA_LOGIN,function (sock,rpk)
 					player.status = Player.playing
 				end
 			else
-				
+				--断开连接
+				sock:Close()
 			end	
 		end		
 	end	
@@ -151,6 +155,7 @@ local function connect_to_game(name,ip,port)
 				sock:Establish(CSocket.rpkdecoder(65535))				
 				toinner:Add(sock,OnInnerMsg,
 							function (s,errno)
+								Player.OnGameDisconnected(s)
 								name2game[name].sock = nil
 								print(name .. " disconnected")
 								connect_to_game(name,ip,port)
@@ -183,6 +188,7 @@ end
 --连接groupserver并完成登录
 local function connect_to_group()
 	if togroup then
+		Player.OnGroupDisconnected()
 		print("togroup disconnected")
 	end
 	togroup = nil

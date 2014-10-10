@@ -98,6 +98,21 @@ local function OnPlayerDisconnected(sock,errno)
 	end
 end
 
+local function OnGameDisconnected(sock)
+	for k,v in pairs(id2player) do
+		if v.gamesession and v.gamesession.sock == sock then
+			v.gamesession = nil
+			v.sock:Close()
+		end
+	end
+end
+
+local function OnGroupDisconnected()
+	for k,v in pairs(id2player) do
+			v.sock:Close()
+	end	
+end
+
 local function IsVaild(ply)
 	return ply.status ~= releasing
 end
@@ -108,6 +123,8 @@ return {
 	GetPlayerById = GetPlayerById,
 	ReleasePlayer = ReleasePlayer,
 	OnPlayerDisconnected = OnPlayerDisconnected,
+	OnGameDisconnected = OnGameDisconnected,
+	OnGroupDisconnected = OnGroupDisconnected,
 	IsVaild = IsVaild,
 	verifying = verifying,
 	login2group = login2group,

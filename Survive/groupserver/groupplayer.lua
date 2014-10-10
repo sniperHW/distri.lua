@@ -9,6 +9,7 @@ local Bag = require "Survive/groupserver/bag"
 local Skill = require "Survive/groupserver/skill"
 local NetCmd = require "Survive/netcmd/netcmd"
 local Sche = require "lua/sche"
+local Map = require "Survive/groupserver/map"
 
 local freeidx = Que.New()
 
@@ -33,6 +34,7 @@ local createcha  = 1
 local loading    = 2
 local playing    = 3
 local releasing  = 4
+local entermap   = 5
 
 local player = {}
 local actname2player ={}
@@ -108,6 +110,13 @@ function player:NotifyCreate()
 	return {true,self.groupsession,"create"}	
 end
 
+function player:NotifyCreateError(msg)
+	local wpk = CPacket.NewWPacket(64)
+	wpk:Write_uint16(NetCmd.CMD_SC_CREATE_ERROR) 
+	wpk:Write_string(msg)
+	self:Send2Client(wpk)
+end
+
 --创建角色
 MsgHandler.RegHandler(NetCmd.CMD_CG_CREATE,function (sock,rpk)
 	print("CMD_CG_CREATE")
@@ -118,30 +127,25 @@ MsgHandler.RegHandler(NetCmd.CMD_CG_CREATE,function (sock,rpk)
 	local ply = GetPlayerBySessionId(groupsession)
 	if not ply or not ply.gatesession then
 		return 
-	end
-	print("CMD_CG_CREATE 1")
-	
+	end	
 	if ply.status ~= createcha then
 		return 
 	end	
 	ply.chaid = ply.chaid or 0
 	ply.nickname = nickname
 	ply.avatarid = avatarid
-	print("CMD_CG_CREATE 2")
 	if ply.chaid == 0 then
-		print("CMD_CG_CREATE 3")
 		local err,result = Db.Command("incr chaid")
 		if err or not result then
-			--notify client retry
+			ply:NotifyCreateError("retry")
 		else
 			ply.chaid = result
 			err,result = Db.Command("set " .. ply.actname .. " " .. ply.chaid)
 			if err then
-				--notify client retry
+				ply:NotifyCreateError("retry")
 			end			
 		end
 	end
-	print("CMD_CG_CREATE 4")
 	local attr={
 		[Name2idx.Idx("level")] = 1,
 		[Name2idx.Idx("exp")] = 0,
@@ -167,17 +171,31 @@ MsgHandler.RegHandler(NetCmd.CMD_CG_CREATE,function (sock,rpk)
 		[Name2idx.Idx("anger")] = 0,
 		[Name2idx.Idx("combat_power")] = 0,
 	}
-	print("CMD_CG_CREATE 5")	
 	ply.attr = Attr.New():Init(attr)
 	ply.bag = Bag.New():Init()
 	ply.skills = Skill.New():Init()	
 	local err =  Db.Command(string.format("hmset chaid:%u nickname %s avatarid %u chainfo %s bag %s skills %s",ply.chaid,ply.nickname,ply.avatarid,ply.attr:DbStr(),
 								  ply.bag:DbStr(),ply.skills:DbStr())) 	
 	if err then
-		--notify client retry
-	end	
-	ply:NotifyBeginPlay()		
+		ply:NotifyCreateError("retry")
+	else	
+		ply:NotifyBeginPlay()
+	end		
 end)
+
+--请求进入地图
+MsgHandler.RegHandler(NetCmd.CMD_CG_ENTERMAP,function (sock,rpk)
+	rpk:Reverse_read_uint16()
+	local ply = GetPlayerBySessionId(groupsession)
+	if not ply or not ply.gatesession or ply.gamesession or ply.status ~= playing then
+		return 
+	end
+	local type = rpk:Read_uint8()
+	ply.status = entermap
+	local ret,err = Map.EnterMap(self,type)
+	ply.status = playing
+end)
+
 
 local function RegRpcService(app)
 	app:RPCService("PlayerLogin",function (sock,actname,chaid,sessionid)
@@ -198,8 +216,7 @@ local function RegRpcService(app)
 					end					
 					return {true,ply.groupsession}					
 				else
-					ReleasePlayer(ply)
-					return {false,"group busy"}				
+					return {false,"invaild status"}				
 				end				 
 			end
 		else
@@ -221,7 +238,6 @@ local function RegRpcService(app)
 				if not result then
 					return ply:NotifyCreate()
 				else
-
 					ply.status   = playing
 					ply.nickname = result[1]
 					ply.avatarid = tonumber(result[2])				
@@ -246,5 +262,5 @@ local function RegRpcService(app)
 end
 
 return {
-	RegRpcService = RegRpcService
+	RegRpcService = RegRpcService,
 }

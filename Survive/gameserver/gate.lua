@@ -49,9 +49,14 @@ function BoradCast2Gate(wpk)
 	end
 end
 
+function GetGateByName(name)
+	return name2gate[name]
+end
+
 return {
 	Bind = Bind,
 	UnBind = UnBind,
 	OnGateDisconnected = OnGateDisconnected,
 	RegRpcService = RegRpcService,
+	GetGateByName = GetGateByName, 
 }

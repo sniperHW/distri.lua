@@ -7,7 +7,7 @@ local Db = require "Survive/common/db"
 local Sche = require "lua/sche"
 local Socket = require "lua/socket"
 local Gate = require "Survive/gameserver/gate"
-
+local Timer = require "lua/timer"
 
 local togroup
 local gameApp = App.New()
