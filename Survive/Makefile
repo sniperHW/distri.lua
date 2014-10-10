@@ -13,12 +13,12 @@ base64.so:\
 aoi.so:\
 	common/aoi.c\
 	common/lua_aoi.c
-	$(CC) $(CFLAGS) $(SHARED) -o aoi.so common/aoi.c common/lua_aoi.c $(INCLUDE) $(DEFINE)
+	$(CC) $(CFLAGS) $(SHARED) -o aoi.so common/aoi.c common/lua_aoi.c ../deps/KendyNet/libkendynet.a $(INCLUDE) $(DEFINE)
 	
 astar.so:\
 	common/astar.c\
 	common/lua_astar.c
-	$(CC) $(CFLAGS) $(SHARED) -o astar.so common/astar.c common/lua_astar.c $(INCLUDE) $(DEFINE)		
+	$(CC) $(CFLAGS) $(SHARED) -o astar.so common/astar.c common/lua_astar.c ../deps/KendyNet/libkendynet.a $(INCLUDE) $(DEFINE)		
 	
 	
 all:base64.so aoi.so astar.so

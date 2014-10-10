@@ -13,7 +13,7 @@ function idmgr:new(size)
 end
 
 function idmgr:Get()
-	local n = self:idx:Pop()
+	local n = self.idx:Pop()
 	if n then 
 		return n.v
 	else

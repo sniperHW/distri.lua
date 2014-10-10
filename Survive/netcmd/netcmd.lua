@@ -2,7 +2,6 @@
 #ifndef _NETCMD_H
 #define _NETCMD_H
 
-
 enum{
 	//client <-> agent
 	CMD_CA_BEGIN = 0,
@@ -159,7 +158,13 @@ local netcmd = {
 	CMD_GC_ERROR = NextCmdNum(), 
 	CMD_GC_END = NextCmdNum(),
 	--group <-> gate
-	CMD_GA_NOTIFY_GAME = SetCmdNum(600),	 		
+	CMD_GA_NOTIFY_GAME = SetCmdNum(600),
+	
+	--game <-> group
+
+	CMD_GGAME_BEGIN = SetCmdNum(900),
+	CMD_GGAME_CLIDISCONNECTED = NextCmdNum(),
+	CMD_GGAME_END = NextCmdNum(),		 		
 			
 }
 

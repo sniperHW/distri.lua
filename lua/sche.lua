@@ -1,6 +1,7 @@
 local MinHeap = require "lua/minheap"
 local Que =  require "lua/queue"
 
+print("run here")
 
 local sche = {
 	ready_list = Que.New(),

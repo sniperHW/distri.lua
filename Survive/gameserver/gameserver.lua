@@ -8,12 +8,15 @@ local Sche = require "lua/sche"
 local Socket = require "lua/socket"
 local Gate = require "Survive/gameserver/gate"
 local Timer = require "lua/timer"
+local Map = require "Survive/gameserver/map"
 
 local togroup
 local gameApp = App.New()
 
 --注册gate模块的RPC服务
 Gate.RegRpcService(gameApp)
+--注册Map模块的RPC服务
+Map.RegRpcService(gameApp)
 
 local function connect_to_group()
 	if togroup then

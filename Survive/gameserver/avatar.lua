@@ -1,4 +1,5 @@
-local Aoi = require "Survive/aoi"
+package.cpath = "Survive/?.so"
+local Aoi = require "aoi"
 
 local avatar ={
 	id,            

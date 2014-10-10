@@ -1,6 +1,7 @@
+package.cpath = "Survive/?.so"
 local Avatar = require "Survive/gameserver/avatar"
 local NetCmd = require "Survive/netcmd/netcmd"
-local Aoi = require "Survive/aoi"
+local Aoi = require "aoi"
 
 local player = Avatar.New()
 
@@ -104,7 +105,7 @@ function player:Mov(x,y)
 end
 
 --客户端断线重连处理
-function player:reconn(maptype)
+function player:ReConnect(maptype)
 	local wpk = CPacket.NewWPacket(64)
 	wpk:Write_uint16(NetCmd.CMD_SC_ENTERMAP)
 	wpk:Write_uint16(self.maptype)

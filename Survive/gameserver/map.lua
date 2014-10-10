@@ -1,12 +1,13 @@
+package.cpath = "Survive/?.so"
 local Avatar = require "Survive/gameserver/avatar"
-local Player = require "Survive/gameserver/player"
+local Player = require "Survive/gameserver/gameplayer"
 local Que = require "lua/queue"
 local Cjson = require "cjson"
 local Gate = require "Survive/gameserver/gate"
 local Attr = require "Survive/gameserver/attr"
 local Skill = require "Survive/gameserver/skill"
-local Aoi = require "Survive/aoi"
-local Astar = require "Survive/astar"
+local Aoi = require "aoi"
+local Astar = require "astar"
 local Timer = require "lua/timer"
 local NetCmd = require "Survive/netcmd/netcmd"
 local MsgHandler = require "Survive/netcmd/msghandler"
@@ -26,7 +27,7 @@ local mapdef = {
 for k,v in ipairs(mapdef) do
 	v.astar,v.xcount,v.ycount = Astar.create(v.coli)
 	if not v.astar then
-		print("astar init error")
+		print("astar init error:" .. v.coli)
 	end
 end
 
@@ -81,39 +82,34 @@ function map:entermap(plys)
 		return nil
 	else
 		local gameids = {}
-		local useidx  = {}
 		for _,v in pairs(plys) do
 			local avatid = v.avatid
 			local gate = Gate.GetGateByName(v.gatesession.name)
 			if not gate then
-				for k1,v1 in pairs(useidx)
-					self.freeidx:Push(v1)
-				end
-				return nil
+				table.insert(gameids,false)
+			else
+				local id = self.freeidx:Pop()
+				local ply = Player:New(bit32.lshift(self.mapid,16) + id,avatid)
+				Gate.Bind(gate,ply,v.gatesession.id)
+				ply.nickname = v.nickname
+				ply.actname = v.actname
+				ply.groupsession = v.groupsession
+				ply.attr = Attr.New():Init(ply,v.attr)
+				ply.skillmgr = Skill.New()
+				table.insert(gameids,ply.id)
+				ply.pos[1] = 220
+				ply.pos[2] = 120
+				ply.dir = 5
+				local wpk = CPacket.NewWPacket(64)
+				wpk:Write_uint16(NetCmd.CMD_SC_ENTERMAP)
+				wpk:Write_uint16(self.maptype)
+				ply:on_entermap(wpk)	
+				self.avatars[id] = ply
+				ply.map = self
+				self.plycount = self.plycount + 1
+				Aoi.enter_map(self.aoi,ply.aoi_obj,ply.pos[1],ply.pos[2])
+				print(ply.actname .. " enter map")
 			end
-			local gateid = v.gatesession.id
-			local id = self.freeidx:Pop()
-			table.insert(useidx,id)
-			local ply = Player:New(id,avatid)
-			ply.gatesession = {sock=gate.sock,sessionid=v.gatesession.id}
-			ply.nickname = v.nickname
-			ply.actname = v.actname
-			ply.groupsession = v.groupsession
-			ply.attr = Attr.New():Init(ply,v.attr)
-			ply.skillmgr = Skill.New()
-			ply.id = bit32.lshift(self.mapid,16) + ply.id
-			table.insert(gameids,ply.id)
-			ply.pos[1] = 220
-			ply.pos[2] = 120
-			ply.dir = 5
-			local wpk = CPacket.NewWPacket(64)
-			wpk:Write_uint16(NetCmd.CMD_SC_ENTERMAP)
-			wpk:Write_uint16(self.maptype)
-			ply:on_entermap(wpk)	
-			self.avatars[id] = ply
-			ply.map = self
-			Aoi.enter_map(self.aoi,ply.aoi_obj,ply.pos[1],ply.pos[2])
-			print(ply.actname .. " enter map")
 		end 
 		return gameids
 	end
@@ -123,6 +119,7 @@ function map:leavemap(id)
 	local ply = self:GetAvatar(id)
 	if ply then
 		ply:Release()
+		self.plycount = self.plycount - 1
 		self.avatars[id] = nil
 		return true
 	end
@@ -162,6 +159,15 @@ function map:process_mov()
 	return 1 
 end
 
+local function GetPlayerById(id)
+	local m = GetMapById(id) 
+	if m then
+		return m:GetAvatar(id)
+	else 
+		return nil
+	end	
+end
+
 --注册RPC服务
 local function RegRpcService(app)
 	app:RPCService("EnterMap",function (id,type,plys)
@@ -186,111 +192,60 @@ local function RegRpcService(app)
 		return {not plyids,plyids} 			
 	end)
 	
-	app:RPCService("LeaveMap",function (sock,actname,chaid,sessionid)
-	end)
-	
-	app:RPCService("CliReConn",function (sock,actname,chaid,sessionid)
-	end)
-)		
-
---[[
-
-Rpc.RegisterRpcFunction("LeaveMap",function (rpcHandle)
-	local param = rpcHandle.param
-	local mapid = param[1]
-	local map = game.maps[mapid]
-	if map then
-		local plyid = rpk_read_uint16(rpk)
-		if map:leavemap(plyid) then
-			Rpc.RPCResponse(rpcHandle,mapid,nil)
-			if map.plycount == 0 then
-				map:clear()
-				game.que:push({v=mapid,__next=nil})
-				game.maps[mapid] = nil				
+	app:RPCService("LeaveMap",function (id)
+		local m = GetMapById(id)
+		if m and m:leavemap(id) then
+			if m.plycount == 0 then
+				--清除地图
 			end
-		else
-			Rpc.RPCResponse(rpcHandle,nil,"failed")
+			return true
 		end
-	else
-		Rpc.RPCResponse(rpcHandle,nil,"failed")
-	end	
+		return false
+	end)
+	--客户端连接重新建立 
+	app:RPCService("CliReConn",function (id,gatesession)
+		local ply = GetPlayerById(id)
+		if ply or ply.gatesession then
+			return false
+		end
+		local gate = Gate.GetGateByName(gatesession.name)
+		if not gate then
+			return false
+		end
+		Gate.Bind(gate,ply,gatesession.id)
+		ply:ReConnect()
+		return true
+	end)
+end
+
+MsgHandler.RegHandler(NetCmd.CMD_CS_MOV,function (sock,rpk)
+	local id = rpk:Reverse_read_uint32()
+	local ply = GetPlayerById(id)
+	if ply then
+		local x = rpk:Read_uint16()
+		local y = rpk:Read_uint16()
+		ply:Mov(x,y)
+	end
+end)
+
+MsgHandler.RegHandler(NetCmd.CMD_CS_USESKILL,function (sock,rpk)
+	local id = rpk:Reverse_read_uint32()
+	local ply = GetPlayerById(id)
+	if ply then
+		ply:UseSkill(rpk)
+	end
+end)
+
+--客户端的连接断开
+MsgHandler.RegHandler(NetCmd.CMD_GGAME_CLIDISCONNECTED,function (sock,rpk)
+	local id = rpk:Reverse_read_uint32()
+	local ply = GetPlayerById(id)
+	if ply then
+		Gate.UnBind(ply)
+	end
 end)
 
 
-Rpc.RegisterRpcFunction("CliReConn",function (rpcHandle)
-	local param = rpcHandle.param
-	local gameid = param[1]
-	local mapid = bit32.rshift(gameid,16)
-	local map = game.maps[mapid]
-	if map then
-		local plyid = bit32.band(gameid,0xFFFF)
-		local ply = map.avatars[plyid]
-		if ply and ply.avattype == Avatar.type_player then
-			local gate = Gate.GetGateByName(param[2].name)
-			if not gate then
-				Rpc.RPCResponse(rpcHandle,nil,"failed")
-				return
-			end
-			ply.gate = {conn=gate.conn,id=param[2].id}
-			ply:reconn()
-			Rpc.RPCResponse(rpcHandle,nil,nil)	
-		else
-			Rpc.RPCResponse(rpcHandle,nil,"failed")
-		end
-	
-	else
-		Rpc.RPCResponse(rpcHandle,nil,"failed")
-	end
-end)
-]]--
-
---[[
-local game_net_handler = {}
-
-game_net_handler[CMD_CS_MOV] = function (rpk,conn)
-	local gameid = rpk_reverse_read_uint32(rpk)
-	local mapid = bit32.rshift(gameid,16)
-	local map = game.maps[mapid]
-	if map then
-		local plyid = bit32.band(gameid,0xFFFF)
-		local ply = map.avatars[plyid]
-		if ply and ply.avattype == Avatar.type_player then
-			local x = rpk_read_uint16(rpk)
-			local y = rpk_read_uint16(rpk)
-			ply:Mov(x,y)
-		end
-	end
-end
-
-game_net_handler[CMD_CS_USESKILL] = function (rpk,conn)
-	print("CMD_CS_USESKILL")
-	local gameid = rpk_reverse_read_uint32(rpk)
-	local mapid = bit32.rshift(gameid,16)
-	local map = game.maps[mapid]
-	if map then
-		local plyid = bit32.band(gameid,0xFFFF)
-		local ply = map.avatars[plyid]
-		if ply and ply.avattype == Avatar.type_player then
-			ply:UseSkill(rpk)
-		end
-	end
-end
-
-game_net_handler[CMD_GGAME_CLIDISCONNECTED] =  function (rpk,conn)
-	local gameid = rpk_reverse_read_uint32(rpk)
-	local mapid = bit32.rshift(gameid,16)
-	local map = game.maps[mapid]
-	if map then
-		local plyid = bit32.band(gameid,0xFFFF)
-		--map:leavemap(plyid)
-		local ply = map.avatars[plyid]
-		if ply and ply.avattype == Avatar.type_player then
-			ply.gate = nil
-			print(ply.actname .. " disconnected")
-		end		
-	end	
-end 
-]]--
---return {
---	NewMap = function (mapid,maptype) return map:new():init(mapid,maptype) end,
---}
+return {
+	RegRpcService = RegRpcService,
+}		
