@@ -12,6 +12,7 @@ local Timer = require "lua/timer"
 local NetCmd = require "Survive/netcmd/netcmd"
 local MsgHandler = require "Survive/netcmd/msghandler"
 local IdMgr = require "Survive/common/idmgr"
+local Sche = require "lua/sche"
 
 local mapdef = {
 	[1] = {
@@ -19,7 +20,7 @@ local mapdef = {
 		xcount,
 		ycount,
 		radius = 100,              --视距大小
-		coli   = "./fightMap.meta",   --寻路碰撞文件
+		coli   = "./Survive/gameserver/fightMap.meta",   --寻路碰撞文件
 		astar  = nil,
 	},
 }
@@ -31,7 +32,7 @@ for k,v in ipairs(mapdef) do
 	end
 end
 
-local function getDefByType(type)
+local function GetDefByType(type)
 	return mapdef[type]
 end
 
@@ -40,6 +41,7 @@ local mapidx = IdMgr.New(65535)
 
 local function GetMapById(id)
 	id = bit32.rshift(id,16)
+	print("mapid",id)
 	return maps[id]
 end
 
@@ -67,7 +69,8 @@ function map:new(mapid,maptype)
 	local mapdef = GetDefByType(maptype)	
 	o.astar = mapdef.astar
 	o.aoi = Aoi.create_map(mapdef.gridlength,mapdef.radius,0,0,mapdef.xcount-1,mapdef.ycount-1)
-	o.movtimer = Timer.New():Register(function () o:process_mov() return true end)
+	o.movtimer = Timer.New():Register(function () o:process_mov() return true end,100)
+	o.plycount = 0
 	Sche.Spawn(function () o.movtimer:Run() end)
 	maps[mapid] = o  
 	return o
@@ -78,6 +81,7 @@ function map:GetAvatar(id)
 end
 
 function map:entermap(plys)
+	print("map:entermap")
 	if self.freeidx:Len() < #plys then
 		return nil
 	else
@@ -88,27 +92,23 @@ function map:entermap(plys)
 			if not gate then
 				table.insert(gameids,false)
 			else
-				local id = self.freeidx:Pop()
-				local ply = Player:New(bit32.lshift(self.mapid,16) + id,avatid)
+				local id = self.freeidx:Get()
+				local ply = Player.New(bit32.lshift(self.mapid,16) + id,avatid)
 				Gate.Bind(gate,ply,v.gatesession.id)
+				self.avatars[ply.id] = ply
+				ply.map = self
 				ply.nickname = v.nickname
 				ply.actname = v.actname
 				ply.groupsession = v.groupsession
 				ply.attr = Attr.New():Init(ply,v.attr)
 				ply.skillmgr = Skill.New()
 				table.insert(gameids,ply.id)
-				ply.pos[1] = 220
-				ply.pos[2] = 120
+				ply.pos = {220,120}
 				ply.dir = 5
-				local wpk = CPacket.NewWPacket(64)
-				wpk:Write_uint16(NetCmd.CMD_SC_ENTERMAP)
-				wpk:Write_uint16(self.maptype)
-				ply:on_entermap(wpk)	
-				self.avatars[id] = ply
-				ply.map = self
+				ply:on_entermap()	
 				self.plycount = self.plycount + 1
 				Aoi.enter_map(self.aoi,ply.aoi_obj,ply.pos[1],ply.pos[2])
-				print(ply.actname .. " enter map")
+				print(ply.actname .. " enter map",ply.id)
 			end
 		end 
 		return gameids
@@ -118,7 +118,7 @@ end
 function map:leavemap(id)
 	local ply = self:GetAvatar(id)
 	if ply then
-		ply:Release()
+		ply:Release(self.freeidx)
 		self.plycount = self.plycount - 1
 		self.avatars[id] = nil
 		return true
@@ -138,7 +138,7 @@ end
 
 function map:Release()
 	for k,v in ipairs(self.avatars) do
-		v:Release()
+		v:Release(self.freeidx)
 	end
 	Aoi.destroy_map(self.aoi)
 	self.movtimer:Stop()
@@ -163,22 +163,24 @@ local function GetPlayerById(id)
 	local m = GetMapById(id) 
 	if m then
 		return m:GetAvatar(id)
-	else 
+	else
+		print("m nil")
 		return nil
 	end	
 end
 
 --注册RPC服务
 local function RegRpcService(app)
-	app:RPCService("EnterMap",function (id,type,plys)
+	app:RPCService("EnterMap",function (sock,mapid,type,plys)
+		print("EnterMap",type)
 		local plyids
 		local m
-		if id == 0 then
-			id = mapidx:Get()
-			if not id then
+		if mapid == 0 then
+			mapid = mapidx:Get()
+			if not mapid then
 				return {false,"game busy"}
 			end
-			m = map:new(id,maptype)
+			m = map:new(mapid,type)
 		else
 			m = maps[mapid] 
 			if not m then
@@ -186,13 +188,14 @@ local function RegRpcService(app)
 			end
 		end
 		plyids = m:entermap(plys)
-		if not plyids and id == 0 then
+		if not plyids and mapid == 0 then
 			m:Release()
+			return {false,"enter failed"}
 		end
-		return {not plyids,plyids} 			
+		return {true,mapid,plyids} 			
 	end)
 	
-	app:RPCService("LeaveMap",function (id)
+	app:RPCService("LeaveMap",function (sock,id)
 		local m = GetMapById(id)
 		if m and m:leavemap(id) then
 			if m.plycount == 0 then
@@ -203,15 +206,18 @@ local function RegRpcService(app)
 		return false
 	end)
 	--客户端连接重新建立 
-	app:RPCService("CliReConn",function (id,gatesession)
+	app:RPCService("CliReConn",function (sock,id,gatesession)
+		print("CliReconn 1")
 		local ply = GetPlayerById(id)
-		if ply or ply.gatesession then
+		if ply and ply.gatesession then
 			return false
 		end
+		print("CliReconn 2")
 		local gate = Gate.GetGateByName(gatesession.name)
 		if not gate then
 			return false
 		end
+		print("CliReconn 3")
 		Gate.Bind(gate,ply,gatesession.id)
 		ply:ReConnect()
 		return true
@@ -219,6 +225,7 @@ local function RegRpcService(app)
 end
 
 MsgHandler.RegHandler(NetCmd.CMD_CS_MOV,function (sock,rpk)
+	print("CMD_CS_MOV")
 	local id = rpk:Reverse_read_uint32()
 	local ply = GetPlayerById(id)
 	if ply then
@@ -239,8 +246,10 @@ end)
 --客户端的连接断开
 MsgHandler.RegHandler(NetCmd.CMD_GGAME_CLIDISCONNECTED,function (sock,rpk)
 	local id = rpk:Reverse_read_uint32()
+	print("CMD_GGAME_CLIDISCONNECTED",id)	
 	local ply = GetPlayerById(id)
 	if ply then
+		print(ply.actname .. " CMD_GGAME_CLIDISCONNECTED")
 		Gate.UnBind(ply)
 	end
 end)

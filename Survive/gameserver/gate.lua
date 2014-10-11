@@ -32,11 +32,11 @@ end
 
 local function Bind(gate,player,sessionid)
 	 gate.players[player] = player
-	 player.gatesession = {gate=gate,sessionid=sessionid}
+	 player.gatesession = {sock=gate.sock,sessionid=sessionid,gate=gate}
 end
 
 local function UnBind(player)
-	local gate = player.gatesession
+	local gate = player.gatesession.gate
 	if gate then
 		gate.players[player] = nil
 		player.gatesession = nil

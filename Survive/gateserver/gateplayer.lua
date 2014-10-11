@@ -1,5 +1,5 @@
 local Que = require "lua/queue"
-
+local NetCmd = require "Survive/netcmd/netcmd"
 local freeidx = Que.New()
 
 local id2player = {}
@@ -77,8 +77,13 @@ local function NewGatePly(sock)
 end
 
 local function ReleasePlayer(ply)
-	if ply.idx then		
+	if ply.sessionid then	
+		print("ReleasePlayer")	
 		--通知group和game连接断开
+		local wpk = CPacket.NewWPacket(64);
+		wpk:Write_uint16(NetCmd.CMD_AG_CLIENT_DISCONN);
+		wpk:Write_uint16(ply.groupsession);
+		Send2Group(wpk)		
 		id2player[ply.sessionid] = nil
 		sock2player[ply.sock] = nil
 		ReleaseIdx(ply:GetId())
@@ -87,6 +92,7 @@ local function ReleasePlayer(ply)
 end
 
 local function OnPlayerDisconnected(sock,errno)
+	print("OnPlayerDisconnected")
 	local ply = GetPlayerBySock(sock)
 	if not ply then
 		return

@@ -1,6 +1,7 @@
 local Cjson = require "cjson"
 local Que = require "lua/queue"
 local Gate = require "Survive/groupserver/gate"
+local Game = require "Survive/groupserver/game"
 local MsgHandler = require "Survive/netcmd/msghandler"
 local Name2idx = require "Survive/common/name2idx"
 local Db = require "Survive/common/db"
@@ -10,6 +11,7 @@ local Skill = require "Survive/groupserver/skill"
 local NetCmd = require "Survive/netcmd/netcmd"
 local Sche = require "lua/sche"
 local Map = require "Survive/groupserver/map"
+local RPC = require "lua/rpc"
 
 local freeidx = Que.New()
 
@@ -77,6 +79,14 @@ end
 
 local function GetPlayerByActname(actname)
 	return actname2player[actname]
+end
+
+function player:Send2Game(wpk)
+	local gamesession = self.gamesession
+	if gamesession then
+		wpk:Write_uint32(gamesession.sessionid)
+		gamesession.game.sock:Send(wpk)
+	end
 end
 
 function player:Send2Client(wpk)
@@ -185,17 +195,38 @@ end)
 
 --请求进入地图
 MsgHandler.RegHandler(NetCmd.CMD_CG_ENTERMAP,function (sock,rpk)
-	rpk:Reverse_read_uint16()
+	print("CMD_CG_ENTERMAP")
+	local groupsession = rpk:Reverse_read_uint16()
 	local ply = GetPlayerBySessionId(groupsession)
+	print("CMD_CG_ENTERMAP 2",ply,groupsession)
 	if not ply or not ply.gatesession or ply.gamesession or ply.status ~= playing then
 		return 
 	end
+	print("CMD_CG_ENTERMAP 3")
 	local type = rpk:Read_uint8()
 	ply.status = entermap
-	local ret,err = Map.EnterMap(self,type)
+	local ret,err = Map.EnterMap(ply,type)
 	ply.status = playing
 end)
 
+MsgHandler.RegHandler(NetCmd.CMD_AG_CLIENT_DISCONN,function (sock,rpk)
+	print("CMD_AG_CLIENT_DISCONN")
+	local groupsession = rpk:Reverse_read_uint16()
+	local ply = GetPlayerBySessionId(groupsession)
+	if ply then
+		print("CMD_AG_CLIENT_DISCONN 1")
+		if ply.gatesession then
+			Gate.UnBind(ply)
+			print("CMD_AG_CLIENT_DISCONN 2")
+		end
+		if ply.gamesession then
+			print("CMD_AG_CLIENT_DISCONN 3")
+			local wpk = CPacket.NewWPacket(64)
+			wpk:Write_uint16(NetCmd.CMD_GGAME_CLIDISCONNECTED)
+			ply:Send2Game(wpk)
+		end
+	end	
+end)
 
 local function RegRpcService(app)
 	app:RPCService("PlayerLogin",function (sock,actname,chaid,sessionid)
@@ -205,17 +236,27 @@ local function RegRpcService(app)
 			if ply.gatesession then
 				return {false,"invaild login"}
 			else
+				print("already in group")
 				--断线重连
 				if ply.status == createcha then
 					return ply:NotifyCreate()
 				elseif ply.status == playing then
-					Gate.Bind(GetGateBySock(sock),ply,sessionid)
+					print("here1")
+					Gate.Bind(Gate.GetGateBySock(sock),ply,sessionid)
 					ply:NotifyBeginPlay()					
 					if ply.gamesession then
+						print("game CliReConn")
 						--通知gameserver断线重连
+						local rpccaller = RPC.MakeRPC(ply.gamesession.game.sock,"CliReConn")	
+						local err,ret = rpccaller:Call(ply.gamesession.sessionid,
+													   {name=ply.gatesession.gate.name,id=ply.gatesession.sessionid})
+						if err or not ret then
+							print("CliReConn error")
+						end							   						
 					end					
 					return {true,ply.groupsession}					
 				else
+					print("here2")
 					return {false,"invaild status"}				
 				end				 
 			end

@@ -52,6 +52,7 @@ end
 
 
 local function EnterMap(ply,type)
+	print("EnterMap")
 	--暂时不处理需要配对进入的地图类型
 	local m = GetInstanceByType(type,1)
 	if not m[1] then
@@ -69,31 +70,39 @@ local function EnterMap(ply,type)
 			attr = ply.attr:Pack2Game()
 		}		
 	}
-	local rpccaller = RPC.MakeRPC(game.sock,"EnterMap")
 	local mapid = 0
 	if instance then
 		mapid = instance.id
 		instance:AddPlyCount(1)
 	end
-	local err,ret = rpccaller:Call(id,type,plys)
+	print("EnterMap 2",mapid)
+	local rpccaller = RPC.MakeRPC(game.sock,"EnterMap")	
+	local err,ret = rpccaller:Call(mapid,type,plys)
 	if err or not ret[1] then
 		if instance then
 			instance:SubPlyCount(1)
 		end
+		print("EnterMap3",err or ret[2])
 		return false,err or ret[2]
 	end
+	print("EnterMap 4")
 	mapid = ret[2]
 	gameids = ret[3]
+	print("EnterMap 5",gameids[1])
 	Game.Bind(game,ply,gameids[1])
 	if not instance then
 		instance = mapinstance:new(game,1,100,mapid,type)
 		local m = maps[type] or {}
 		m[instance] = instance
 	end
+	print("EnterMap 6")
 	return true
 end
 
 
+return {
+	EnterMap = EnterMap,
+}
 
 
 --[[

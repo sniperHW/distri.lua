@@ -25,46 +25,10 @@ function player:Send2Client(wpk)
 	end	
 end
 
-function player:enter_see(other)
-	self.view_obj[other.id] = other
-	other.watch_me[self.id] = self	
-	
-	local wpk = CPacket.NewWPacket(1024)
-	wpk:Write_uint16(NetCmd.CMD_SC_ENTERSEE)
-	wpk:Write_uint32(other.id)
-	wpk:Wwrite_uint8(other.avattype)
-	wpk:Write_uint16(other.avatid)
-	wpk:Write_string(other.nickname)
-	wpk:Write_uint16(other.pos[1])
-	wpk:Write_uint16(other.pos[2])
-	wpk:Write_uint8(other.dir)
-	other.attr:on_entersee(wpk)	
-	self:Send2Client(wpk)
-	
-	if other.path then
-		local size = #other.path.path
-		local target = other.path.path[size]
-		local wpk = CPacket.NewWPacket(64)
-		wpk:Write_uint16(NetCmd.CMD_SC_MOV)
-		wpk:Write_uint32(other.id)
-		--wpk_write_uint16(wpk,other.speed)
-		wpk:Write_uint16(target[1])
-		wpk:Write_uint16(target[2])
-		self:Send2Client(wpk)
-	end	
-end
-
-function player:leave_see(other)
-	self.view_obj[other.id] = nil
-	other.watch_me[self.id] = nil
-
+function player:on_entermap()
 	local wpk = CPacket.NewWPacket(64)
-	wpk:Write_uint16(NetCmd.CMD_SC_LEAVESEE)
-	wpk:Write_uint32(other.id)	
-	self:Send2Client(wpk)	
-end
-
-function player:on_entermap(wpk)
+	wpk:Write_uint16(NetCmd.CMD_SC_ENTERMAP)
+	wpk:Write_uint16(self.map.maptype)
 	self.attr:on_entermap(wpk)
 	wpk:Write_uint32(self.id)
 	local gatesession = self.gatesession
@@ -81,11 +45,12 @@ function player:on_entermap(wpk)
 end
 
 function player:Mov(x,y)
+	print("player:Mov")
 	local path = self.map:findpath(self.pos,{x,y})
 	if path then
 		self.path = {cur=1,path=path}
 		self.map:beginMov(self)
-		self.lastmovtick = C.systemms()
+		self.lastmovtick = GetSysTick()
 		self.movmargin = 0
 
 		local size = #self.path.path
@@ -106,10 +71,7 @@ end
 
 --客户端断线重连处理
 function player:ReConnect(maptype)
-	local wpk = CPacket.NewWPacket(64)
-	wpk:Write_uint16(NetCmd.CMD_SC_ENTERMAP)
-	wpk:Write_uint16(self.maptype)
-	self:on_entermap(wpk)
+	self:on_entermap()
 	print(self.actname .. " reconn")	
 	for k,v in pairs(self.view_obj) do
 		local wpk = CPacket.NewWPacket(1024)
@@ -191,7 +153,7 @@ function player:process_mov()
 			self.pos = node
 			cur = cur + 1
 			movmargin = movmargin - elapse;			
-			Aoi.aoi_moveto(self.aoi_obj,node[1],node[2])
+			Aoi.moveto(self.aoi_obj,node[1],node[2])
 		else
 			break	
 		end
@@ -213,5 +175,5 @@ function player:process_mov()
 end
 
 return {
-	NewPlayer = function (id,avatid) return player:new():Init(id,avatid) end,
+	New = function (id,avatid) return player:new():Init(id,avatid) end,
 } 

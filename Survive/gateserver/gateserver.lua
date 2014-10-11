@@ -13,6 +13,12 @@ local toinner = App.New()
 local toclient = App.New()
 local name2game = {}
 
+function Send2Group(wpk)
+	if togroup then
+		togroup:Send(wpk)		
+	end
+end
+
 --转发到gameserver
 local function ForwardGame(sock,rpk)
 	local player = Player.GetPlayerBySock(sock)
@@ -29,7 +35,7 @@ local function ForwardGroup(sock,rpk)
 		local player = Player.GetPlayerBySock(sock)
 		if player and player.groupsession then
 			local wpk = CPacket.NewWPacket(rpk)
-			wpk:Write_uint32(player.groupsession)		
+			wpk:Write_uint16(player.groupsession)		
 			togroup:Send(wpk)	
 		end
 	end
@@ -64,6 +70,7 @@ local function OnInnerMsg(sock,rpk)
 			if ply then
 				if cmd == NetCmd.CMD_SC_ENTERMAP then
 					ply.gamesession = {sock=sock,id=rpk:Read_uint32()}
+					print("CMD_SC_ENTERMAP",ply.gamesession.id)
 				end
 				ply:Send2Client(CPacket.NewWPacket(wpk))
 			end
@@ -74,15 +81,59 @@ local function OnInnerMsg(sock,rpk)
 end
 
 
+--连接gameserver并完成登录
+local function connect_to_game(name,ip,port)
+	Sche.Spawn(function ()
+		while true do
+			local sock = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+			print("connect_to_game",name,ip,port)
+			if not sock:Connect(ip,port) then
+				sock:Establish(CSocket.rpkdecoder(65535))				
+				toinner:Add(sock,OnInnerMsg,
+							function (s,errno)
+								Player.OnGameDisconnected(s)
+								name2game[name].sock = nil
+								print(name .. " disconnected")
+								connect_to_game(name,ip,port)
+							end)
+				local rpccaller = RPC.MakeRPC(sock,"Login")
+				local err,ret = rpccaller:Call("gate1")
+				if err or ret == "Login failed" then
+					if err then
+						print(err)
+					else
+						print(ret)
+					end
+					sock:Close()
+					break							
+				end
+				print("connect to " .. name .. " success")				
+				if name2game[name] then
+					name2game[name].sock = sock
+				else
+					name2game[name] = {sock = sock}
+				end
+				break	
+			end
+			print("try to connect to " .. name .. "after 1 sec")
+			Sche.Sleep(1000)
+		end
+	end)
+end
+
+
 --定义网络命令处理器
 
 MsgHandler.RegHandler(NetCmd.CMD_GA_NOTIFY_GAME,function (sock,rpk)
+	print("CMD_GA_NOTIFY_GAME")
 	local name = rpk:Read_string()
-	if not name2game[name] or not name2game[name].sock then
-		local ip = rpk:Read_string()
-		local port = rpk:Read_uint16()
-		connect_to_game(name,ip,port)		
+	if name2game[name] then
+		return
 	end
+	print("send connect")
+	local ip = rpk:Read_string()
+	local port = rpk:Read_uint16()
+	connect_to_game(name,ip,port)		
 end)
 
 MsgHandler.RegHandler(NetCmd.CMD_CA_LOGIN,function (sock,rpk)
@@ -144,46 +195,6 @@ MsgHandler.RegHandler(NetCmd.CMD_CA_LOGIN,function (sock,rpk)
 	end	
 end)
 
-
---连接gameserver并完成登录
-local function connect_to_game(name,ip,port)
-	Sche.Spawn(function ()
-		while true do
-			local sock = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-			print("connect_to_game",ip,port)
-			if not sock:Connect(ip,port) then
-				sock:Establish(CSocket.rpkdecoder(65535))				
-				toinner:Add(sock,OnInnerMsg,
-							function (s,errno)
-								Player.OnGameDisconnected(s)
-								name2game[name].sock = nil
-								print(name .. " disconnected")
-								connect_to_game(name,ip,port)
-							end)
-				local rpccaller = RPC.MakeRPC(sock,"Login")
-				local err,ret = rpccaller:Call("gate1")
-				if err or ret == "Login failed" then
-					if err then
-						print(err)
-					else
-						print(ret)
-					end
-					sock:Close()
-					break							
-				end
-				print("connect to " .. name .. " success")				
-				if name2game[name] then
-					name2game[name].sock = sock
-				else
-					name2game[name] = {sock = sock}
-				end
-				break	
-			end
-			print("try to connect to " .. name .. "after 1 sec")
-			Sche.Sleep(1000)
-		end
-	end)
-end
 
 --连接groupserver并完成登录
 local function connect_to_group()

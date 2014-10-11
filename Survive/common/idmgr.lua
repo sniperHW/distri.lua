@@ -26,9 +26,9 @@ function idmgr:Release(id)
 end
 
 function idmgr:Len()
-	return self.idx:len()
+	return self.idx:Len()
 end
 
 return {
-	New = function (size) idmgr:new(size) end
+	New = function (size) return idmgr:new(size) end
 }

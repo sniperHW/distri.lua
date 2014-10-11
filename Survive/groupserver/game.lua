@@ -57,7 +57,8 @@ local function Bind(game,player,sessionid)
 end
 
 local function UnBind(player)
-	local game = player.gamesession
+	print("Game UnBind")
+	local game = player.gamesession.game
 	if game then
 		game.players[player] = nil
 		game.plycount = game.plycount - 1

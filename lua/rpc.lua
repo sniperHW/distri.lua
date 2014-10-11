@@ -9,15 +9,22 @@ local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
 
 local function RPC_Process_Call(app,s,rpk)
-	local request = cjson.decode(rpk:Read_string())
+	local str = rpk:Read_string()
 	local funname = request.f
 	local co = request.co
 	local func = app._RPCService[funname]
 	local response = {co = co}
 	if not func then
-		response.err = funname .. "not found"
+		response.err = funname .. " not found"
 	else
-		response.ret = {func(s,table.unpack(request.arg))}
+		--response.ret = {func(s,table.unpack(request.arg))}		
+		local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
+		if ret[1] then
+			table.remove(ret,1)			
+			response.ret = {table.unpack(ret)}
+		else
+			response.err = ret[2]
+		end
 	end
 	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
 	wpk:Write_uint32(CMD_RPC_RESP)
@@ -26,7 +33,9 @@ local function RPC_Process_Call(app,s,rpk)
 end
 
 local function RPC_Process_Response(s,rpk)
-	local response = cjson.decode(rpk:Read_string())
+	local str = rpk:Read_string()
+	print(str)
+	local response = cjson.decode(str)
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then
 		co.response = response

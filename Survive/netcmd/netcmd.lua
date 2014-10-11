@@ -158,7 +158,13 @@ local netcmd = {
 	CMD_GC_ERROR = NextCmdNum(), 
 	CMD_GC_END = NextCmdNum(),
 	--group <-> gate
-	CMD_GA_NOTIFY_GAME = SetCmdNum(600),
+	CMD_AG_BEGIN = 	SetCmdNum(600),
+	CMD_AG_CLIENT_DISCONN = NextCmdNum(),
+	CMD_AG_END = NextCmdNum(),
+		
+	CMD_GA_BEGIN = SetCmdNum(700),
+	CMD_GA_NOTIFY_GAME = NextCmdNum(),
+	CMD_GA_END = NextCmdNum(),
 	
 	--game <-> group
 

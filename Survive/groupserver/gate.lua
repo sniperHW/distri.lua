@@ -41,7 +41,7 @@ local function Bind(gate,player,sessionid)
 end
 
 local function UnBind(player)
-	local gate = player.gatesession
+	local gate = player.gatesession.gate
 	if gate then
 		gate.players[player] = nil
 		player.gatesession = nil
