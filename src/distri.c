@@ -25,9 +25,23 @@ static int  lua_getsystick(lua_State *L){
 	return 1;
 }
 
-
-static void start(lua_State *L,const char *start_file)
+static void set_luaarg(lua_State *L,int argc,char **argv)
 {
+	if(argc > 2){
+		int i = 2;
+		int j = 1;
+		lua_newtable(L);		
+		for(; i < argc; ++i,++j){
+			lua_pushstring(L,argv[i]);
+			lua_rawseti(L,-2,j);
+		}		
+		lua_setglobal(L,"args");			
+	}	
+}
+
+static void start(lua_State *L,int argc,char **argv)
+{
+	const char *start_file = argv[1];
 	printf("start\n");
 	char buf[4096];
 	snprintf(buf,4096,"\
@@ -44,10 +58,10 @@ static void start(lua_State *L,const char *start_file)
 				ms = 5\
 			end\
 		end",start_file);		
-		
+	set_luaarg(L,argc,argv);	
 	int oldtop = lua_gettop(L);
 	luaL_loadstring(L,buf);
-	const char *error = luacall(L,"");
+	const char *error = luacall(L,NULL);
 	if(error){
 		lua_settop(L,oldtop);
 		printf("%s\n",error);
@@ -91,6 +105,6 @@ int main(int argc,char **argv)
 	reg_luahttp(L);
 	reg_luaredis(L);
 	g_engine = kn_new_engine();
-	start(L,argv[1]);
+	start(L,argc,argv);
 	return 0;
 } 
