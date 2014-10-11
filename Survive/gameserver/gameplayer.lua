@@ -45,7 +45,7 @@ function player:on_entermap()
 end
 
 function player:Mov(x,y)
-	print("player:Mov")
+	--print("player:Mov")
 	local path = self.map:findpath(self.pos,{x,y})
 	if path then
 		self.path = {cur=1,path=path}
@@ -71,8 +71,7 @@ end
 
 --客户端断线重连处理
 function player:ReConnect(maptype)
-	self:on_entermap()
-	print(self.actname .. " reconn")	
+	self:on_entermap()	
 	for k,v in pairs(self.view_obj) do
 		local wpk = CPacket.NewWPacket(1024)
 		wpk:Write_uint16(NetCmd.CMD_SC_ENTERSEE)

@@ -195,14 +195,11 @@ end)
 
 --请求进入地图
 MsgHandler.RegHandler(NetCmd.CMD_CG_ENTERMAP,function (sock,rpk)
-	print("CMD_CG_ENTERMAP")
 	local groupsession = rpk:Reverse_read_uint16()
 	local ply = GetPlayerBySessionId(groupsession)
-	print("CMD_CG_ENTERMAP 2",ply,groupsession)
 	if not ply or not ply.gatesession or ply.gamesession or ply.status ~= playing then
 		return 
 	end
-	print("CMD_CG_ENTERMAP 3")
 	local type = rpk:Read_uint8()
 	ply.status = entermap
 	local ret,err = Map.EnterMap(ply,type)
@@ -210,17 +207,13 @@ MsgHandler.RegHandler(NetCmd.CMD_CG_ENTERMAP,function (sock,rpk)
 end)
 
 MsgHandler.RegHandler(NetCmd.CMD_AG_CLIENT_DISCONN,function (sock,rpk)
-	print("CMD_AG_CLIENT_DISCONN")
 	local groupsession = rpk:Reverse_read_uint16()
 	local ply = GetPlayerBySessionId(groupsession)
 	if ply then
-		print("CMD_AG_CLIENT_DISCONN 1")
 		if ply.gatesession then
 			Gate.UnBind(ply)
-			print("CMD_AG_CLIENT_DISCONN 2")
 		end
 		if ply.gamesession then
-			print("CMD_AG_CLIENT_DISCONN 3")
 			local wpk = CPacket.NewWPacket(64)
 			wpk:Write_uint16(NetCmd.CMD_GGAME_CLIDISCONNECTED)
 			ply:Send2Game(wpk)
@@ -241,7 +234,6 @@ local function RegRpcService(app)
 				if ply.status == createcha then
 					return ply:NotifyCreate()
 				elseif ply.status == playing then
-					print("here1")
 					Gate.Bind(Gate.GetGateBySock(sock),ply,sessionid)
 					ply:NotifyBeginPlay()					
 					if ply.gamesession then
@@ -256,7 +248,6 @@ local function RegRpcService(app)
 					end					
 					return {true,ply.groupsession}					
 				else
-					print("here2")
 					return {false,"invaild status"}				
 				end				 
 			end

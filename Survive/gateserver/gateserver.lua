@@ -83,6 +83,9 @@ end
 
 --连接gameserver并完成登录
 local function connect_to_game(name,ip,port)
+	if name2game[name] then
+		return
+	end
 	Sche.Spawn(function ()
 		while true do
 			local sock = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
@@ -125,12 +128,7 @@ end
 --定义网络命令处理器
 
 MsgHandler.RegHandler(NetCmd.CMD_GA_NOTIFY_GAME,function (sock,rpk)
-	print("CMD_GA_NOTIFY_GAME")
 	local name = rpk:Read_string()
-	if name2game[name] then
-		return
-	end
-	print("send connect")
 	local ip = rpk:Read_string()
 	local port = rpk:Read_uint16()
 	connect_to_game(name,ip,port)		
@@ -246,13 +244,13 @@ end
 
 --在连接上groupserver和db初始化完成后才启动对客户端的监听
 
-if TcpServer.Listen("127.0.0.1",8810,function (sock)
+if TcpServer.Listen("192.168.0.87",8810,function (sock)
 		sock:Establish(CSocket.rpkdecoder(4096))
 		print("client connected")
 		toclient:Add(sock,OnClientMsg,Player.OnPlayerDisconnected)		
 	end) then
-	print("start server on 127.0.0.1:8810 error")
+	print("start server on 192.168.0.87:8810 error")
 	stop_program()	
 else
-	print("start server on 127.0.0.1:8810")
+	print("start server on 192.168.0.87:8810")
 end

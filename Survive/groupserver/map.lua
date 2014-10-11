@@ -24,6 +24,7 @@ function mapinstance:new(game,size,max,id,type)
   o.size = size
   o.id = id
   o.type = type
+  o.max = max
   return o
 end
 
@@ -75,27 +76,28 @@ local function EnterMap(ply,type)
 		mapid = instance.id
 		instance:AddPlyCount(1)
 	end
-	print("EnterMap 2",mapid)
 	local rpccaller = RPC.MakeRPC(game.sock,"EnterMap")	
 	local err,ret = rpccaller:Call(mapid,type,plys)
 	if err or not ret[1] then
 		if instance then
 			instance:SubPlyCount(1)
 		end
-		print("EnterMap3",err or ret[2])
 		return false,err or ret[2]
 	end
-	print("EnterMap 4")
 	mapid = ret[2]
 	gameids = ret[3]
-	print("EnterMap 5",gameids[1])
 	Game.Bind(game,ply,gameids[1])
 	if not instance then
+		print("create new map instance",mapid)
 		instance = mapinstance:new(game,1,100,mapid,type)
-		local m = maps[type] or {}
+		local m = maps[type]
+		if not m then
+			m = {}
+			maps[type] = m
+		end
 		m[instance] = instance
+		
 	end
-	print("EnterMap 6")
 	return true
 end
 

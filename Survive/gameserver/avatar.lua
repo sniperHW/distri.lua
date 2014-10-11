@@ -87,7 +87,6 @@ function avatar:Release(idmgr)
 end
 
 function avatar:enter_see(other)
-	print("enter_see")
 	self.view_obj[other.id] = other
 	other.watch_me[self.id] = self	
 	

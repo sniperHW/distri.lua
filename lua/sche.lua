@@ -115,8 +115,8 @@ local function GetCoByIdentity(identity)
 end
 
 local function start_fun(co)
-    local _,err = pcall(co.start_func,table.unpack(co.args))
-    if err then
+    local ret,err = pcall(co.start_func,table.unpack(co.args))
+    if not ret then
         print("error on start_fun:" .. err)
     end
     sche.allcos[co.identity] = nil

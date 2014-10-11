@@ -41,7 +41,7 @@ local mapidx = IdMgr.New(65535)
 
 local function GetMapById(id)
 	id = bit32.rshift(id,16)
-	print("mapid",id)
+	--print("mapid",id)
 	return maps[id]
 end
 
@@ -81,7 +81,6 @@ function map:GetAvatar(id)
 end
 
 function map:entermap(plys)
-	print("map:entermap")
 	if self.freeidx:Len() < #plys then
 		return nil
 	else
@@ -207,17 +206,14 @@ local function RegRpcService(app)
 	end)
 	--客户端连接重新建立 
 	app:RPCService("CliReConn",function (sock,id,gatesession)
-		print("CliReconn 1")
 		local ply = GetPlayerById(id)
 		if ply and ply.gatesession then
 			return false
 		end
-		print("CliReconn 2")
 		local gate = Gate.GetGateByName(gatesession.name)
 		if not gate then
 			return false
 		end
-		print("CliReconn 3")
 		Gate.Bind(gate,ply,gatesession.id)
 		ply:ReConnect()
 		return true
@@ -225,7 +221,7 @@ local function RegRpcService(app)
 end
 
 MsgHandler.RegHandler(NetCmd.CMD_CS_MOV,function (sock,rpk)
-	print("CMD_CS_MOV")
+	--print("CMD_CS_MOV")
 	local id = rpk:Reverse_read_uint32()
 	local ply = GetPlayerById(id)
 	if ply then
@@ -245,8 +241,7 @@ end)
 
 --客户端的连接断开
 MsgHandler.RegHandler(NetCmd.CMD_GGAME_CLIDISCONNECTED,function (sock,rpk)
-	local id = rpk:Reverse_read_uint32()
-	print("CMD_GGAME_CLIDISCONNECTED",id)	
+	local id = rpk:Reverse_read_uint32()	
 	local ply = GetPlayerById(id)
 	if ply then
 		print(ply.actname .. " CMD_GGAME_CLIDISCONNECTED")

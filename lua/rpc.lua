@@ -10,6 +10,7 @@ local CMD_RPC_RESP =  0xDBCAABCD
 
 local function RPC_Process_Call(app,s,rpk)
 	local str = rpk:Read_string()
+	local request = cjson.decode(str)
 	local funname = request.f
 	local co = request.co
 	local func = app._RPCService[funname]
@@ -34,7 +35,6 @@ end
 
 local function RPC_Process_Response(s,rpk)
 	local str = rpk:Read_string()
-	print(str)
 	local response = cjson.decode(str)
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then

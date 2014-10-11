@@ -63,13 +63,15 @@ MsgHandler.RegHandler(NetCmd.CMD_SC_ENTERSEE,function (sock,rpk)
 		if id == ply.id then
 			rpk:Read_uint8()
 			rpk:Read_uint16()
-			rpk:Read_string()
+			local nickname = rpk:Read_string()
 			ply.pos = {}
 			ply.pos.x = rpk:Read_uint16()
 			ply.pos.y = rpk:Read_uint16()
-			ply.dis = rpk:Read_uint8()
-			print("self enter see")
-			Mov(sock)				
+			ply.dir = rpk:Read_uint8()
+			print("self enter see",nickname,string.len(nickname))
+			--Mov(sock)				
+		else
+			print("enter see",id)
 		end
 	end
 end)
@@ -89,7 +91,8 @@ MsgHandler.RegHandler(NetCmd.CMD_SC_MOV,function (sock,rpk)
 end)
 
 MsgHandler.RegHandler(NetCmd.CMD_SC_LEAVESEE,function (sock,rpk)
-
+	local id = rpk:Read_uint32(rpk)
+	print("leave see",id)
 end)
 
 
@@ -157,10 +160,10 @@ MsgHandler.RegHandler(NetCmd.CMD_GC_BEGINPLY,function (sock,rpk)
 end)
 
 Robot:Run(function ()
-	for i=100,100 do
+	for i=101,101 do
 		sche.Spawn(function () 
 			local client = socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-			if client:Connect("127.0.0.1",8810) then
+			if client:Connect("192.168.0.87",8810) then
 				print("connect to 127.0.0.1:8810 error")
 				return
 			end
