@@ -66,7 +66,7 @@ function rpcCaller:Call(...)
 	wpk:Write_string(cjson.encode(request))
 	local ret = self.s:Send(wpk)
 	if ret then
-		return ret
+		return "socket error"
 	else
 	    if not self.s.pending_rpc then
 			self.s.pending_rpc = {}
