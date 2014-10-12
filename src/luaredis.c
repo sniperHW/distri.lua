@@ -62,36 +62,35 @@ static void build_resultset(struct redisReply* reply,lua_State *L){
 	}
 }
 
+typedef struct{
+	luaPushFunctor base;
+	struct redisReply *reply;
+}stPushResultSet;
+
+static void PushResultSet(lua_State *L,luaPushFunctor_t _){
+	stPushResultSet *self = (stPushResultSet*)_;
+	build_resultset(self->reply,L);
+}
+
 void redis_command_cb(redisconn_t conn,struct redisReply* reply,void *pridata)
 {
 	luaRef_t *cbObj = (luaRef_t*)pridata;
 	const char * error;
 	if(!reply || reply->type == REDIS_REPLY_NIL){
-		if((error = LuaCallTabFunc(*cbObj,"__callback","sp","reply nil",NULL))){
+		if((error = LuaCallTabFuncS(*cbObj,"__callback","sp","reply nil",NULL))){
 			printf("redis_command_cb:%s\n",error);			
 		}		
 	}else if(reply->type == REDIS_REPLY_ERROR){
-		if((error = LuaCallTabFunc(*cbObj,"__callback","sp",reply->str,NULL))){
+		if((error = LuaCallTabFuncS(*cbObj,"__callback","sp",reply->str,NULL))){
 			printf("redis_command_cb:%s\n",error);			
 		}		
-	}else{		
-		int __result;
-		lua_State *__L = cbObj->L;
-		int __oldtop = lua_gettop(__L);
-		lua_rawgeti(__L,LUA_REGISTRYINDEX,cbObj->rindex);
-		lua_pushstring(__L,"__callback");
-		lua_gettable(__L,-2);
-		lua_insert(__L,-2);
-		lua_pushnil(__L);
-		build_resultset(reply,__L);
-		__result = lua_pcall(__L,3,0,0);
-		if(__result){
-			error = lua_tostring(__L,-1);
-			if(error){
-				printf("error on redis_command_cb:%s\n",error);
-			}	
+	}else{
+		stPushResultSet st;
+		st.reply = reply;
+		st.base.Push = PushResultSet;
+		if((error = LuaCallTabFuncS(*cbObj,"__callback","sf",NULL,&st))){
+			printf("redis_command_cb:%s\n",error);			
 		}
-		lua_settop(__L,__oldtop);
 	} 	
 	release_luaRef(cbObj);
 	free(cbObj);

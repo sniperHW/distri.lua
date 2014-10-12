@@ -40,11 +40,28 @@ static int luasocket_new2(lua_State *L){
 	return 1;	
 }
 
+typedef struct{
+	luaPushFunctor base;
+	packet_t p;
+}stPushPacket;
+
+static void PushPacket(lua_State *L,luaPushFunctor_t _){
+	stPushPacket *self = (stPushPacket*)_;
+	push_luapacket(L,self->p);
+}
+
 
 static int  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
-	int __result;
+	stPushPacket st;
+	st.p = p;
+	st.base.Push = PushPacket;
+	const char *error;
+	if((error = LuaCallTabFuncS(*obj,"__on_packet","f",&st))){
+		printf("error on __on_packet:%s\n",error);			
+	}	
+	/*int __result;
 	lua_State *__L = obj->L;
 	int __oldtop = lua_gettop(__L);
 	lua_rawgeti(__L,LUA_REGISTRYINDEX,obj->rindex);
@@ -59,7 +76,7 @@ static int  on_packet(stream_conn_t c,packet_t p){
 			printf("error on __on_packet:%s\n",error);
 		}	
 	}
-	lua_settop(__L,__oldtop);
+	lua_settop(__L,__oldtop);*/
 	return 0;	
 }
 
