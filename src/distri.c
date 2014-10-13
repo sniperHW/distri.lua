@@ -2,6 +2,7 @@
 #include "lua_util.h"
 #include "luasocket.h"
 #include "luaredis.h"
+#include "lualog.h"
 #include "kn_timer.h"
 #include "kn_time.h"
 #include "debug.h"
@@ -104,6 +105,7 @@ int main(int argc,char **argv)
 	reg_luasocket(L);
 	reg_luahttp(L);
 	reg_luaredis(L);
+	reg_lualog(L);
 	g_engine = kn_new_engine();
 	start(L,argc,argv);
 	return 0;
