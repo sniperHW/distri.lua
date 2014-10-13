@@ -35,8 +35,9 @@ function redisconn:Command(cmd)
 	end
 end
 
-function redisconn:Close()
-	CRedis.close()
+function redisconn:Close()	
+    self.activeclose = true
+	CRedis.close(self.conn)
 end
 
 local function connect(ip,port,on_disconnected)
@@ -48,7 +49,7 @@ local function connect(ip,port,on_disconnected)
 				   end,
 				   __on_disconnected = function (self)
 						self.redisconn.isclose = true
-						print("__on_disconnected")
+						--print("__on_disconnected")
 						on_disconnected(self.redisconn)
 				   end}
 	local error = CRedis.redis_connect(ip,port,cbObj)
