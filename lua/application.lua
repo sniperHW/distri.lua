@@ -13,6 +13,8 @@ function application:new(o)
   return o
 end
 
+local CMD_PING = 0xABABCBCB
+
 local function recver(app,socket)
 	while app.running do
 		local rpk,err = socket:Recv()
@@ -21,6 +23,7 @@ local function recver(app,socket)
 			break
 		end
 		if rpk then
+			socket.lastrecv = GetSysTick()
 			local cmd = rpk:Peek_uint32()
 			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
 				--如果是rpc消息，执行rpc处理
@@ -30,7 +33,9 @@ local function recver(app,socket)
 				elseif cmd == RPC.CMD_RPC_RESP then
 					rpk:Read_uint32()
 					RPC.ProcessResponse(socket,rpk)
-				end						
+				end
+			elseif cmd and cmd == CMD_PING then
+				print("recv ping")				
 			elseif socket.process_packet then
 				socket.process_packet(socket,rpk)
 			end
@@ -39,7 +44,7 @@ local function recver(app,socket)
 	app.sockets[socket] = nil	
 end
 
-function application:Add(socket,on_packet,on_disconnected)
+function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterval)
 	if not self.sockets[socket] then
 		self.sockets[socket] = socket
 		socket.application = self
@@ -59,6 +64,38 @@ function application:Add(socket,on_packet,on_disconnected)
 				Sche.SpawnAndRun(recver,app,socket)
 			end
 		end
+		
+		if recvtimeout then
+			socket.lastrecv = GetSysTick()
+			Sche.Spawn(function ()
+				while true do
+				    Sche.Sleep(1000)
+					if not socket.closing then
+						if GetSysTick() > socket.lastrecv + recvtimeout then
+							socket:Close()
+							break
+						end
+					else
+						break
+					end
+				end
+			end)	
+		end
+		
+		if pinginterval then
+			Sche.Spawn(function ()
+				while true do
+				    Sche.Sleep(pinginterval)
+					if not socket.closing then
+						local wpk = CPacket.NewWPacket(64)
+						wpk:Write_uint32(CMD_PING)
+						socket:Send(wpk)
+					else
+						break
+					end
+				end
+			end)			
+		end	
 	end
 	return self
 end
