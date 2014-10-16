@@ -1,5 +1,7 @@
 #include "luasocket.h"
 #include "luapacket.h"
+#include "push_callback.h"
+
 //#include "luabytebuffer.h"
 
 extern __thread engine_t g_engine;
@@ -57,10 +59,15 @@ static int  on_packet(stream_conn_t c,packet_t p){
 	stPushPacket st;
 	st.p = p;
 	st.base.Push = PushPacket;
-	const char *error;
-	if((error = LuaCallTabFuncS(*obj,"__on_packet","f",&st))){
-		printf("error on __on_packet:%s\n",error);			
-	}	
+	const char *error = push_obj_callback(obj->L,"srf","__on_packet",*obj,&st);
+	if(error){
+		printf("error on __on_packet:%s\n",error);	
+	}
+	
+	
+	//if((error = LuaCallTabFuncS(*obj,"__on_packet","f",&st))){
+	//	printf("error on __on_packet:%s\n",error);			
+   //}	
 	/*int __result;
 	lua_State *__L = obj->L;
 	int __oldtop = lua_gettop(__L);
@@ -83,10 +90,14 @@ static int  on_packet(stream_conn_t c,packet_t p){
 static void on_disconnected(stream_conn_t c,int err){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
-	const char *error = LuaCallTabFuncS(*obj,"__on_disconnected","i",err);
+	const char *error = push_obj_callback(obj->L,"sri","__on_disconnected",*obj,err);
 	if(error){
-		printf("error on __on_disconnected:%s\n",error);
-	}
+		printf("error on __on_disconnected:%s\n",error);	
+	}	
+	//const char *error = LuaCallTabFuncS(*obj,"__on_disconnected","i",err);
+	//if(error){
+	//	printf("error on __on_disconnected:%s\n",error);
+	//}
 	release_luaRef(&luasock->luaObj);
 	free(luasock);		
 }
@@ -112,10 +123,14 @@ static void cb_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	((void)_);
 	luasocket_t luasock = kn_sock_getud(s);
 	luaRef_t  *obj = &luasock->luaObj;
-	const char*error = LuaCallTabFuncS(*obj,"___cb_connect","pi",luasock->sock,err);
+	const char *error = push_obj_callback(obj->L,"srpi","___cb_connect",*obj,luasock->sock,err);
 	if(error){
-		printf("error on ___cb_connect:%s\n",error);
-	}
+		printf("error on ___cb_connect:%s\n",error);	
+	}	
+	//const char*error = LuaCallTabFuncS(*obj,"___cb_connect","pi",luasock->sock,err);
+	//if(error){
+	//	printf("error on ___cb_connect:%s\n",error);
+	//}
 }
 
 static int luasocket_connect(lua_State *L){
@@ -150,11 +165,15 @@ static int luasocket_connect(lua_State *L){
 static void on_new_conn(handle_t s,void* ud){
 	luasocket_t luasock = (luasocket_t)ud;
 	luaRef_t  *obj = &luasock->luaObj;
-	const char*error = LuaCallTabFuncS(*obj,"__on_new_connection","p",s);
+	const char *error = push_obj_callback(obj->L,"srp","__on_new_connection",*obj,s);
 	if(error){
-		printf("error on __on_new_connection:%s\n",error);
-		return;
+		printf("error on __on_new_connection:%s\n",error);	
 	}	
+	//const char*error = LuaCallTabFuncS(*obj,"__on_new_connection","p",s);
+	//if(error){
+	//	printf("error on __on_new_connection:%s\n",error);
+	//	return;
+	//}	
 }
 
 

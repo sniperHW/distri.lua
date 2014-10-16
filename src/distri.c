@@ -26,7 +26,7 @@ static int  lua_getsystick(lua_State *L){
 	return 1;
 }
 
-static void set_luaarg(lua_State *L,int argc,char **argv)
+/*static void set_luaarg(lua_State *L,int argc,char **argv)
 {
 	if(argc > 2){
 		int i = 2;
@@ -38,12 +38,23 @@ static void set_luaarg(lua_State *L,int argc,char **argv)
 		}		
 		lua_setglobal(L,"args");			
 	}	
-}
+}*/
 
 static void start(lua_State *L,int argc,char **argv)
 {
 	const char *start_file = argv[1];
-	printf("start\n");
+	if (luaL_dofile(L,"lua/distri.lua")) {
+		const char * error = lua_tostring(L, -1);
+		lua_pop(L,1);
+		printf("%s\n",error);
+		exit(0);
+	}
+	const char *error = LuaCall(L,"distri_lua_start_run","s",start_file);
+	if(error){
+		printf("%s\n",error);
+		exit(0);
+	}
+/*	printf("start\n");
 	char buf[4096];
 	snprintf(buf,4096,"\
 		local Sche = require \"lua/sche\"\
@@ -68,7 +79,7 @@ static void start(lua_State *L,int argc,char **argv)
 		printf("%s\n",error);
 		return;
 	}
-	lua_settop(L,oldtop);
+	lua_settop(L,oldtop);*/
 
 }
 

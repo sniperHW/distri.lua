@@ -1,4 +1,5 @@
 #include "luaredis.h"
+#include "push_callback.h"
 
 extern __thread engine_t g_engine;
 
@@ -11,8 +12,10 @@ static const char *errmsg[] = {
 static void cb_connect(redisconn_t conn,int err,void *ud){
 	luaRef_t   *cbObj = (luaRef_t*)ud;
 	const char *e = errmsg[err == 0 ? 0:1];
-	const char *error = LuaCallTabFuncS(*cbObj,"__cb_connect","ps",conn,e);
-	if(error) printf("error on lua redis __cb_connect:%s\n",error);
+	//const char *error = LuaCallTabFuncS(*cbObj,"__cb_connect","ps",conn,e);
+	//if(error) printf("error on lua redis __cb_connect:%s\n",error);
+	const char *error = push_obj_callback(cbObj->L,"srps","__cb_connect",*cbObj,conn,e);
+	if(error) printf("error on lua redis __cb_connect:%s\n",error);	
 	if(error || e){	
 		release_luaRef(cbObj);
 		free(cbObj);
@@ -22,10 +25,14 @@ static void cb_connect(redisconn_t conn,int err,void *ud){
 static void cb_disconnected(redisconn_t conn,void *ud){
 	printf("cb_disconnected\n");	
 	luaRef_t   *cbObj = (luaRef_t*)ud;
-	const char *error = LuaCallTabFuncS(*cbObj,"__on_disconnected",NULL);
+	//const char *error = LuaCallTabFuncS(*cbObj,"__on_disconnected",NULL);
+	//if(error){
+	//	printf("error on lua redis __on_disconnected:%s\n",error);		
+	//}
+	const char *error = push_obj_callback(cbObj->L,"sr","__on_disconnected",*cbObj);
 	if(error){
-		printf("error on lua redis __on_disconnected:%s\n",error);		
-	}
+		printf("error on __on_disconnected:%s\n",error);	
+	}		
 	release_luaRef(cbObj);
 	free(cbObj);	
 }
@@ -77,20 +84,29 @@ void redis_command_cb(redisconn_t conn,struct redisReply* reply,void *pridata)
 	luaRef_t *cbObj = (luaRef_t*)pridata;
 	const char * error;
 	if(!reply || reply->type == REDIS_REPLY_NIL){
-		if((error = LuaCallTabFuncS(*cbObj,"__callback","sp","reply nil",NULL))){
-			printf("redis_command_cb:%s\n",error);			
-		}		
+		if((error = push_obj_callback(cbObj->L,"srsp","__callback",*cbObj,"reply nil",NULL))){
+			printf("error on redis_command_cb:%s\n",error);	
+		}			
+		//if((error = LuaCallTabFuncS(*cbObj,"__callback","sp","reply nil",NULL))){
+		//	printf("redis_command_cb:%s\n",error);			
+		//}		
 	}else if(reply->type == REDIS_REPLY_ERROR){
-		if((error = LuaCallTabFuncS(*cbObj,"__callback","sp",reply->str,NULL))){
-			printf("redis_command_cb:%s\n",error);			
-		}		
+		//if((error = LuaCallTabFuncS(*cbObj,"__callback","sp",reply->str,NULL))){
+		//	printf("redis_command_cb:%s\n",error);				
+		//}
+		if((error = push_obj_callback(cbObj->L,"srsp","__callback",*cbObj,reply->str,NULL))){
+			printf("error on redis_command_cb:%s\n",error);	
+		}						
 	}else{
 		stPushResultSet st;
 		st.reply = reply;
 		st.base.Push = PushResultSet;
-		if((error = LuaCallTabFuncS(*cbObj,"__callback","sf",NULL,&st))){
-			printf("redis_command_cb:%s\n",error);			
-		}
+		//if((error = LuaCallTabFuncS(*cbObj,"__callback","sf",NULL,&st))){
+		//	printf("redis_command_cb:%s\n",error);			
+		//}
+		if((error = push_obj_callback(cbObj->L,"srsf","__callback",*cbObj,NULL,&st))){
+			printf("error on redis_command_cb:%s\n",error);	
+		}			
 	} 	
 	release_luaRef(cbObj);
 	free(cbObj);
