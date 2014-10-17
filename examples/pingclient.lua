@@ -1,6 +1,6 @@
-local socket = require "lua/socket"
-local sche = require "lua/sche"
-local App = require "lua/application"
+local socket = require "lua.socket"
+local sche = require "lua.sche"
+local App = require "lua.application"
 
 
 local pingpong = App.New()

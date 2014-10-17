@@ -1,5 +1,5 @@
-local Sche = require "lua/sche"
-local Que  = require "lua/queue"
+local Sche = require "lua.sche"
+local Que  = require "lua.queue"
 
 local redisconn = {}
 

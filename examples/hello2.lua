@@ -1,7 +1,7 @@
 --原始数据echo
-local Socket = require "lua/socket"
-local Sche = require "lua/sche"
-local Timer = require "lua/timer"
+local Socket = require "lua.socket"
+local Sche = require "lua.sche"
+local Timer = require "lua.timer"
 
 local count = 0
 local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)

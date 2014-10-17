@@ -1,5 +1,5 @@
-local Sche = require "lua/sche"
-local RPC = require "lua/rpc"
+local Sche = require "lua.sche"
+local RPC = require "lua.rpc"
 
 local application = {}
 

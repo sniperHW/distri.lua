@@ -1,5 +1,5 @@
-local Socket = require "lua/socket"
-local Sche = require "lua/sche"
+local Socket = require "lua.socket"
+local Sche = require "lua.sche"
 local Cjson = require "cjson"
 
 local chttp = CHttp

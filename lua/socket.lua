@@ -3,8 +3,8 @@
 Recv,Send,Connect,Accept等接口,而实际是异步处理的
 ]]--
 
-local Sche = require "lua/sche"
-local Que  = require "lua/queue"
+local Sche = require "lua.sche"
+local Que  = require "lua.queue"
 local socket = {}
 
 local function sock_init(sock)

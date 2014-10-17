@@ -1,5 +1,5 @@
-local Socket = require "lua/socket"
-local Sche = require "lua/sche"
+local Socket = require "lua.socket"
+local Sche = require "lua.sche"
 
 local function listen(ip,port,process)
 	local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)

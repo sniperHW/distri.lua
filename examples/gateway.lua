@@ -6,11 +6,11 @@ hello2.lua回射给网关服务,网关接收到之后再回射给相应的客户
 之后再启动gateway.lua
 ]]--
 
-local sche = require "lua/sche"
-local TcpServer = require "lua/tcpserver"
-local App = require "lua/application"
-local Timer = require "lua/timer"
-local Socket = require "lua/socket"
+local sche = require "lua.sche"
+local TcpServer = require "lua.tcpserver"
+local App = require "lua.application"
+local Timer = require "lua.timer"
+local Socket = require "lua.socket"
 
 --首先建立到127.0.0.1:8001的连接
 local toserver = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)

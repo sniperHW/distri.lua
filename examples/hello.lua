@@ -1,8 +1,8 @@
 --二进制封包echo
-local sche = require "lua/sche"
-local TcpServer = require "lua/tcpserver"
-local App = require "lua/application"
-local Timer = require "lua/timer"
+local sche = require "lua.sche"
+local TcpServer = require "lua.tcpserver"
+local App = require "lua.application"
+local Timer = require "lua.timer"
 
 local count = 0
 local pingpong = App.New()

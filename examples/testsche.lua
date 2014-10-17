@@ -1,4 +1,4 @@
-local Sche = require "lua/sche"
+local Sche = require "lua.sche"
 
 local function co_fun(name)
 	while true do

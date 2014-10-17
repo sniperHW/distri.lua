@@ -1,6 +1,6 @@
-local Redis = require "lua/redis"
-local Sche = require "lua/sche"
-local Timer = require "lua/timer"
+local Redis = require "lua.redis"
+local Sche = require "lua.sche"
+local Timer = require "lua.timer"
 
 local count = 0
 local toredis

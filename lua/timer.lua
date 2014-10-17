@@ -1,5 +1,5 @@
-local MinHeap = require "lua/minheap"
-local Sche = require "lua/sche"
+local MinHeap = require "lua.minheap"
+local Sche = require "lua.sche"
 
 local timer = {
 	minheap,

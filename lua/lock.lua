@@ -1,7 +1,7 @@
-local Sche = require "lua/sche"
+local Sche = require "lua.sche"
 
 
-local Que  = require "lua/queue"
+local Que  = require "lua.queue"
 local lock = {}
 
 function lock:new()

@@ -1,5 +1,5 @@
-local Lock = require "lua/lock"
-local Sche = require "lua/sche"
+local Lock = require "lua.lock"
+local Sche = require "lua.sche"
 
 local mtx = Lock.New()
 

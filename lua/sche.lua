@@ -1,5 +1,5 @@
-local MinHeap = require "lua/minheap"
-local Que =  require "lua/queue"
+local MinHeap = require "lua.minheap"
+local Que =  require "lua.queue"
 
 print("run here")
 

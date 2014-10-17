@@ -1,4 +1,4 @@
-local Http = require "lua/http"
+local Http = require "lua.http"
 Http.CreateServer(function (req, res) 
   res:WriteHead(200,"OK", {"Content-Type: text/plain"})
   res:End("Hello World\n");

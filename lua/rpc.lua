@@ -3,7 +3,7 @@ rpc连接只能发送和接收CSocket.rpkdecoder()格式的封包
 ]]--
 
 local cjson = require "cjson"
-local Sche = require "lua/sche"
+local Sche = require "lua.sche"
 
 local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
