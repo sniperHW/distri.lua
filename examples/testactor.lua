@@ -1,7 +1,5 @@
 local Sche = require "lua.sche"
-local Actor = require "lua.actor"
-
---local actors = {}
+local Actor = require "actor"
 
 for i=1,10 do
 	Actor.Spawn(i,function (self)
@@ -12,13 +10,6 @@ for i=1,10 do
 	end)
 end
 
---[[while true do
-	for k,v in pairs(actors) do
-		v:Send({k,"hello"})
-	end
-	Sche.Sleep(1000)	
-end
-]]--
 while true do
 --[[	for i=1,10 do
 		local a = Actor.GetActor(i)
