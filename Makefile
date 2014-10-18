@@ -28,20 +28,20 @@ cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./
 
-distrilua:deps/KendyNet/libkendynet.a\
-		  deps/jemalloc/lib/libjemalloc.a\
-		  deps/hiredis/libhiredis.a\
-		  deps/http-parser/libhttp_parser.a\
-		  deps/lua-5.2.3/liblua.a\
-		  cjson.so\
-		  src/luasocket.h\
-		  src/luasocket.c\
-		  src/luapacket.h\
-		  src/luapacket.c\
-		  src/luaredis.c\
-		  src/luahttp.c\
-		  src/lualog.c\
-		  src/Hook.c \
-		  src/debug.c \
-		  src/distri.c	
-		$(CC) $(CFLAGS) $(LIB) -o distrilua src/distri.c src/luasocket.c src/luapacket.c src/luahttp.c src/luaredis.c src/lualog.c src/debug.c src/Hook.c -lkendynet deps/hiredis/libhiredis.a -lhttp_parser deps/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB)
+source =  src/luasocket.c\
+	  src/luapacket.c\
+	  src/luaredis.c\
+	  src/luahttp.c\
+	  src/lualog.c\
+	  src/Hook.c \
+	  src/debug.c \
+	  src/distri.c 		
+
+distrilua: deps/KendyNet/libkendynet.a\
+	  deps/jemalloc/lib/libjemalloc.a\
+	  deps/hiredis/libhiredis.a\
+	  deps/http-parser/libhttp_parser.a\
+	  deps/lua-5.2.3/liblua.a\
+	  cjson.so\
+	  $(source)	
+	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) -lkendynet deps/hiredis/libhiredis.a -lhttp_parser deps/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB)
