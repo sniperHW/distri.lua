@@ -23,3 +23,5 @@ cscope.files
 tags
 *.txt
 *.geany
+*.lo
+*.la
