@@ -110,7 +110,7 @@ int main(int argc,char **argv)
 	luaL_openlibs(L);
     signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);
-	lua_register(L,"stop_program",lua_stop); 
+	lua_register(L,"Exit",lua_stop); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
 	lua_register(L,"RunOnce",lua_RunOnce); 	   	
 	reg_luasocket(L);

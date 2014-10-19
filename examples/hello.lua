@@ -3,6 +3,7 @@ local sche = require "lua.sche"
 local TcpServer = require "lua.tcpserver"
 local App = require "lua.application"
 local Timer = require "lua.timer"
+local Time = require "lua.time"
 
 local count = 0
 local pingpong = App.New()
@@ -22,9 +23,9 @@ end)
 
 if success then
 	print("hello start on 127.0.0.1:8000")
-	local last = GetSysTick()
+	local last = Time.SysTick()
 	local timer = Timer.New():Register(function ()
-		local now = GetSysTick()
+		local now = Time.SysTick()
 		print("count:" .. count*1000/(now-last) .. " " .. now-last)
 		count = 0
 		last = now

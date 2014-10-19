@@ -8,7 +8,6 @@ Features include:
 * Fast event loop
 * Cooperative socket library
 * Rpc support used json
-* MutilThread
 * Supported only Linux
 * Cooperative dns query
 * Lighted HttpServer
@@ -58,11 +57,10 @@ rpc test
 to-do list
 ----------
 * Cooperative dns query
-* MutilThread
 * Lighted HttpServer
 * SSL Connection
 * WebSocket
-* local and remote debug of lua
+* debuger
 
 test httpserver
 ----------

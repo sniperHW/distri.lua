@@ -1,6 +1,6 @@
 local Sche = require "lua.sche"
 local RPC = require "lua.rpc"
-
+local Time = require "lua.time"
 local application = {}
 
 function application:new(o)
@@ -23,7 +23,7 @@ local function recver(app,socket)
 			break
 		end
 		if rpk then
-			socket.lastrecv = GetSysTick()
+			socket.lastrecv = Time.SysTick()
 			local cmd = rpk:Peek_uint32()
 			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
 				--如果是rpc消息，执行rpc处理
@@ -66,12 +66,12 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 		end
 		
 		if recvtimeout then
-			socket.lastrecv = GetSysTick()
+			socket.lastrecv = Time.SysTick()
 			Sche.Spawn(function ()
 				while true do
 				    Sche.Sleep(1000)
 					if not socket.closing then
-						if GetSysTick() > socket.lastrecv + recvtimeout then
+						if Time.SysTick() > socket.lastrecv + recvtimeout then
 							socket:Close()
 							break
 						end

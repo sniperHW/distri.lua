@@ -1,6 +1,6 @@
 local MinHeap = require "lua.minheap"
 local Sche = require "lua.sche"
-
+local Time = require "lua.time"
 local timer = {
 	minheap,
 }
@@ -18,7 +18,7 @@ function timer:Register(callback,ms,...)
 	t.callback = callback
 	t.ms = ms
 	t.index = 0
-	t.timeout = GetSysTick() + ms
+	t.timeout = Time.SysTick() + ms
 	t.arg = table.pack(...)
 	t.timer = self
 	self.minheap:Insert(t)
@@ -41,7 +41,7 @@ end
 function timer:Run()
 	local timer = self.minheap
 	while not self.stop do
-		local now = GetSysTick()
+		local now = Time.SysTick()
 		while timer:Min() ~= 0 and timer:Min() <= now do
 			t = timer:PopMin()
 			if not t.invaild then
