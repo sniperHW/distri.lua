@@ -12,6 +12,6 @@ Sche.Spawn(co_fun,"co2")
 Sche.Spawn(co_fun,"co3")
 Sche.Spawn(co_fun,"co4")
 
-while true do
-	Sche.Schedule()
-end	
+--while true do
+--	Sche.Schedule()
+--end	
