@@ -60,7 +60,7 @@ local function process_c_callback()
 end
 
 function Exit()
-	StopEngine()
+	--StopEngine()
 	Sche.Exit()
 end 
 
@@ -71,7 +71,10 @@ function distri_lua_start_run(mainfile)
 	Sche.Spawn(process_c_callback)--启动一个协程去处理回调
 	local ms = 5
 	while RunOnce(ms) do
-		if Sche.Schedule() > 0 then
+		local ret = Sche.Schedule()
+		if ret < 0 then
+			return
+		elseif ret > 0 then
 			ms = 0
 		else
 			ms = 5
