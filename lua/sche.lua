@@ -1,7 +1,7 @@
 local MinHeap = require "lua.minheap"
 local Que =  require "lua.queue"
 local Time = require "lua.time"
-print("run here")
+
 
 local sche = {
 	ready_list = Que.New(),
@@ -15,10 +15,12 @@ local stat_sleep = 2
 local stat_yield = 3
 local stat_dead  = 4
 local stat_block = 5
+local stat_running = 6
 
 local function add2Ready(co)
-    if co.status == stat_ready then
-        return
+    local status = co.status
+    if status == stat_ready or status == stat_dead or status == stat_running then
+    	return
     end
     co.status = stat_ready
     sche.ready_list:Push(co)
@@ -26,14 +28,17 @@ end
 
 local function Sleep(ms)
 	local co = sche.runningco
+	if co.status ~= stat_running then
+		return
+	end	
 	if ms and ms > 0 then
 		co.timeout = Time.SysTick() + ms
-        if co.index == 0 then
-            sche.timer:Insert(co)
-        else
-            sche.timer:Change(co)
-        end
-        co.status = stat_sleep		
+        		if co.index == 0 then
+            			sche.timer:Insert(co)
+        		else
+            			sche.timer:Change(co)
+        		end
+        		co.status = stat_sleep		
 	else
 		co.status = stat_yield
 	end
@@ -46,23 +51,26 @@ end
 
 local function Block(ms)
 	local co = sche.runningco
-    if ms and ms > 0 then
+	if co.status ~= stat_running then
+		return
+	end
+    	if ms and ms > 0 then
 		ms = ms * 1000
-        local nowtick = Time.SysTick()
-        co.timeout = nowtick + ms
-        if co.index == 0 then
-            sche.timer:Insert(co)
-        else
-            sche.timer:Change(co)
-        end
-    end
-    co.status = stat_block
-    coroutine.yield(co.coroutine)
-    if co.index ~= 0 then
-        co.timeout = 0		
-        sche.timer:Change(co)
-        sche.timer:PopMin()
-    end
+       		local nowtick = Time.SysTick()
+        		co.timeout = nowtick + ms
+        		if co.index == 0 then
+            			sche.timer:Insert(co)
+        		else
+            			sche.timer:Change(co)
+        		end
+    	end
+	co.status = stat_block
+	coroutine.yield(co.coroutine)
+	if co.index ~= 0 then
+	        co.timeout = 0		
+	        sche.timer:Change(co)
+	        sche.timer:PopMin()
+	end
 end
 
 local function WakeUp(co)
@@ -72,8 +80,15 @@ end
 local function Schedule(co)
 	local readylist = sche.ready_list
 	if co then
+		local status = co.status
+		print("Schedule") 
+		if status == stat_ready or status == stat_dead or status == stat_running then
+			print(status)
+			return
+		end
 		local pre_co = sche.runningco
 		sche.runningco = co
+		co.status = stat_running
 		coroutine.resume(co.coroutine,co)
 		if co.status == stat_yield then
 			add2Ready(co)
@@ -84,10 +99,10 @@ local function Schedule(co)
 		co = readylist:Pop()
 		while co do
 			sche.runningco = co
+			co.status = stat_running
 			coroutine.resume(co.coroutine,co)
 			if co.status == stat_yield then
 				table.insert(yields,co)
-			--elseif co.status == stat_dead then
 			end
 			co = readylist:Pop()
 		end
@@ -131,24 +146,26 @@ end
 
 --产生一个coroutine在下次调用Schedule时执行
 local function Spawn(func,...)
-    local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
-    co.coroutine = coroutine.create(start_fun)
-    if not sche.mainco then
+	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
+	co.coroutine = coroutine.create(start_fun)
+	if not sche.mainco then
 		sche.mainco = co
-    end   
-    sche.allcos[co.identity] = co
-    add2Ready(co)
+	end   
+	sche.allcos[co.identity] = co
+	add2Ready(co)
+	return co
 end
 
 --产生一个coroutine立刻执行
 local function SpawnAndRun(func,...)
-    local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
-    co.coroutine = coroutine.create(start_fun)
-    if not sche.mainco then
+	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
+	co.coroutine = coroutine.create(start_fun)
+	if not sche.mainco then
 		sche.mainco = co
-    end   
-    sche.allcos[co.identity] = co
-    Schedule(co)
+	end   
+	sche.allcos[co.identity] = co
+	Schedule(co)
+	return co
 end
 
 return {
