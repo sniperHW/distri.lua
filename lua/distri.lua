@@ -57,6 +57,11 @@ local function process_c_callback()
 			Sche.Block()
 		end
 	end
+end
+
+function Exit()
+	StopEngine()
+	Sche.Exit()
 end 
 
 function distri_lua_start_run(mainfile)

@@ -17,6 +17,7 @@ static void sig_int(int sig){
 }
 
 static int  lua_stop(lua_State *L){
+	g_status = 0;	
 	kn_stop_engine(g_engine);
 	return 0;
 }
@@ -108,9 +109,9 @@ int main(int argc,char **argv)
 	
 	lua_State *L = luaL_newstate();	
 	luaL_openlibs(L);
-    signal(SIGINT,sig_int);
-    signal(SIGPIPE,SIG_IGN);
-	lua_register(L,"Exit",lua_stop); 
+    	signal(SIGINT,sig_int);
+    	signal(SIGPIPE,SIG_IGN);
+	lua_register(L,"StopEngine",lua_stop); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
 	lua_register(L,"RunOnce",lua_RunOnce); 	   	
 	reg_luasocket(L);

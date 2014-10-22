@@ -81,15 +81,16 @@ local function Schedule(co)
 	local readylist = sche.ready_list
 	if co then
 		local status = co.status
-		print("Schedule") 
 		if status == stat_ready or status == stat_dead or status == stat_running then
-			print(status)
 			return
 		end
 		local pre_co = sche.runningco
 		sche.runningco = co
 		co.status = stat_running
 		coroutine.resume(co.coroutine,co)
+		if sche.stop then
+			return 0
+		end
 		if co.status == stat_yield then
 			add2Ready(co)
 		end
@@ -101,6 +102,9 @@ local function Schedule(co)
 			sche.runningco = co
 			co.status = stat_running
 			coroutine.resume(co.coroutine,co)
+			if sche.stop then
+				return 0
+			end			
 			if co.status == stat_yield then
 				table.insert(yields,co)
 			end
@@ -168,6 +172,11 @@ local function SpawnAndRun(func,...)
 	return co
 end
 
+local function Exit()
+	sche.stop = true
+	Sche.Yield() --yield to scheduler	
+end
+
 return {
 		Spawn = Spawn,
 		SpawnAndRun = SpawnAndRun,
@@ -177,5 +186,6 @@ return {
 		WakeUp = WakeUp,
 		Running = Running,
 		GetCoByIdentity = GetCoByIdentity,
-		Schedule = Schedule
+		Schedule = Schedule,
+		Exit = Exit,
 }
