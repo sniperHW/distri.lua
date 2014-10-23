@@ -23,7 +23,9 @@ local function recver(app,socket)
 			break
 		end
 		if rpk then
-			socket.lastrecv = Time.SysTick()
+			if socket.check_recvtimeout then 
+				socket.lastrecv = Time.SysTick()
+			end
 			local cmd = rpk:Peek_uint32()
 			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
 				--如果是rpc消息，执行rpc处理
@@ -50,6 +52,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 		socket.application = self
 		socket.process_packet = on_packet
 		socket.on_disconnected = on_disconnected
+		socket.check_recvtimeout = recvtimeout
 		local app = self
 		--改变conn.sock.__on_packet的行为
 		socket.__on_packet = function (socket,packet)
@@ -70,7 +73,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 			socket.lastrecv = Time.SysTick()
 			Sche.Spawn(function ()
 				while true do
-				    Sche.Sleep(1000)
+				              Sche.Sleep(1000)
 					if not socket.closing then
 						if Time.SysTick() > socket.lastrecv + recvtimeout then
 							socket:Close()
