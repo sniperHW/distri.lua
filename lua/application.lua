@@ -54,8 +54,9 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 		--改变conn.sock.__on_packet的行为
 		socket.__on_packet = function (socket,packet)
 			socket.packet:Push({packet})
-			local co = socket.block_recv:Front()
+			local co = socket.block_recv:Front()--Pop()
 			if co then
+				co = co[1]
 				socket.timeout = nil
 				--Sche.Schedule(co)
 				Sche.WakeUp(co)		

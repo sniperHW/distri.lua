@@ -88,6 +88,10 @@ static int lua_RunOnce(lua_State *L){
 	return 1;
 }
 
+static int lua_Break(lua_State *L){
+	return 0;
+}
+
 void reg_luahttp(lua_State *L);
 int main(int argc,char **argv)
 {
@@ -105,6 +109,8 @@ int main(int argc,char **argv)
 	luaL_openlibs(L);
     	signal(SIGINT,sig_int);
     	signal(SIGPIPE,SIG_IGN);
+    	
+    	lua_register(L,"Break",lua_Break); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
 	lua_register(L,"RunOnce",lua_RunOnce); 	   	
 	reg_luasocket(L);

@@ -61,6 +61,7 @@ end
 
 function Exit()
 	--StopEngine()
+	print("Exit")
 	Sche.Exit()
 end 
 

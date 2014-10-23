@@ -6,7 +6,7 @@ local Sche = require "lua.sche"
 local rpcclient = App.New()
 
 rpcclient:Run(function ()
-	for i=1,1 do
+	for i=1,10 do
 		Sche.Spawn(function () 
 			local client = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 			if client:Connect("127.0.0.1",8000) then
@@ -14,7 +14,7 @@ rpcclient:Run(function ()
 				return
 			end		
 			rpcclient:Add(client:Establish(CSocket.rpkdecoder()),nil,on_disconnected)
-			for j=1,5000 do
+			for j=1,1000 do
 				Sche.Spawn(function (client)
 					while true do			
 						local rpccaller = RPC.MakeRPC(client,"Plus")

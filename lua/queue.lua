@@ -1,3 +1,82 @@
+local queue = {}
+
+function queue:new(o)
+	  local o = o or {}   
+	  setmetatable(o, self)
+	  self.__index = self
+	  o.size = 0
+	  o.head = {}
+	  o.tail = {}
+	  o.size = 0
+	  o.head.__pre = nil
+	  o.head.__next = o.tail
+	  o.tail.__next = nil
+	  o.tail.__pre = o.head
+	  return o
+end
+
+function queue:Push(node)
+	if node.__owner then
+		return 
+	end
+	self.tail.__pre.__next = node
+	node.__pre = self.tail.__pre
+	self.tail.__pre = node
+	node.__next = self.tail
+	node.__owner = self
+	self.size = self.size + 1	
+
+end
+
+function queue:Front()
+    if self.size > 0 then
+	return self.head.__next
+    else
+	return nil
+    end	
+end
+
+function queue:Pop()
+	if self.size > 0 then
+
+	end
+end
+
+function queue:Remove(node)
+	if node.__owner == self and self.size > 0 then
+		node.__pre.__next = node.__next
+		node.__next.__pre = node.__pre
+		node.__next = nil
+		node.__pre = nil
+		node.__owner = nil
+		self.size = self.size - 1
+	end
+end
+
+function queue:Pop()
+	if self.size > 0 then
+		local node = self.head.__next
+		self:Remove(node)
+		return node
+	else
+		return nil
+	end
+end
+
+function queue:IsEmpty()
+	return self.size == 0
+end
+
+function queue:Len()
+	return self.size
+end
+
+return {
+	New = function () return queue:new() end
+}
+
+
+--[[
 local queue = {
 	head = nil,
 	tail = nil,
@@ -15,14 +94,21 @@ function queue:new(o)
 end
 
 function queue:Push(node)
+    if node.__que then
+    	print(debug.traceback())
+    	print(node.status)	
+    	--Break()
+    	node.__que:Remove(node)
+    end
     if not self.tail then
-        self.head = node
-        self.tail = node
-	else
-		self.tail.__next = node
-		self.tail = node
-	end
-	self.size = self.size + 1
+        	self.head = node
+        	self.tail = node
+    else
+	self.tail.__next = node
+	self.tail = node
+    end
+    node.__que = self
+   self.size = self.size + 1
 end
 
 function queue:Front()
@@ -47,6 +133,7 @@ function queue:Pop()
 		end
 		self.size = self.size - 1
 		node.__next = nil
+		node.__que = nil
 		return node
 	end
 end
@@ -64,10 +151,13 @@ function queue:Remove(ele)
 				--head
 				self.head = cur.__next
 			else
-				--tail
-				pre.__next = nil
-				self.tail = pre
-			end			
+				pre.__next = ele.__next
+				if pre.__next == nil then
+					self.tail = pre
+				end
+			end
+			ele.__next = nil
+			ele.__que = nil						
 			return
 		else
 			pre = cur
@@ -86,4 +176,4 @@ end
 
 return {
 	New = function () return queue:new() end
-}
+}]]--

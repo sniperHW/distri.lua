@@ -22,8 +22,8 @@ local function add2Ready(co)
     if status == stat_ready or status == stat_dead or status == stat_running then
     	return
     end
-    co.status = stat_ready
-    sche.ready_list:Push(co)
+    co.status = stat_ready    
+    sche.ready_list:Push(co) 
 end
 
 local function Sleep(ms)
@@ -89,6 +89,7 @@ local function Schedule(co)
 		co.status = stat_running
 		coroutine.resume(co.coroutine,co)
 		if sche.stop then
+			print("sche.stop")
 			return -1
 		end
 		if co.status == stat_yield then
@@ -103,6 +104,7 @@ local function Schedule(co)
 			co.status = stat_running
 			coroutine.resume(co.coroutine,co)
 			if sche.stop then
+				print("sche.stop")
 				return -1
 			end			
 			if co.status == stat_yield then
@@ -122,6 +124,9 @@ local function Schedule(co)
 			add2Ready(v)
 		end
     end
+    --if sche.ready_list:Len() < 0 then
+    --	print(sche.ready_list:Len())
+    --end
     return sche.ready_list:Len()
 end
 

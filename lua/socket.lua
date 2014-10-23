@@ -83,6 +83,7 @@ local function process_c_disconnect_event(self,errno)
 	while true do
 		co = self.block_recv:Pop()
 		if co then
+			co = co[1]
 			Sche.WakeUp(co)--Schedule(co) 
 		else
 			break
@@ -113,10 +114,10 @@ end
 
 local function process_c_packet_event(self,packet)
 	self.packet:Push({packet})
-	local co = self.block_recv:Front()
+	local co = self.block_recv:Pop()
 	if co then
-	    self.timeout = nil
-		Sche.WakeUp(co)		
+	    	self.timeout = nil
+		Sche.Schedule(co)		
 	end
 end
 
@@ -214,16 +215,15 @@ function socket:Recv(timeout)
 			if packet then
 				return packet[1],nil
 			end		
-			local co = Sche.Running()	
+			local co = Sche.Running()
+			co = {co}	
 			self.block_recv:Push(co)		
 			self.timeout = timeout
 			Sche.Block(timeout)
+			self.block_recv:Remove(co) --remove from block_recv
 			if self.timeout then
 				self.timeout = nil
-				self.block_recv:Remove(co)
 				return nil,"recv timeout"
-			else
-				self.block_recv:Pop()	
 			end
 		end
 		return nil,self.errno		
