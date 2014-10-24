@@ -1,4 +1,4 @@
-CFLAGS = -g -O2 -Wall -fno-strict-aliasing -rdynamic 
+CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic 
 LDFLAGS = -lpthread -lrt -llua -lm -ldl 
 SHARED = -fPIC -shared
 CC = gcc

@@ -109,7 +109,7 @@ static int luasocket_establish(lua_State *L){
 	uint32_t    recvbuf_size = lua_tointeger(L,2);
 	decoder*    _decoder = (decoder*)lua_touserdata(L,3);
 	recvbuf_size = size_of_pow2(recvbuf_size);
-    if(recvbuf_size < 1024) recvbuf_size = 1024;
+    	if(recvbuf_size < 1024) recvbuf_size = 1024;
 	stream_conn_t conn = new_stream_conn(luasock->sock,recvbuf_size,_decoder);
 	stream_conn_associate(g_engine,conn,_decoder->mask == mask_http_decode?on_http_cb:on_packet,on_disconnected);	
 	luasock->type = _STREAM_CONN;

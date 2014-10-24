@@ -118,7 +118,8 @@ local function process_c_packet_event(self,packet)
 	local co = self.block_recv:Pop()
 	if co then
 	    	self.timeout = nil
-		Sche.Schedule(co)		
+	    	co = co[1]
+		Sche.WakeUp(co)		
 	end
 end
 

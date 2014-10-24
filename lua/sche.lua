@@ -77,6 +77,16 @@ local function WakeUp(co)
     add2Ready(co)
 end
 
+
+local function SwitchTo(co)
+	local pre_co = sche.runningco
+	sche.runningco = co
+	co.status = stat_running
+	coroutine.resume(co.coroutine,co)
+	sche.runningco = pre_co
+	return co.status	
+end
+
 local function Schedule(co)
 	local readylist = sche.ready_list
 	if co then
@@ -84,32 +94,22 @@ local function Schedule(co)
 		if status == stat_ready or status == stat_dead or status == stat_running then
 			return sche.ready_list:Len()
 		end
-		local pre_co = sche.runningco
-		sche.runningco = co
-		co.status = stat_running
-		coroutine.resume(co.coroutine,co)
-		if sche.stop then
-			print("sche.stop")
-			return -1
-		end
-		if co.status == stat_yield then
+		if SwitchTo(co) == stat_yield then
 			add2Ready(co)
 		end
-		sche.runningco = pre_co
+		if sche.stop then
+			return -1
+		end		
 	else
 		local yields = {}
 		co = readylist:Pop()
 		while co do
-			sche.runningco = co
-			co.status = stat_running
-			coroutine.resume(co.coroutine,co)
-			if sche.stop then
-				print("sche.stop")
-				return -1
-			end			
-			if co.status == stat_yield then
+			if SwitchTo(co) == stat_yield then
 				table.insert(yields,co)
 			end
+			if sche.stop then
+				return -1
+			end			
 			co = readylist:Pop()
 		end
 		local now = Time.SysTick()
@@ -124,9 +124,6 @@ local function Schedule(co)
 			add2Ready(v)
 		end
     end
-    --if sche.ready_list:Len() < 0 then
-    --	print(sche.ready_list:Len())
-    --end
     return sche.ready_list:Len()
 end
 
