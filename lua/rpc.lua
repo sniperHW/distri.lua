@@ -17,15 +17,14 @@ local function RPC_Process_Call(app,s,rpk)
 	local response = {co = co}
 	if not func then
 		response.err = funname .. " not found"
-	else
-		--response.ret = {func(s,table.unpack(request.arg))}		
+	else	
 		local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
 		if ret[1] then
 			table.remove(ret,1)			
 			response.ret = {table.unpack(ret)}
 		else
 			response.err = ret[2]
-			print(ret[2])
+			print("rpc process error:"ret[2])
 		end
 	end
 	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
@@ -62,7 +61,7 @@ function rpcCaller:Call(...)
 	request.f = self.funcname
 	request.co = co.identity
 	request.arg = {...}
-	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
+	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
 	wpk:Write_string(cjson.encode(request))
 	local ret = self.s:Send(wpk)
