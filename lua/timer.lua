@@ -40,9 +40,9 @@ end
 
 function timer:Run()
 	local timer = self.minheap
-	while not self.stop do
+	while true do
 		local now = Time.SysTick()
-		while timer:Min() ~= 0 and timer:Min() <= now do
+		while not self.stop  and timer:Min() ~= 0 and timer:Min() <= now do
 			t = timer:PopMin()
 			if not t.invaild then
 				local status,ret = pcall(t.callback,table.unpack(t.arg))
@@ -53,6 +53,7 @@ function timer:Run()
 				end
 			end
 		end
+		if self.stop  then return end
 		Sche.Sleep(1)
 	end	
 end
