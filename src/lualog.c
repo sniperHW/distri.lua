@@ -28,8 +28,17 @@ int lua_write_log(lua_State *L){
 	logfile_t f = l->_f;
 	int loglev = lua_tointeger(L,2);
 	const char *str = lua_tostring(L,3);
-	LOG(f,loglev,str);
+	LOG(f,loglev,"%s",str);
+	printf("%s\n",str);
 	return 0;
+}
+
+int lua_sys_log(lua_State *L){
+	int loglev = lua_tointeger(L,1);
+	const char *str = lua_tostring(L,2);
+	SYS_LOG(loglev,"%s",str);
+	printf("%s\n",str);
+	return 0;	
 }
 
 #define REGISTER_CONST(___N) do{\
@@ -60,7 +69,8 @@ void reg_lualog(lua_State *L){
     lua_pop(L, 1);
 
     luaL_Reg l[] = {
-        {"New",lua_create_logfile},                
+        {"New",lua_create_logfile},
+        {"SysLog",lua_sys_log},                        
         {NULL, NULL}
     };
     luaL_newlib(L,l);	
