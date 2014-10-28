@@ -4,7 +4,7 @@
 
 //#include "luabytebuffer.h"
 
-extern __thread engine_t g_engine;
+extern engine_t g_engine;
 //static __thread lua_State *g_L;
 enum{
 	_SOCKET = 1,
@@ -218,7 +218,7 @@ static int luasocket_close(lua_State *L){
 static int luasocket_tostring(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
 	char buf[16];
-	sprintf(buf,"%x",luasock);
+	sprintf(buf,"%lx",(long unsigned int)luasock);
 	lua_pushstring(L,buf);
 	return 1;
 }

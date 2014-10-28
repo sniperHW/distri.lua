@@ -8,8 +8,8 @@
 #include "debug.h"
 
 
-__thread engine_t g_engine = NULL;
-__thread int      g_status = 1;
+engine_t      g_engine = NULL;
+volatile int  g_status = 1;
 
 static void sig_int(int sig){
 	g_status = 0;

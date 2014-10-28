@@ -1,7 +1,7 @@
 #include "luaredis.h"
 #include "push_callback.h"
 
-extern __thread engine_t g_engine;
+extern engine_t g_engine;
 
 static const char *errmsg[] = {
 	NULL,

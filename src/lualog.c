@@ -1,6 +1,6 @@
 #include "lualog.h"
 
-extern __thread engine_t g_engine;
+extern engine_t g_engine;
 
 
 #define LUALOG_METATABLE "lualog_metatable"
