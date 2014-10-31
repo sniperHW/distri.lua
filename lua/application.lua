@@ -37,7 +37,7 @@ local function recver(app,socket)
 					RPC.ProcessResponse(socket,rpk)
 				end
 			elseif cmd and cmd == CMD_PING then
-				print("recv ping")				
+				socket:Send(CPacket.NewWPacket(rpk))		
 			elseif socket.process_packet then
 				socket.process_packet(socket,rpk)
 			end
