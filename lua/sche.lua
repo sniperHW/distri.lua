@@ -154,9 +154,9 @@ end
 local function Spawn(func,...)
 	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
 	co.coroutine = coroutine.create(start_fun)
-	if not sche.mainco then
-		sche.mainco = co
-	end   
+	--if not sche.mainco then
+	--	sche.mainco = co
+	--end   
 	sche.allcos[co.identity] = co
 	add2Ready(co)
 	return co
@@ -166,9 +166,9 @@ end
 local function SpawnAndRun(func,...)
 	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
 	co.coroutine = coroutine.create(start_fun)
-	if not sche.mainco then
-		sche.mainco = co
-	end   
+	--if not sche.mainco then
+	--	sche.mainco = co
+	--end   
 	sche.allcos[co.identity] = co
 	Schedule(co)
 	return co
