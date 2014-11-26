@@ -4,7 +4,7 @@ SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
 INCLUDE = -Ideps/KendyNet/include -Ideps -Ideps/lua-5.2.3/src 
-LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/ -L deps/http-parser -L deps/lua-5.2.3/src
+LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/ -L deps/http-parser -L deps/lua-5.2.3/src -L deps/myprocps/
 		
 test:test.c
 	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
@@ -44,4 +44,4 @@ distrilua: deps/KendyNet/libkendynet.a\
 	  deps/lua-5.2.3/liblua.a\
 	  cjson.so\
 	  $(source)	
-	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) -lkendynet deps/hiredis/libhiredis.a -lhttp_parser deps/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB)
+	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) -lkendynet deps/hiredis/libhiredis.a -lhttp_parser deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB)

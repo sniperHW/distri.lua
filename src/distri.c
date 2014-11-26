@@ -6,6 +6,7 @@
 #include "kn_timer.h"
 #include "kn_time.h"
 #include "debug.h"
+#include "myprocps/mytop.h"
 
 
 engine_t      g_engine = NULL;
@@ -92,6 +93,11 @@ static int lua_Break(lua_State *L){
 	return 0;
 }
 
+static int lua_Top(lua_State *L){
+	lua_pushstring(L,top());
+	return 1;
+}
+
 void reg_luahttp(lua_State *L);
 int main(int argc,char **argv)
 {
@@ -109,10 +115,11 @@ int main(int argc,char **argv)
 	luaL_openlibs(L);
     	signal(SIGINT,sig_int);
     	signal(SIGPIPE,SIG_IGN);
-    	
+    	addfilter("distrilua");
     	lua_register(L,"Break",lua_Break); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
-	lua_register(L,"RunOnce",lua_RunOnce); 	   	
+	lua_register(L,"RunOnce",lua_RunOnce); 	
+	lua_register(L,"Top",lua_Top); 
 	reg_luasocket(L);
 	reg_luahttp(L);
 	reg_luaredis(L);
