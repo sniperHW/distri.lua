@@ -98,6 +98,12 @@ static int lua_Top(lua_State *L){
 	return 1;
 }
 
+static int lua_AddTopFilter(lua_State *L){
+	const char *str = lua_tostring(L,1);
+	addfilter(str);
+	return 0;
+}
+
 void reg_luahttp(lua_State *L);
 int main(int argc,char **argv)
 {
@@ -115,11 +121,11 @@ int main(int argc,char **argv)
 	luaL_openlibs(L);
     	signal(SIGINT,sig_int);
     	signal(SIGPIPE,SIG_IGN);
-    	addfilter("distrilua");
     	lua_register(L,"Break",lua_Break); 
 	lua_register(L,"GetSysTick",lua_getsystick); 
 	lua_register(L,"RunOnce",lua_RunOnce); 	
 	lua_register(L,"Top",lua_Top); 
+	lua_register(L,"AddTopFilter",lua_AddTopFilter);
 	reg_luasocket(L);
 	reg_luahttp(L);
 	reg_luaredis(L);
