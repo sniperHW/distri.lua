@@ -147,7 +147,7 @@ end
 local g_counter = 0
 local function gen_identity()
 	g_counter = g_counter + 1
-	return "l" .. Time.SysTick() .. "" .. g_counter
+	return string.format("%d%d",Time.SysTick(),g_counter) --"l" .. Time.SysTick() .. "" .. g_counter
 end
 
 --产生一个coroutine在下次调用Schedule时执行
