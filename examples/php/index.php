@@ -31,6 +31,8 @@ start();
 <meta http-equiv="content-type" content="text/html;charset=utf8" />
 </head>
 <body>
-<p><font color="red"><span id="show"></span></font></p>
+<div style="background:black">
+<p><font color="white"><span id="show"></span></font></p>
+</div>
 </body>
 </html>
