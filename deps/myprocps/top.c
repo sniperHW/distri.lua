@@ -54,7 +54,7 @@
 #include "proc/whattime.h"
 #include "top.h"
 
-char **filter;
+char **filter = NULL;
 int    filter_size = 0;
 
 static char outbuf[65535];
@@ -2006,7 +2006,7 @@ static void task_show (const WIN_t *q, const proc_t *p)
    escape_command(cmd, p, sizeof cmd, &maxcmd,1);
    int match = 0;
    int i = 0;
-   for(;filter[i];++i){
+   for(;i < filter_size;++i){
       if(strstr(cmd,filter[i])){
 		match = 1;
 		break;
