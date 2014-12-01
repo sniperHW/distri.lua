@@ -35,8 +35,7 @@ source =  src/luasocket.c\
 	  src/lualog.c\
 	  src/Hook.c \
 	  src/debug.c \
-	  src/base64/decode.c\
-	  src/base64/encode.c\
+	  src/base64/base64.c\
 	  src/base64/lua_base64.c\
 	  src/distri.c 		
 
