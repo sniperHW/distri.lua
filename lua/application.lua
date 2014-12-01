@@ -39,7 +39,10 @@ local function recver(app,socket)
 			elseif cmd and cmd == CMD_PING then
 				socket:Send(CPacket.NewWPacket(rpk))		
 			elseif socket.process_packet then
-				socket.process_packet(socket,rpk)
+				local ret,err = pcall(socket.process_packet,socket,rpk)
+				if not ret then
+					CLog.SysLog(CLog.LOG_ERROR,err)
+				end
 			end
 		end		
 	end

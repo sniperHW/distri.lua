@@ -24,6 +24,7 @@
 	<body>
 		<script type="text/javascript">
 		var xmlHttp;
+		url_data = null;
 		function createXMLHttpRequest(){
 			if(window.ActiveXObject){
 				xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
@@ -35,9 +36,10 @@
 		function start(){
 			createXMLHttpRequest();
 			var url="top.php";
-			xmlHttp.open("GET",url,true);
+			xmlHttp.open("POST",url,true);
+			xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
 			xmlHttp.onreadystatechange = callback;
-			xmlHttp.send(null);
+			xmlHttp.send(url_data);
 		}
 		function callback(){
 			if(xmlHttp.readyState == 4){
@@ -47,14 +49,29 @@
 				}
 			}
 		}
+		function refresh(){
+			createXMLHttpRequest();
+			var url="top.php";
+			xmlHttp.open("POST",url,true);
+			xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
+			xmlHttp.onreadystatechange = callback1;
+			xmlHttp.send(url_data);
+		}
+		function callback1(){
+			if(xmlHttp.readyState == 4){
+				if(xmlHttp.status == 200){
+					document.getElementById("show").innerHTML = xmlHttp.responseText;
+				}
+			}
+		}		
 		start();
 		</script>	
 		<div id="areaA"></div>
-		<div id="areaC" style="background:black">
-		<p><font color="white"><span id="show"></span></font></p>
-		</div>		
+		<table border="0" id="show">
+		</table>		
 		<script type="text/javascript" charset="utf-8">
-			last_select = "0";
+			selected_id = "0";
+			var PhysicalView = 0;
 			webix.ui({
 				container: "areaA",
 				borderless:true, 
@@ -65,11 +82,19 @@
 						body:{
 							select:true,
 							view:"tree",
-			                			activeTitle:true,
+							ready:function(){ 
+								PhysicalView = this;
+							},							
 							on:{
 								"onAfterSelect":function(id){
-									webix.message(last_select);
-									last_select = id;
+									var item = this.getItem(id)
+									if(item.type == "ip"){
+										url_data = null;
+										refresh();
+									}else if(item.type == "process"){
+										url_data = "process="+item.value;
+										refresh();
+									}
 								}
 							},		                			
 							<?php
@@ -78,8 +103,8 @@
 								$deployment = $redis->get('deployment');
 								echo "data: webix.copy($deployment)";
 							?>																	
-						}
-					},
+						},
+					},	
 				]
 			});
 		</script>

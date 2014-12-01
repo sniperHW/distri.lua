@@ -47,7 +47,8 @@ function timer:Run()
 			if not t.invaild then
 				local status,ret = pcall(t.callback,table.unpack(t.arg))
 				if not status then
-					print("timer error:" .. ret)
+					local err = ret
+					CLog.SysLog(CLog.LOG_ERROR,"timer error:" .. err)
 				elseif ret then
 					self:Register(t.callback,t.ms,table.unpack(t.arg))
 				end

@@ -8,20 +8,18 @@ print(CBase64.decode(str))
 ]]--
 
 local deployment = {
-	{["id"] = "1",["value"] = "192.168.0.87",["data"] = {
-		{["id"] = "1.1",["value"] = "top"},
-		{["id"] = "1.2",["value"] = "ssdb"}
-	}},
-	{["id"] = "2",["value"] = "192.168.0.100",["data"] = {
-		{["id"] = "2.1",["value"] = "top1"},
-		{["id"] = "2.2",["value"] = "ssdb1"}
-	}}	
+	{["id"] = "1",["value"] = "192.168.0.87",  ["type"] = "ip",  ["data"] = {
+		{["id"] = "1.1",["value"] = "gateserver",["type"] = "process"},
+		{["id"] = "1.2",["value"] = "groupserver",["type"] = "process"},
+		{["id"] = "1.3",["value"] = "gameserver",["type"] = "process"},				
+		{["id"] = "1.4",["value"] = "ssdb",["type"] = "process"}
+	}},	
 }
 
 
 local err,toredis = Redis.Connect("127.0.0.1",6379,function () print("disconnected") end)
 if not err then
-	--toredis:Command("set deployment " .. Cjson.encode(deployment))
+	toredis:Command("set deployment " .. Cjson.encode(deployment))
 	AddTopFilter("distrilua")
 	AddTopFilter("ssdb-server")
 	while true do
