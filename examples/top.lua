@@ -8,14 +8,31 @@ print(CBase64.decode(str))
 ]]--
 
 local deployment = {
-	{["id"] = "1",["value"] = "192.168.0.87",  ["type"] = "ip",  ["data"] = {
-		{["id"] = "1.1",["value"] = "gateserver",["type"] = "process"},
-		{["id"] = "1.2",["value"] = "groupserver",["type"] = "process"},
-		{["id"] = "1.3",["value"] = "gameserver",["type"] = "process"},				
-		{["id"] = "1.4",["value"] = "ssdb",["type"] = "process"}
+	{["value"] = "192.168.0.87",  ["type"] = "ip",  ["data"] = {
+		{["value"] = "gateserver",["type"] = "process"},
+		{["value"] = "groupserver",["type"] = "process"},
+		{["value"] = "gameserver",["type"] = "process"},				
+		{["value"] = "ssdb",["type"] = "process"}
 	}},	
 }
 
+local function split(s,separator)
+	local ret = {}
+	local initidx = 1
+	local spidx
+	while true do
+		spidx = string.find(s,separator,initidx)
+		if not spidx then
+			break
+		end
+		table.insert(ret,string. sub(s,initidx,spidx-1))
+		initidx = spidx + 1
+	end
+	if initidx ~= string.len(s) then
+		table.insert(ret,string. sub(s,initidx))
+	end
+	return ret
+end
 
 local err,toredis = Redis.Connect("127.0.0.1",6379,function () print("disconnected") end)
 if not err then
@@ -24,8 +41,9 @@ if not err then
 	AddTopFilter("ssdb-server")
 	while true do
 		local machine_status = Top()
-		toredis:Command("set machine " .. CBase64.encode(machine_status))
 		print(machine_status)
+		local tb = split(machine_status,"\n")
+		toredis:Command("set machine " .. CBase64.encode(Cjson.encode(tb)))		
 		Sche.Sleep(1000)
 	end
 else
