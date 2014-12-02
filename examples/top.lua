@@ -48,7 +48,38 @@ if not err then
 		local machine_status = Top()
 		print(machine_status)
 		local tb = split(machine_status,"\n")
-		toredis:Command("set machine " .. CBase64.encode(Cjson.encode(tb)))		
+		local machine = {}
+		local i = 1
+		while true do
+			if tb[i] ~= "process_info" then
+				table.insert(machine,tb[i])
+			else
+				i = i + 1	
+				break
+			end
+			i = i + 1
+			if i > #tb then
+				break
+			end
+		end
+		local process = {}
+		while true do
+			if i > #tb then
+				break
+			end
+			if tb[i] ~= "" then
+				local tmp = {}
+				local cols = split(tb[i],",")
+				for k,v in pairs(cols) do
+					local keyvals = split(v,":")
+					tmp[keyvals[1]] = keyvals[2];
+				end
+				table.insert(process,tmp)
+			end
+			i = i + 1	
+		end
+		toredis:Command("set machine " .. CBase64.encode(Cjson.encode(machine)))
+		toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))			
 		Sche.Sleep(1000)
 	end
 else

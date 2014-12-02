@@ -3,7 +3,6 @@
 	<head>
 		<link rel="stylesheet" href="./codebase/webix.css" type="text/css" media="screen" charset="utf-8">
 		<script src="./codebase/webix.js" type="text/javascript" charset="utf-8"></script>
-		<script type="text/javascript" src="./common/testdata.js"></script>
 		<link rel="stylesheet" type="text/css" href="./common/samples.css">
 		<style>
 			#areaA, #areaB {
@@ -19,6 +18,11 @@
 				float: left;			
 			}
 		</style>
+		<style type="text/css">
+			.webix_tree_error{
+				background-image: url(./myicons/error.png)
+			}
+		</style>		
 		<title>Tabview</title>
 	</head>
 	<body>
@@ -32,6 +36,7 @@
 			<p><font color="white"><span id="processInfo"></span></font></p>
 			</div>
 		</td></tr>
+		<tr><p><font color="black"><span id="ServiceDesp"></span></font></p></tr>		
 		</table>		
 		<script type="text/javascript" charset="utf-8">
 			var filter = null;
@@ -39,7 +44,9 @@
 			var treedata = null;
 			var selected_id = null;
 			var PhysicalView = null;
-			var LogicalView = null;			
+			var LogicalView = null;
+			var machineInfo = null;
+			var processInfo = null;						
 			function createXMLHttpRequest(){
 				if(window.ActiveXObject){
 					xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
@@ -56,26 +63,49 @@
 				xmlHttp.onreadystatechange = callback;
 				xmlHttp.send(null);
 			}
+			function FindProcess(name){
+				for(var i = 0,len = processInfo.length; i < len; i++){
+					var s = String(processInfo[i].cmd);
+					if(s.search(name) > 0){
+						return true;									
+					}
+				}
+				return false;
+			}
 			function buildPyhView(){
-				var plyTree = {};
+				var phyTree = {};
 				for(var i = 0,len1 = treedata.length; i < len1; i++){
 					var tmp1 = treedata[i].service;
 					for(var j = 0,len2 = tmp1.length; j < len2; j++){
-						var tmp2 = plyTree[tmp1[j].ip];
+						var tmp2 = phyTree[tmp1[j].ip];
 						if(!tmp2){
 							tmp2 = [];
-							plyTree[tmp1[j].ip] = tmp2;
+							phyTree[tmp1[j].ip] = tmp2;
 						}
 						tmp2.push(tmp1[j]);	
 					}		
 				}
-				for (var key in plyTree){
-					var services = plyTree[key];
+				for (var key in phyTree){
+					var services = phyTree[key];
 					var rootitem = {value:key,type:"ip"};
-					var rootid = PhysicalView.add(rootitem, null, 0);					
+					var rootid = PhysicalView.add(rootitem, null, 0);
+					var err = false;					
 					for(var i = 0,len = services.length; i < len; i++){
-						var item =  {value:services[i].type,type:"process"};
+						var item;
+						var icon = "";
+						if(!FindProcess(services[i].type)){
+							icon = "error";
+							err = true;
+						}
+						if(services[i].type == "ssdb-server"){
+							item = {value:services[i].type,type:"process",ip:services[i].ip,conf:services[i].conf,icon:icon};
+						}else{
+							item = {value:services[i].type,type:"process",ip:services[i].ip,port:services[i].port,icon:icon};
+						}
 						var id = PhysicalView.add(item, null, rootid);
+					}
+					if(err){
+						PhysicalView.updateItem(rootid, {value:key,type:"ip",icon:"error"});
 					}
 				}
 			}
@@ -83,19 +113,45 @@
 				for(var i = 0,len1 = treedata.length; i < len1; i++){
 					var tmp1 = treedata[i].service;
 					var rootitem = {value:treedata[i].groupname,type:"group"};
-					var rootid = LogicalView.add(rootitem, null, 0);					
+					var rootid = LogicalView.add(rootitem, null, 0);
+					var err = false;						
 					for(var j = 0,len2 = tmp1.length; j < len2; j++){
-						var item =  {value:tmp1[j].type,type:"process"};
-						var id = LogicalView.add(item, null, rootid);
-					}		
+						var item; 
+						var icon = "";
+						if(!FindProcess(tmp1[i].type)){
+							icon = "error";
+							err = true;							
+						}						
+						if(tmp1[i].type == "ssdb-server"){
+							item = {value:tmp1[j].type,type:"process",ip:tmp1[j].ip,conf:tmp1[j].conf,icon:icon};
+						}else{
+							item = {value:tmp1[j].type,type:"process",ip:tmp1[j].ip,port:tmp1[j].port,icon:icon};
+						}						
+						var id = LogicalView.add(item, null, rootid);					
+					}
+					if(err){
+						LogicalView.updateItem(rootid, {value:treedata[i].groupname,type:"group",icon:"error"});
+					}								
 				}
 			}			
 			function callback(){
 				if(xmlHttp.readyState == 4){
 					if(xmlHttp.status == 200){
 						var info = JSON.parse(xmlHttp.responseText);
+						var newtreedata = info[2];
+						machineInfo = info[0];
+						processInfo = info[1];
 						var str = '';
-						var find = false;
+						for(var i = 0,len = machineInfo.length; i < len; i++){
+							str = str + machineInfo[i] + '</br>';
+						}
+						str = str + "-------------------------------process------------------------------- </br>";
+						for(var i = 0,len = processInfo.length; i < len; i++){
+							str = str + "pid:" + processInfo[i].pid + ",usr:" + processInfo[i].usr;
+							str = str + ",cpu:" + processInfo[i].cpu + ",mem:" + processInfo[i].mem;
+							str = str + ",cmd:" + processInfo[i].cmd + "</br>";
+						}													
+						/*var find = false;
 						var gotmatch = false;
 						if(filter == null){
 							document.getElementById("Start").disabled = false;
@@ -107,7 +163,7 @@
 						}else{
 							for(var i = 0,len = info.length; i < len; i++){
 								if(find == false){ 
-									str = str + info[i] + '</br>'
+									str = str + info[i] + '</br>';
 									if(info[i] == 'process_info'){
 										find = true;
 									}
@@ -128,19 +184,18 @@
 								document.getElementById("Stop").disabled = true;
 								document.getElementById("Kill").disabled = true;
 							}														
-						}						
+						}*/						
 						document.getElementById("processInfo").innerHTML = str;
+						if(!treedata){
+							treedata = newtreedata;
+							buildPyhView();
+							buildLogView();
+						}						
 						setTimeout("fetchdata()",1000);
 					}
 				}
 			}				
-			fetchdata();					
-			<?php
-				$redis = new Redis();
-				$redis->connect('127.0.0.1', 6379);
-				$deployment = $redis->get('deployment');
-				echo "treedata = $deployment";
-			?>			
+			fetchdata();		
 			webix.ui({
 				container: "areaA",
 				borderless:true, 
@@ -153,17 +208,22 @@
 							view:"tree",
 							ready:function(){ 
 								PhysicalView = this;
-								buildPyhView();
 							},							
 							on:{
 								"onAfterSelect":function(id){
 									var item = this.getItem(id);
-									//webix.message(id);
+									var str = "";
 									if(item.type == "ip"){
 										filter = null;
 									}else if(item.type == "process"){
 										filter = item.value;
+										if(item.value == "ssdb-server"){
+											str = str + item.value + ":" + item.ip + ":" + item.conf;	
+										}else{
+											str = str + item.value + ":" + item.ip + ":" + item.port;	
+										}
 									}
+									document.getElementById("ServiceDesp").innerHTML = str;
 									fetchdata();
 								}
 							},
@@ -177,17 +237,22 @@
 							view:"tree",
 							ready:function(){ 
 								LogicalView = this;
-								buildLogView();
 							},							
 							on:{
 								"onAfterSelect":function(id){
 									var item = this.getItem(id);
-									//webix.message(id);
+									var str = "";
 									if(item.type == "ip"){
 										filter = null;
 									}else if(item.type == "process"){
 										filter = item.value;
+										if(item.value == "ssdb-server"){
+											str = str + item.value + ":" + item.ip + ":" + item.conf;	
+										}else{
+											str = str + item.value + ":" + item.ip + ":" + item.port;	
+										}
 									}
+									document.getElementById("ServiceDesp").innerHTML = str;
 									fetchdata();
 								}
 							},
