@@ -50,7 +50,7 @@ if not err then
 		local tb = split(machine_status,"\n")
 		local machine = {}
 		local i = 1
-		while true do
+		while i <= #tb do
 			if tb[i] ~= "process_info" then
 				table.insert(machine,tb[i])
 			else
@@ -58,15 +58,12 @@ if not err then
 				break
 			end
 			i = i + 1
-			if i > #tb then
-				break
-			end
 		end
 		local process = {}
-		while true do
-			if i > #tb then
-				break
-			end
+		while i <= #tb do
+			--if i > #tb then
+			--	break
+			--end
 			if tb[i] ~= "" then
 				local tmp = {}
 				local cols = split(tb[i],",")
@@ -78,6 +75,7 @@ if not err then
 			end
 			i = i + 1	
 		end
+		--print(#process)
 		toredis:Command("set machine " .. CBase64.encode(Cjson.encode(machine)))
 		toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))			
 		Sche.Sleep(1000)

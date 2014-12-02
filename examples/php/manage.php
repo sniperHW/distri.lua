@@ -46,7 +46,9 @@
 			var PhysicalView = null;
 			var LogicalView = null;
 			var machineInfo = null;
-			var processInfo = null;						
+			var processInfo = null;
+			var phyInit = false;
+			var logInit = false;						
 			function createXMLHttpRequest(){
 				if(window.ActiveXObject){
 					xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
@@ -186,16 +188,18 @@
 							}														
 						}*/						
 						document.getElementById("processInfo").innerHTML = str;
+						//webix.message("ok here1");
 						if(!treedata){
+							//alert(newtreedata.length);
 							treedata = newtreedata;
 							buildPyhView();
 							buildLogView();
-						}						
+						}
+						//webix.message("ok here3");						
 						setTimeout("fetchdata()",1000);
 					}
 				}
-			}				
-			fetchdata();		
+			}						
 			webix.ui({
 				container: "areaA",
 				borderless:true, 
@@ -208,6 +212,10 @@
 							view:"tree",
 							ready:function(){ 
 								PhysicalView = this;
+								phyInit = true;
+								if(logInit){
+									fetchdata();
+								}
 							},							
 							on:{
 								"onAfterSelect":function(id){
@@ -237,6 +245,10 @@
 							view:"tree",
 							ready:function(){ 
 								LogicalView = this;
+								logInit = true;
+								if(phyInit){
+									fetchdata();
+								}								
 							},							
 							on:{
 								"onAfterSelect":function(id){
