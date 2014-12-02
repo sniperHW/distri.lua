@@ -2,18 +2,23 @@ local Sche = require "lua.sche"
 local Redis = require "lua.redis"
 local Cjson = require "cjson"
 
---[[local str = CBase64.encode("abcd")
-print(str)
-print(CBase64.decode(str))
-]]--
-
-local deployment = {
-	{["value"] = "192.168.0.87",  ["type"] = "ip",  ["data"] = {
-		{["value"] = "gateserver",["type"] = "process"},
-		{["value"] = "groupserver",["type"] = "process"},
-		{["value"] = "gameserver",["type"] = "process"},				
-		{["value"] = "ssdb",["type"] = "process"}
-	}},	
+local deployment={
+	{groupname="central",service={
+				{type="ssdb-server",logicname="ssdb-server",conf="ssdb.conf",ip="192.168.0.87"},
+		}
+	},
+	{groupname="group1",service={
+			{type="groupserver",logicname="groupserver",ip="192.168.0.87",port="8010"},
+			{type="gameserver",logicname="gameserver",ip="192.168.0.87",port="8011"},
+			{type="gateserver",logicname="gateserver",ip="192.168.0.87",port="8012"},
+		}
+	},	
+	{groupname="group2",service={
+			{type="groupserver",logicname="groupserver",ip="192.168.0.88",port="8010"},
+			{type="gameserver",logicname="gameserver",ip="192.168.0.88",port="8011"},
+			{type="gateserver",logicname="gateserver",ip="192.168.0.88",port="8012"},
+		}
+	},
 }
 
 local function split(s,separator)

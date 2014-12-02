@@ -38,7 +38,8 @@
 			var xmlHttp = null;
 			var treedata = null;
 			var selected_id = null;
-			var PhysicalView = null;			
+			var PhysicalView = null;
+			var LogicalView = null;			
 			function createXMLHttpRequest(){
 				if(window.ActiveXObject){
 					xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
@@ -56,18 +57,39 @@
 				xmlHttp.send(null);
 			}
 			function buildPyhView(){
+				var plyTree = {};
 				for(var i = 0,len1 = treedata.length; i < len1; i++){
-					var data = treedata[i].data;
-					var rootitem = {value:treedata[i].value,type:treedata[i].type};
-					var rootid = PhysicalView.add(rootitem, null, 0);
-					treedata[i].id = rootid;
-					for(var j = 0,len2 = data.length; j < len2; j++){
-						var item =  {value:data[j].value,type:data[j].type};
+					var tmp1 = treedata[i].service;
+					for(var j = 0,len2 = tmp1.length; j < len2; j++){
+						var tmp2 = plyTree[tmp1[j].ip];
+						if(!tmp2){
+							tmp2 = [];
+							plyTree[tmp1[j].ip] = tmp2;
+						}
+						tmp2.push(tmp1[j]);	
+					}		
+				}
+				for (var key in plyTree){
+					var services = plyTree[key];
+					var rootitem = {value:key,type:"ip"};
+					var rootid = PhysicalView.add(rootitem, null, 0);					
+					for(var i = 0,len = services.length; i < len; i++){
+						var item =  {value:services[i].type,type:"process"};
 						var id = PhysicalView.add(item, null, rootid);
-						data[j].id = id;
 					}
 				}
 			}
+			function buildLogView(){
+				for(var i = 0,len1 = treedata.length; i < len1; i++){
+					var tmp1 = treedata[i].service;
+					var rootitem = {value:treedata[i].groupname,type:"group"};
+					var rootid = LogicalView.add(rootitem, null, 0);					
+					for(var j = 0,len2 = tmp1.length; j < len2; j++){
+						var item =  {value:tmp1[j].type,type:"process"};
+						var id = LogicalView.add(item, null, rootid);
+					}		
+				}
+			}			
 			function callback(){
 				if(xmlHttp.readyState == 4){
 					if(xmlHttp.status == 200){
@@ -135,7 +157,8 @@
 							},							
 							on:{
 								"onAfterSelect":function(id){
-									var item = this.getItem(id)
+									var item = this.getItem(id);
+									//webix.message(id);
 									if(item.type == "ip"){
 										filter = null;
 									}else if(item.type == "process"){
@@ -146,7 +169,31 @@
 							},
 							data:[]
 						},
-					},	
+					},
+					{
+						header:"Logical View",
+						body:{
+							select:true,
+							view:"tree",
+							ready:function(){ 
+								LogicalView = this;
+								buildLogView();
+							},							
+							on:{
+								"onAfterSelect":function(id){
+									var item = this.getItem(id);
+									//webix.message(id);
+									if(item.type == "ip"){
+										filter = null;
+									}else if(item.type == "process"){
+										filter = item.value;
+									}
+									fetchdata();
+								}
+							},
+							data:[]
+						},
+					},							
 				]
 			});
 		</script>
