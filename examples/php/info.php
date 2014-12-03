@@ -13,12 +13,19 @@ function split_line($input,$separator){
 }
 $redis = new Redis();
 $redis->connect('127.0.0.1', 6379);
-$machine_status = $redis->get('machine');
-$machine_status = base64_decode($machine_status);
-$process_info = $redis->get('process');
-$process_info = base64_decode($process_info);
 $deployment = $redis->get('deployment');
-echo "[$machine_status ,$process_info,$deployment ]";
-//echo $machine_status;
+$machine_status = $redis->hGetAll('MachineStatus');
+$outputstr = "{\"deployment\":$deployment,\"machine_status\":[";
+$first = true;
+while(list($ip,$info) = each($machine_status)){
+	if($first){
+		$first = false;
+	}else{
+		$outputstr = $outputstr + ",";
+	}
+	$outputstr = $outputstr . "{\"ip\":\"$ip\",\"status\":" . base64_decode($info) . "}";
+}
+$outputstr = $outputstr . "]}";
+echo $outputstr;
 ?>
 

@@ -61,9 +61,6 @@ if not err then
 		end
 		local process = {}
 		while i <= #tb do
-			--if i > #tb then
-			--	break
-			--end
 			if tb[i] ~= "" then
 				local tmp = {}
 				local cols = split(tb[i],",")
@@ -75,9 +72,12 @@ if not err then
 			end
 			i = i + 1	
 		end
-		--print(#process)
-		toredis:Command("set machine " .. CBase64.encode(Cjson.encode(machine)))
-		toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))			
+
+
+		local str = string.format("hmset MachineStatus 192.168.0.87 %s",CBase64.encode(Cjson.encode({machine,process})))
+		toredis:Command(str)
+		--toredis:Command("set machine " .. CBase64.encode(Cjson.encode(machine)))
+		--toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))			
 		Sche.Sleep(1000)
 	end
 else
