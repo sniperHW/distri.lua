@@ -74,7 +74,7 @@
 						root = CurrentView.getItem(CurrentView.getParentId(selectID));
 					}
 					if(root){
-						if(CurrentView == PhysicalView){ 
+						if(CurrentView == PhysicalView){
 							var machine = PhysicalTree[root.value];
 							if(machine){
 								var status = machine.machine;
@@ -90,12 +90,12 @@
 											str = str + ",cpu:" + process[key].cpu + ",mem:" + process[key].mem;
 											str = str + ",cmd:" + process[key].cmd + "</br>";
 										}			
-									}else{
+									}else if(process[item.value]){
 										str = str + "pid:" + process[item.value].pid + ",usr:" + process[item.value].usr;
 										str = str + ",cpu:" + process[item.value].cpu + ",mem:" + process[item.value].mem;
 										str = str + ",cmd:" + process[item.value].cmd + "</br>";
 									}
-								}												
+								}											
 							}
 						}else{
 							var group = LogicalTree[root.value];
@@ -106,7 +106,7 @@
 										str = str + ",cpu:" + group[key][1].cpu + ",mem:" + group[key][1].mem;
 										str = str + ",cmd:" + group[key][1].cmd + "</br>";
 									}			
-								}else{
+								}else if(group[item.value]){
 									str = str + "pid:" + group[item.value][1].pid + ",usr:" + group[item.value][1].usr;
 									str = str + ",cpu:" + group[item.value][1].cpu + ",mem:" + group[item.value][1].mem;
 									str = str + ",cmd:" + group[item.value][1].cmd + "</br>";
@@ -203,7 +203,7 @@
 			function buildPhyView(){
 				for (var key in DeployPhyTree){
 					var services = DeployPhyTree[key];
-					var rootitem = {value:key,root:true};
+					var rootitem = {id:key,value:key,root:true};
 					var rootid = PhysicalView.add(rootitem, null, 0);
 					var err = false;					
 					var goterror = false;
@@ -218,22 +218,22 @@
 							icon = "error";
 							goterror = true;
 						}
-						item = {value:services[i],icon:icon};
+						item = {id:key + ":" + services[i],value:services[i],icon:icon};
 						var id = PhysicalView.add(item, null, rootid);
 					}
 					if(goterror){
-						PhysicalView.updateItem(rootid, {value:key,root:true,icon:"error"});
+						PhysicalView.updateItem(rootid, {icon:"error"});
 					}					
 				}
 			}						
 			function buildLogView(){
 				for (var key in DeployLogTree){
 					var tmp1 = DeployLogTree[key];
-					var rootitem = {value:key,root:true};
+					var rootitem = {id:key,value:key,root:true};
 					var rootid = LogicalView.add(rootitem, null, 0);
 					var goterror = false;
 					for(var j = 0,len2 = tmp1.length; j < len2; j++){
-						var item; 
+						var item;
 						var icon;
 						var group = key;
 						var logicname = tmp1[j];
@@ -243,19 +243,85 @@
 							icon = "error";
 							goterror = true;
 						}
-						item = {value:tmp1[j],icon:icon};						
+						item = {id:group+":"+tmp1[j],value:tmp1[j],icon:icon};						
 						var id = LogicalView.add(item, null, rootid);					
 					}
 					if(goterror){
-						LogicalView.updateItem(rootid, {value:key,root:true,icon:"error"});
+						LogicalView.updateItem(rootid, {icon:"error"});
 					}					
 				}
 			}
 			function updatePhyView(){
-
+				for (var key in DeployPhyTree){
+					var services = DeployPhyTree[key];
+					var goterror = false;
+					var rootitem = PhysicalView.getItem(key); 
+					if(!rootitem){
+						//new root
+					}
+					var icon;
+					for(var i = 0,len = services.length; i < len; i++){
+						var ip = key;
+						var logicname = services[i];
+						var id = key + ":" + services[i]
+						var item = PhysicalView.getItem(id);
+						if(!item){
+							//new item
+						} 
+						if(PhysicalTree[ip] && PhysicalTree[ip].process[logicname]){
+							icon = "";
+						}else{
+							icon = "error";
+							goterror = true;
+						}
+						if(item.icon != icon)
+							PhysicalView.updateItem(id,{icon:icon});
+					}
+					if(goterror){
+						icon = "error";
+					}else{
+						icon = "";
+					}
+					if(rootitem.icon != icon){
+						PhysicalView.updateItem(key, {icon:icon});
+					}				
+				}				
 			}
 			function updateLogView(){
-
+				for (var key in DeployLogTree){
+					var tmp1 = DeployLogTree[key];
+					var goterror = false;
+					var rootitem = LogicalView.getItem(key);
+					if(!rootitem){
+						//new root
+					} 
+					var icon;
+					for(var j = 0,len2 = tmp1.length; j < len2; j++){
+						var group = key;
+						var logicname = tmp1[j];
+						var id = group+":"+tmp1[j];
+						var item = LogicalView.getItem(id);
+						if(!item){
+							//new item
+						}
+						if(LogicalTree[group] && LogicalTree[group][logicname]){
+							icon = "";
+						}else{
+							icon = "error";
+							goterror = true;
+						}
+						if(item.icon != icon)					
+							LogicalView.updateItem(group+":"+tmp1[j], {icon:icon});					
+					}
+					if(goterror){
+						icon = "error";
+					}else{
+						icon = "";
+					}
+					if(rootitem.icon != icon){
+						LogicalView.updateItem(key, {icon:icon});
+					}					
+				}
 			}
 			function callback(){
 				if(xmlHttp.readyState == 4){
@@ -264,6 +330,7 @@
 						var deploydata = info.deployment;
 						var machinedata = info.machine_status;																
 						if(firstrun){
+							webix.message("first");
 							buildDeployPhyTree(deploydata);
 							buildPhyTree(machinedata);
 							buildPhyView();	
@@ -273,6 +340,8 @@
 						}else{
 							buildPhyTree(machinedata);
 							buildLogicalTree();
+							updatePhyView();
+							updateLogView();
 						}
 						ShowStatus();				
 						firstrun = false;
