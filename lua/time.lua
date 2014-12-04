@@ -1,5 +1,5 @@
 local function SysTick()
-	return GetSysTick()
+	return C.GetSysTick()
 end
 
 return {

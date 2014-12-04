@@ -42,10 +42,10 @@ end
 local err,toredis = Redis.Connect("127.0.0.1",6379,function () print("disconnected") end)
 if not err then
 	toredis:Command("set deployment " .. Cjson.encode(deployment))
-	AddTopFilter("distrilua")
-	AddTopFilter("ssdb-server")
+	C.AddTopFilter("distrilua")
+	C.AddTopFilter("ssdb-server")
 	while true do
-		local machine_status = Top()
+		local machine_status = C.Top()
 		print(machine_status)
 		local tb = split(machine_status,"\n")
 		local machine = {}

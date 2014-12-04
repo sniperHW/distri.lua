@@ -144,14 +144,19 @@ int main(int argc,char **argv)
 	luaL_openlibs(L);
     	signal(SIGINT,sig_int);
     	signal(SIGPIPE,SIG_IGN);
-    	lua_register(L,"Break",lua_Break); 
-	lua_register(L,"GetSysTick",lua_getsystick); 
-	lua_register(L,"RunOnce",lua_RunOnce); 	
-	lua_register(L,"Top",lua_Top); 
-	lua_register(L,"AddTopFilter",lua_AddTopFilter);
-	lua_register(L,"ForkExec",lua_ForkExec);
-	lua_register(L,"KillProcess",lua_KillProcess);
-	lua_register(L,"StopProcess",lua_StopProcess);	
+    	luaL_Reg l[] = {
+        		{"Break",lua_Break},
+        		{"GetSysTick",lua_getsystick},
+        		{"RunOnce",lua_RunOnce}, 
+        		{"Top",lua_Top},
+        		{"AddTopFilter",lua_AddTopFilter},
+        		{"ForkExec",lua_ForkExec},
+        		{"KillProcess",lua_KillProcess},
+        		{"StopProcess",lua_StopProcess},          		              		                   
+        		{NULL, NULL}
+    	};
+    	luaL_newlib(L, l);
+	lua_setglobal(L,"C");    		
 	reg_luasocket(L);
 	reg_luahttp(L);
 	reg_luaredis(L);
