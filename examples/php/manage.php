@@ -1,43 +1,61 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<link rel="stylesheet" href="./codebase/webix.css" type="text/css" media="screen" charset="utf-8">
 		<script src="./codebase/webix.js" type="text/javascript" charset="utf-8"></script>
 		<link rel="stylesheet" type="text/css" href="./common/samples.css">
 		<style>
-			#areaA, #areaB {
+			#areaLeft{
 				margin: 50px 10px;
 				width:320px;
-				height:400px;
+				height:800px;
 				float: left;
-			}
-			#areaC{
-				margin: 50px 10px;
+			}			
+			#areaStatus{
 				width:800px;
 				height:400px;
 				float: left;			
 			}
+			#areaRight{
+				margin: 50px 10px;
+				float: left;			
+			}
+			.my_toolbar{
+				background-image: none !important;
+
+			}			
 		</style>
 		<style type="text/css">
 			.webix_tree_error{
 				background-image: url(./myicons/error.png)
 			}
 		</style>		
-		<title>Tabview</title>
+		<title>Manage</title>
 	</head>
 	<body>
+	<link rel="stylesheet" type="text/css" href="./common/docs.css">
+	<div class="page_header">
+		<div class='page_inner_header'>
+			<a href='http://webix.com'><div class='top_webix_logo'></div></a>
+			运维管理系统 
+		</div>
+	</div>
+
 		<script type="text/javascript">
 		</script>	
-		<div id="areaA"></div>
+		<div id="areaLeft"></div>
+		<div id="areaRight">
 		<table>
-		<tr><input id = "Start" type="button" value="Start" /><input id = "Stop" type="button" value="Stop" /><input id = "Kill" type="button" value="Kill" /></tr>
+		<tr><div id="buttons"></div></tr>
 		<tr><td>
-			<div id = "areaC" style="background:black">
+			<div id = "areaStatus" style="background:black">
 			<p><font color="white"><span id="processInfo"></span></font></p>
 			</div>
 		</td></tr>
 		<tr><p><font color="black"><span id="ServiceDesp"></span></font></p></tr>		
-		</table>		
+		</table>
+		</div>		
 		<script type="text/javascript" charset="utf-8">
 			var filter = null;
 			var xmlHttp = null;
@@ -73,6 +91,7 @@
 					}else{
 						root = CurrentView.getItem(CurrentView.getParentId(selectID));
 					}
+					var flag = null;
 					if(root){
 						if(CurrentView == PhysicalView){
 							var machine = PhysicalTree[root.value];
@@ -84,36 +103,72 @@
 								str = str + "-------------------------------process------------------------------- </br>";
 								var process = machine.process;
 								if(process){
-									if(root.id == selectID){											
+									if(root.id == selectID){
+										var c = 0;											
 										for (var key in process){
 											str = str + "pid:" + process[key].pid + ",usr:" + process[key].usr;
 											str = str + ",cpu:" + process[key].cpu + ",mem:" + process[key].mem;
 											str = str + ",cmd:" + process[key].cmd + "</br>";
+											c++;
+										}
+										if(c != DeployPhyTree[root.value].length){
+											flag= [1,1,1];
+										}else{
+											flag= [0,1,1];
 										}			
 									}else if(process[item.value]){
 										str = str + "pid:" + process[item.value].pid + ",usr:" + process[item.value].usr;
 										str = str + ",cpu:" + process[item.value].cpu + ",mem:" + process[item.value].mem;
 										str = str + ",cmd:" + process[item.value].cmd + "</br>";
+										flag= [0,1,1];										
+									}else{
+										flag= [1,0,0];
 									}
+								}else{
+									flag= [1,0,0];		
 								}											
+							}else{
+								flag= [0,0,0];
 							}
 						}else{
 							var group = LogicalTree[root.value];
 							if(group){
-								if(root.id == selectID){											
+								if(root.id == selectID){
+									var c = 0;											
 									for (var key in group){
 										str = str + "pid:" + group[key][1].pid + ",usr:" + group[key][1].usr;
 										str = str + ",cpu:" + group[key][1].cpu + ",mem:" + group[key][1].mem;
 										str = str + ",cmd:" + group[key][1].cmd + "</br>";
-									}			
+										c++;
+										if(c != DeployLogTree[root.value].length){
+											flag= [1,1,1];
+										}else{
+											flag= [0,1,1];	
+										}										
+									}		
+
 								}else if(group[item.value]){
 									str = str + "pid:" + group[item.value][1].pid + ",usr:" + group[item.value][1].usr;
 									str = str + ",cpu:" + group[item.value][1].cpu + ",mem:" + group[item.value][1].mem;
 									str = str + ",cmd:" + group[item.value][1].cmd + "</br>";
+									flag= [0,1,1];									
+								}else{
+									flag= [1,0,0];	
 								}		
+							}else{
+								flag= [0,0,0];
 							}
 						}	
 					}
+				}
+				if(flag){
+					flag[0]  == 0 ?  $$("Start").disable() : $$("Start").enable();
+					flag[1]  == 0 ?  $$("Stop").disable() : $$("Stop").enable();
+					flag[2]  == 0 ?  $$("Kill").disable() : $$("Kill").enable();
+				}else{
+					$$("Start").disable();
+					$$("Stop").disable();
+					$$("Kill").disable();	
 				}
 				document.getElementById("processInfo").innerHTML = str;
 			}						
@@ -330,7 +385,7 @@
 						var deploydata = info.deployment;
 						var machinedata = info.machine_status;																
 						if(firstrun){
-							webix.message("first");
+							//webix.message("first");
 							buildDeployPhyTree(deploydata);
 							buildPhyTree(machinedata);
 							buildPhyView();	
@@ -348,10 +403,16 @@
 						setTimeout("fetchdata()",1000);
 					}
 				}
+			}
+			function buttonclick(id){
+				if(confirm("confirm?")){
+					webix.message(id);
+				}
+				
 			}						
 			webix.ui({
 				id:"LeftTree",
-				container: "areaA",
+				container: "areaLeft",
 				borderless:true, 
 				view:"tabview",							
 				cells:[
@@ -400,6 +461,14 @@
 					},							
 				]
 			});
+			webix.ui({
+				container: "buttons",
+                			view:"toolbar" ,css:"my_toolbar", id:"button_bar", cols:[
+                    			{ view:"button", value: 'Start', id: 'Start', width:100, click:"buttonclick"},
+                    			{ view:"button", value: 'Stop', id: 'Stop', width:100, click:"buttonclick"},
+                    			{ view:"button", value: 'Kill', id: 'Kill', width:100, click:"buttonclick"}
+                    			]
+                    		});			
 			$$("LeftTree").getChildViews()[1].attachEvent("onViewChange",function(id){
 			        if(CurrentView == LogicalView)
 			        	CurrentView = PhysicalView;
@@ -407,6 +476,7 @@
 			       	CurrentView = LogicalView;
 			       fetchdata();
 			});
+			//$$("Start").disable();
 			
 		</script>
 	</body>

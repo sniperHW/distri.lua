@@ -19,6 +19,12 @@ local deployment={
 			{type="gateserver",logicname="gateserver",ip="192.168.0.88",port="8012"},
 		}
 	},
+	{groupname="测试3区",service={
+			{type="groupserver",logicname="groupserver",ip="192.168.0.89",port="8010"},
+			{type="gameserver",logicname="gameserver",ip="192.168.0.89",port="8011"},
+			{type="gateserver",logicname="gateserver",ip="192.168.0.89",port="8012"},
+		}
+	},	
 }
 
 local function split(s,separator)
