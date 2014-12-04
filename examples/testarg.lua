@@ -1,3 +1,2 @@
-print(args[1])
-print(args[2])
-print(args[3])
+print(arguments[1])
+print(arguments[2])
