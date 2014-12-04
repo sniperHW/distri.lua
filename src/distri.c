@@ -56,7 +56,9 @@ static void start(lua_State *L,int argc,char **argv)
 }
 
 
-//fork a process and exec a new image immediate
+/*fork a process and exec a new image immediate
+    the new process will run as daemon
+*/
 static int lua_ForkExec(lua_State *L){
 	int top = lua_gettop(L);
 	int ret = -1;
@@ -75,8 +77,56 @@ static int lua_ForkExec(lua_State *L){
 		}
 		pid_t pid;
 		if((pid = fork()) == 0 ){
-			if(execv(exepath,argv) < 0)
+			int i, fd0, fd1, fd2;
+			struct rlimit	rl;
+			struct sigaction	sa;
+			umask(0);
+			/*
+			 * Get maximum number of file descriptors.
+			 */
+			if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+				exit(0);			
+			setsid();
+			/*
+			 * Ensure future opens won't allocate controlling TTYs.
+			 */
+			sa.sa_handler = SIG_IGN;
+			sigemptyset(&sa.sa_mask);
+			sa.sa_flags = 0;
+			if (sigaction(SIGHUP, &sa, NULL) < 0)
+				exit(0);//err_quit("%s: can't ignore SIGHUP");
+			if ((pid = fork()) < 0)
+				exit(0);//err_quit("%s: can't fork", cmd);
+			else if (pid != 0) /* parent */
+				exit(0);		
+			/*
+			 * Close all open file descriptors.
+			 */
+			if (rl.rlim_max == RLIM_INFINITY)
+				rl.rlim_max = 1024;
+			for (i = 0; i < rl.rlim_max; i++)
+				close(i);
+			/*
+			 * Attach file descriptors 0, 1, and 2 to /dev/null.
+			 */
+			//fd0 = open("./error.txt",O_CREAT|O_RDWR);
+			fd0 = open("/dev/null", O_RDWR);
+			fd1 = dup(0);
+			fd2 = dup(0);
+			/*
+			 * Initialize the log file.
+			 */
+			//openlog(cmd, LOG_CONS, LOG_DAEMON);
+			if (fd0 != 0 || fd1 != 1 || fd2 != 2) {
+				//syslog(LOG_ERR, "unexpected file descriptors %d %d %d",fd0, fd1, fd2);
+				//char buf[4096];
+				//snprintf(buf,4096,"unexpected file descriptors %d %d %d",fd0, fd1, fd2);
+				//write(fd0,buf,strlen(buf));
+				exit(1);
+			}			
+			if(execv(exepath,argv) < 0){
 				exit(-1);
+			}
 		}else if(pid > 0)
 			ret = 0;
 	}
