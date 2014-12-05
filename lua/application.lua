@@ -77,7 +77,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 			Sche.Spawn(function ()
 				while true do
 				              Sche.Sleep(1000)
-					if not socket.closing then
+					if not socket.luasocket then
 						if Time.SysTick() > socket.lastrecv + recvtimeout then
 							socket:Close()
 							break
@@ -93,7 +93,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 			Sche.Spawn(function ()
 				while true do
 				    Sche.Sleep(pinginterval)
-					if not socket.closing then
+					if socket.luasocket then
 						local wpk = CPacket.NewWPacket(64)
 						wpk:Write_uint32(CMD_PING)
 						socket:Send(wpk)

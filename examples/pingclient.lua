@@ -74,7 +74,7 @@ local pingpong = App.New()
 print(string.len(str))
 pingpong:Run(function ()
 	for i=1,10 do
-		sche.Spawn(function () 
+	       sche.Spawn(function () 
 			local client = socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 			if client:Connect("127.0.0.1",8000) then
 				print("connect to 127.0.0.1:8000 error")
@@ -84,9 +84,13 @@ pingpong:Run(function ()
 			local wpk = CPacket.NewWPacket(65535)
 			wpk:Write_string(str)
 			client:Send(wpk) -- send the first packet
-			pingpong:Add(client,function (s,rpk)
-									s:Send(CPacket.NewWPacket(rpk))		
-						        end)
+			pingpong:Add(client,
+                                                                                                              function (s,rpk)
+			                                    s:Send(CPacket.NewWPacket(rpk))		
+			                          end,
+                                                                                                               function ()
+                                                                                                                        print("disconnected")   
+                                                                                                               end)
 		end)	
 	end
 end)

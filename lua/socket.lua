@@ -8,21 +8,16 @@ local LinkQue  = require "lua.linkque"
 local Time = require "lua.time"
 local socket = {}
 
-local function sock_init(sock)
-	sock.closing = false
-	sock.errno = 0
-	return sock
-end
-
 function socket:new(domain,type,protocal)
   local o = {}
   self.__index = self      
   setmetatable(o,self)
   o.luasocket = CSocket.new1(o,domain,type,protocal)
   if not o.luasocket then
-		return nil
+	return nil
   end
-  return sock_init(o)   
+  o.errno = 0
+  return o   
 end
 
 function socket:new2(sock)
@@ -30,7 +25,8 @@ function socket:new2(sock)
   self.__index = self          
   setmetatable(o, self)
   o.luasocket = CSocket.new2(o,sock)
-  return sock_init(o)
+  o.errno = 0 
+  return o
 end
 
 --[[
@@ -38,10 +34,11 @@ end
 务必保证对产生的每个socket对象调用Close。
 ]]--
 function socket:Close()
-	self.closing = true
-	CSocket.close(self.luasocket)
-	self.luasocket = nil
-	self.Close = function () end --将Close替换成空函数	
+	local luasocket = self.luasocket
+	if luasocket then
+		self.luasocket = nil
+		CSocket.close(luasocket)
+	end	
 end
 
 local function on_new_conn(self,sock)
@@ -56,7 +53,7 @@ end
 在ip:port上建立TCP监听
 ]]--
 function socket:Listen(ip,port)
-	if self.closing then
+	if not self.luasocket then
 		return "socket close"
 	end
 	if self.block_onaccept or self.new_conn then
@@ -71,8 +68,6 @@ end
 local function process_c_disconnect_event(self,errno)
 	--print("process_c_disconnect_event")
 	self.errno = errno
-	self.closing = true
-	self.Close = function () end --将Close替换成空函数	
 	local co
 	while self.block_noaccept do
 		co = self.block_onaccept:Pop()
@@ -110,15 +105,22 @@ local function process_c_disconnect_event(self,errno)
 		self.application = nil
 	end
 	if self.on_disconnected then
-		--在一个协程上下文下调用on_disconnected,以使得在on_disconnected中可以使用协程相关功能
-		local s = self
-		Sche.Spawn(function ()
-				s.on_disconnected(s,errno)
-				if s.luasocket then CSocket.close(s.luasocket) end
-			        end)
-	elseif self.luasocket then
-		CSocket.close(self.luasocket)
-	end				
+		if Sche.Running() then
+			self.on_disconnected(self,errno)
+		else
+			local s = self
+			Sche.Spawn(function ()
+					s.on_disconnected(s,errno)
+					if s.luasocket then 
+						s:Close()
+					end
+				         end)
+			return			
+		end
+	end
+	if self.luasocket then
+		self:Close()
+	end			
 end
 
 local function process_c_packet_event(self,packet)
@@ -151,7 +153,7 @@ end
 接受一个TCP连接,并将新连接的接收缓冲设为max_packet_size
 ]]--
 function socket:Accept()
-	if self.closing then
+	if not self.luasocket then
 		return nil,"socket close"
 	end
 
@@ -169,7 +171,7 @@ function socket:Accept()
 				local co = Sche.Running()
 				self.block_onaccept:Push(co)
 				Sche.Block()
-				if  self.closing then
+				if  not self.luasocket then
 					return nil,"socket close" --socket被关闭
 				end				
 			end
@@ -179,7 +181,7 @@ end
 
 local function cb_connect(self,s,err)
 	if not s or err ~= 0 then
-		self.err = err
+		self.errno = err
 	else
 		self.luasocket = CSocket.new2(self,s)
 	end
@@ -199,10 +201,8 @@ function socket:Connect(ip,port)
 		self.connect_co = Sche.Running()
 		self.___cb_connect = cb_connect
 		Sche.Block()
-		if self.closing then
-			return "socket close" 
-		elseif self.err then
-			return self.err
+		if not self.luasocket then
+			return self.errno
 		else
 			--establish(self,max_packet_size or 65535,decoder)	
 			return nil
@@ -220,10 +220,12 @@ function socket:Recv(timeout)
 	if not self.isestablish then
 		return nil,"invaild socket"
 	else
-		while not self.closing do	
+		while true do--not self.closing do	
 			local packet = self.packet:Pop()
 			if packet then
 				return packet[1],nil
+			elseif not self.luasocket then
+				return nil,self.errno
 			end		
 			local co = Sche.Running()
 			co = {co}	
@@ -235,8 +237,7 @@ function socket:Recv(timeout)
 				self.timeout = nil
 				return nil,"recv timeout"
 			end
-		end
-		return nil,self.errno		
+		end	
 	end
 end
 
@@ -245,11 +246,8 @@ end
 (此函数不会阻塞,立即返回)
 ]]--
 function socket:Send(packet)
-	if self.closing then
-		return "socket close"
-	end
 	if not self.luasocket then
-		return "invaild socket"
+		return "socket socket"
 	end
 	return CSocket.send(self.luasocket,packet)
 end
