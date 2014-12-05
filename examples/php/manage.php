@@ -48,6 +48,7 @@
 		<div id="areaRight">
 		<table>
 		<tr><div id="buttons"></div></tr>
+		<tr><div id="message"></div></tr>
 		<tr><td>
 			<div id = "areaStatus" style="background:black">
 			<p><font color="white"><span id="processInfo"></span></font></p>
@@ -58,7 +59,7 @@
 		</div>		
 		<script type="text/javascript" charset="utf-8">
 			var filter = null;
-			var xmlHttp = null;
+			//var xmlHttp = null;
 			var PhysicalView = null;
 			var LogicalView = null;
 			var DeployPhyTree = null;
@@ -174,19 +175,19 @@
 			}						
 			function createXMLHttpRequest(){
 				if(window.ActiveXObject){
-					xmlHttp = new ActiveXObject("Microsoft.XMLHTTP");
+					return new ActiveXObject("Microsoft.XMLHTTP");
 				}
 				else if(window.XMLHttpRequest){
-					xmlHttp = new XMLHttpRequest();
+					return new XMLHttpRequest();
 				}
 			}
 			function fetchdata(){
-				createXMLHttpRequest();
+				var request = createXMLHttpRequest();
 				var url="info.php";
-				xmlHttp.open("GET",url,true);
-				xmlHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
-				xmlHttp.onreadystatechange = callback;
-				xmlHttp.send(null);
+				request.open("GET",url,true);
+				request.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
+				request.onreadystatechange = callback;
+				request.send(null);
 			}
 			function buildPhyTree(machinedata){
 				function match(name,array){
@@ -379,9 +380,9 @@
 				}
 			}
 			function callback(){
-				if(xmlHttp.readyState == 4){
-					if(xmlHttp.status == 200){
-						var info = JSON.parse(xmlHttp.responseText);
+				if(this.readyState == 4){
+					if(this.status == 200){
+						var info = JSON.parse(this.responseText);
 						var deploydata = info.deployment;
 						var machinedata = info.machine_status;																
 						if(firstrun){
@@ -405,10 +406,56 @@
 				}
 			}
 			function buttonclick(id){
+				function buttoncallback(){
+					if(this.readyState == 4){
+						if(this.status == 200){
+							document.getElementById("message").innerHTML = this.responseText;
+						}
+					}
+				}				
 				if(confirm("confirm?")){
-					webix.message(id);
+					var selectID = null;
+					if(CurrentView == PhysicalView){
+						selectID = physelectID;
+					}else{
+						selectID = logselectID;
+					}
+					if(!selectID){
+						selectID = CurrentView.getFirstId();
+						CurrentView.select(selectID);
+					}
+					//webix.message("1");
+					if(selectID){
+						var item = CurrentView.getItem(selectID);
+						var root;
+						if(item.root){
+							root = item;
+						}else{
+							root = CurrentView.getItem(CurrentView.getParentId(selectID));
+						}
+						if(root){	
+							var ip = '';
+							var group = '';
+							var logicname = '';				
+							if(CurrentView == PhysicalView){
+								ip = root.value;
+							}else if (CurrentView == LogicalView){
+								group = root.value;
+							}
+							if(root.id != selectID && item)
+								logicname = item.value;
+							//constructor http request
+							var request = createXMLHttpRequest();
+							var url="control_action.php?" + "ip=" + ip +"&group=" + group + "&logicname=" + logicname;
+							request.open("GET",url,true);
+							request.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
+							request.onreadystatechange = buttoncallback;
+							request.send(null);//ip+":" + group + ":" + logicname);
+							//webix.message("2");							
+						}
+					}
+					//webix.message("3");
 				}
-				
 			}						
 			webix.ui({
 				id:"LeftTree",

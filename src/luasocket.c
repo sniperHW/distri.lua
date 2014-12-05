@@ -2,8 +2,6 @@
 #include "luapacket.h"
 #include "push_callback.h"
 
-//#include "luabytebuffer.h"
-
 extern engine_t g_engine;
 //static __thread lua_State *g_L;
 enum{
@@ -52,7 +50,6 @@ static void PushPacket(lua_State *L,luaPushFunctor_t _){
 	push_luapacket(L,self->p);
 }
 
-
 static int  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
@@ -63,27 +60,6 @@ static int  on_packet(stream_conn_t c,packet_t p){
 	if(error){
 		printf("error on __on_packet:%s\n",error);	
 	}
-	
-	
-	//if((error = LuaCallTabFuncS(*obj,"__on_packet","f",&st))){
-	//	printf("error on __on_packet:%s\n",error);			
-   //}	
-	/*int __result;
-	lua_State *__L = obj->L;
-	int __oldtop = lua_gettop(__L);
-	lua_rawgeti(__L,LUA_REGISTRYINDEX,obj->rindex);
-	lua_pushstring(__L,"__on_packet");
-	lua_gettable(__L,-2);
-	lua_insert(__L,-2);
-	push_luapacket(__L,p);
-	__result = lua_pcall(__L,2,0,0);
-	if(__result){
-		const char *error = lua_tostring(__L,-1);
-		if(error){
-			printf("error on __on_packet:%s\n",error);
-		}	
-	}
-	lua_settop(__L,__oldtop);*/
 	return 0;	
 }
 
@@ -93,13 +69,11 @@ static void on_disconnected(stream_conn_t c,int err){
 	const char *error = push_obj_callback(obj->L,"sri","__on_disconnected",*obj,err);
 	if(error){
 		printf("error on __on_disconnected:%s\n",error);	
-	}	
-	//const char *error = LuaCallTabFuncS(*obj,"__on_disconnected","i",err);
-	//if(error){
-	//	printf("error on __on_disconnected:%s\n",error);
-	//}
+	}
+	//printf("luasocket on_disconnected\n");
+	/*refobj_dec((refobj*)c);
 	release_luaRef(&luasock->luaObj);
-	free(luasock);		
+	free(luasock);*/		
 }
 
 int mask_http_decode;
@@ -112,6 +86,8 @@ static int luasocket_establish(lua_State *L){
     	if(recvbuf_size < 1024) recvbuf_size = 1024;
 	stream_conn_t conn = new_stream_conn(luasock->sock,recvbuf_size,_decoder);
 	stream_conn_associate(g_engine,conn,_decoder->mask == mask_http_decode?on_http_cb:on_packet,on_disconnected);	
+	refobj_inc((refobj*)conn);
+	//printf("luasocket_establish\n");
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
 	stream_conn_setud(conn,luasock);
@@ -126,11 +102,7 @@ static void cb_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	const char *error = push_obj_callback(obj->L,"srpi","___cb_connect",*obj,luasock->sock,err);
 	if(error){
 		printf("error on ___cb_connect:%s\n",error);	
-	}	
-	//const char*error = LuaCallTabFuncS(*obj,"___cb_connect","pi",luasock->sock,err);
-	//if(error){
-	//	printf("error on ___cb_connect:%s\n",error);
-	//}
+	}
 }
 
 static int luasocket_connect(lua_State *L){
@@ -161,7 +133,6 @@ static int luasocket_connect(lua_State *L){
 	return 1;
 }
 
-
 static void on_new_conn(handle_t s,void* ud){
 	luasocket_t luasock = (luasocket_t)ud;
 	luaRef_t  *obj = &luasock->luaObj;
@@ -169,13 +140,7 @@ static void on_new_conn(handle_t s,void* ud){
 	if(error){
 		printf("error on __on_new_connection:%s\n",error);	
 	}	
-	//const char*error = LuaCallTabFuncS(*obj,"__on_new_connection","p",s);
-	//if(error){
-	//	printf("error on __on_new_connection:%s\n",error);
-	//	return;
-	//}	
 }
-
 
 static int luasocket_listen(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
@@ -204,14 +169,16 @@ static int luasocket_listen(lua_State *L){
 }
 
 static int luasocket_close(lua_State *L){
+	printf("luasocket_close\n");
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type == _SOCKET){
-		kn_close_sock(luasock->sock);
-		release_luaRef(&luasock->luaObj);
-		free(luasock);				
+		kn_close_sock(luasock->sock);				
 	}else{
 		stream_conn_close(luasock->streamconn);
+		refobj_dec((refobj*)luasock->streamconn);
 	}
+	release_luaRef(&luasock->luaObj);
+	free(luasock);	
 	return 0;
 }
 
@@ -242,7 +209,6 @@ static int luasocket_send(lua_State *L){
 	pk->_packet = NULL;
 	return 1;
 }
-
 
 #define REGISTER_CONST(___N) do{\
 		lua_pushstring(L, #___N);\

@@ -68,6 +68,7 @@ function socket:Listen(ip,port)
 end
 
 local function process_c_disconnect_event(self,errno)
+	--print("process_c_disconnect_event")
 	self.errno = errno
 	self.closing = true
 	self.Close = function () end --将Close替换成空函数	
@@ -109,7 +110,13 @@ local function process_c_disconnect_event(self,errno)
 	end
 	if self.on_disconnected then
 		--在一个协程上下文下调用on_disconnected,以使得在on_disconnected中可以使用协程相关功能
-		Sche.Spawn(self.on_disconnected,self,errno)
+		local s = self
+		Sche.Spawn(function ()
+				s.on_disconnected(s,errno)
+				CSocket.close(s.luasocket)
+			        end)
+	else
+		CSocket.close(self.luasocket)
 	end				
 end
 

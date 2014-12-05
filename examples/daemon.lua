@@ -1,6 +1,7 @@
 local Sche = require "lua.sche"
 local Redis = require "lua.redis"
 local Cjson = require "cjson"
+local Http = require "lua.http"
 
 local deployment={
 	{groupname="central",service={
@@ -47,12 +48,22 @@ end
 
 local err,toredis = Redis.Connect("127.0.0.1",6379,function () print("disconnected") end)
 if not err then
+
+	Sche.Spawn(function ()
+		Http.CreateServer(function (req, res) 
+		  res:WriteHead(200,"OK", {"Content-Type: text/plain"})
+		  res:End("Hello World\n");
+		  print("get http request")
+		end):Listen("127.0.0.1",8800)
+		print("create HttpServer on 127.0.0.1 8800")
+	end)
+
 	toredis:Command("set deployment " .. Cjson.encode(deployment))
 	C.AddTopFilter("distrilua")
 	C.AddTopFilter("ssdb-server")
 	while true do
 		local machine_status = C.Top()
-		print(machine_status)
+		--print(machine_status)
 		local tb = split(machine_status,"\n")
 		local machine = {}
 		local i = 1
@@ -83,7 +94,8 @@ if not err then
 		local str = string.format("hmset MachineStatus 192.168.0.87 %s",CBase64.encode(Cjson.encode({machine,process})))
 		toredis:Command(str)
 		--toredis:Command("set machine " .. CBase64.encode(Cjson.encode(machine)))
-		--toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))			
+		--toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))
+		collectgarbage("collect")			
 		Sche.Sleep(1000)
 	end
 else
