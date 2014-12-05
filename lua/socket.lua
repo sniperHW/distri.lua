@@ -39,7 +39,8 @@ end
 ]]--
 function socket:Close()
 	self.closing = true
-	CSocket.close(self.luasocket)		
+	CSocket.close(self.luasocket)
+	self.luasocket = nil
 	self.Close = function () end --将Close替换成空函数	
 end
 
@@ -113,9 +114,9 @@ local function process_c_disconnect_event(self,errno)
 		local s = self
 		Sche.Spawn(function ()
 				s.on_disconnected(s,errno)
-				CSocket.close(s.luasocket)
+				if s.luasocket then CSocket.close(s.luasocket) end
 			        end)
-	else
+	elseif self.luasocket then
 		CSocket.close(self.luasocket)
 	end				
 end
