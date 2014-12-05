@@ -4,7 +4,7 @@ Recv,Send,Connect,Accept等接口,而实际是异步处理的
 ]]--
 
 local Sche = require "lua.sche"
-local Que  = require "lua.queue"
+local LinkQue  = require "lua.linkque"
 local Time = require "lua.time"
 local socket = {}
 
@@ -61,8 +61,8 @@ function socket:Listen(ip,port)
 	if self.block_onaccept or self.new_conn then
 		return "already listening"
 	end
-	self.block_onaccept = Que.New()
-	self.new_conn = Que.New()
+	self.block_onaccept = LinkQue.New()
+	self.new_conn = LinkQue.New()
 	self.__on_new_connection = on_new_conn
 	return CSocket.listen(self.luasocket,ip,port)
 end
@@ -82,6 +82,10 @@ local function process_c_disconnect_event(self,errno)
 		end
 	end
 
+	if self.connect_co then
+		Sche.WakeUp(self.connect_co)--Schedule(self.connect_co)
+	end
+
 	while true do
 		co = self.block_recv:Pop()
 		if co then
@@ -90,10 +94,6 @@ local function process_c_disconnect_event(self,errno)
 		else
 			break
 		end
-	end
-	
-	if self.connect_co then
-		Sche.WakeUp(self.connect_co)--Schedule(self.connect_co)
 	end
 	
 	if self.pending_rpc then
@@ -134,7 +134,7 @@ function socket:Establish(decoder,recvbuf_size)
 	self.isestablish = true
 	self.__on_packet = process_c_packet_event
 	self.__on_disconnected = process_c_disconnect_event
-	self.block_recv = Que.New()	
+	self.block_recv = LinkQue.New()	
 	if not decoder then
 		decoder = CSocket.rawdecoder()
 	end
@@ -142,7 +142,7 @@ function socket:Establish(decoder,recvbuf_size)
 		recvbuf_size = 65535
 	end	
 	CSocket.establish(self.luasocket,recvbuf_size,decoder)
-	self.packet = Que.New()
+	self.packet = LinkQue.New()
 	return self	
 end
 

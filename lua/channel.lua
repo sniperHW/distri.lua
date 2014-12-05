@@ -1,4 +1,4 @@
-local Que = require "lua.queue"
+local LinkQue = require "lua.linkque"
 local Shce = require "lua.sche"
 
 local channel = {}
@@ -7,7 +7,7 @@ function channel:new()
   local o = {}
   self.__index = self      
   setmetatable(o,self)
-  o.chan = Que.New()
+  o.chan = LinkQue.New()
   return o
 end
 

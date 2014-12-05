@@ -169,7 +169,7 @@ static int luasocket_listen(lua_State *L){
 }
 
 static int luasocket_close(lua_State *L){
-	printf("luasocket_close\n");
+	//printf("luasocket_close\n");
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type == _SOCKET){
 		kn_close_sock(luasock->sock);				

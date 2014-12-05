@@ -1,14 +1,14 @@
 local Sche = require "lua.sche"
 
 
-local Que  = require "lua.queue"
+local LinkQue  = require "lua.linkque"
 local lock = {}
 
 function lock:new()
   local o = {}
   self.__index = self      
   setmetatable(o,self)
-  o.block = Que.New()
+  o.block = LinkQue.New()
   o.flag  = false
   return o
 end

@@ -1,10 +1,10 @@
 local MinHeap = require "lua.minheap"
-local Que =  require "lua.queue"
+local LinkQue =  require "lua.linkque"
 local Time = require "lua.time"
 
 
 local sche = {
-	ready_list = Que.New(),
+	ready_list = LinkQue.New(),
 	timer = MinHeap.New(),
 	allcos = {},
 	runningco = nil,

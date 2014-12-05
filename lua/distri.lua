@@ -1,7 +1,7 @@
 local Sche = require "lua.sche"
 local Http = require "lua.http"
-local Que  = require "lua.queue"
-local c_callback_que = Que.New()--用于接收c传递进来的callback请求	
+local LinkQue  = require "lua.linkque"
+local c_callback_que = LinkQue.New()--用于接收c传递进来的callback请求	
 local block_on_c_callback_que
 
 local normal_callback = 1
