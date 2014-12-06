@@ -64,21 +64,19 @@ static int lua_ForkExec(lua_State *L){
 	int ret = -1;
 	char **argv = NULL;	
 	if(top > 0){
-		const char *exepath = lua_tostring(L,1);
 		int size = top;
 		if(size){
 			argv = calloc(sizeof(*argv),size+1);
-			argv[0] = (char*)exepath;
-			int i = 2;
-			for(;i <= top; ++i){
+			int i;
+			for(i = 1;i <= top; ++i){
+				if(!lua_isstring(L,i)) return luaL_error(L,"param should be string");
 				argv[i-1] = (char*)lua_tostring(L,i);
 			}
 			argv[size] = NULL;
 		}
+		char *exepath = argv[0];
 		pid_t pid;
-		if((pid = fork()) == 0 ){
-
-#if 1			
+		if((pid = fork()) == 0 ){	
 			int i, fd0, fd1, fd2;
 			struct rlimit	rl;
 			struct sigaction	sa;
@@ -125,8 +123,7 @@ static int lua_ForkExec(lua_State *L){
 				//snprintf(buf,4096,"unexpected file descriptors %d %d %d",fd0, fd1, fd2);
 				//write(fd0,buf,strlen(buf));
 				exit(1);
-			}
-#endif						
+			}	
 			if(execv(exepath,argv) < 0){
 				exit(-1);
 			}
@@ -139,18 +136,24 @@ static int lua_ForkExec(lua_State *L){
 }
 
 static int lua_KillProcess(lua_State *L){
+	if(lua_gettop(L) < 1 || LUA_TNUMBER != lua_type(L,1))
+		return luaL_error(L,"need a integer param");
 	pid_t pid = (pid_t)lua_tointeger(L,1);
 	lua_pushinteger(L,kill(pid,SIGKILL));
 	return 1;
 }
 
 static int lua_StopProcess(lua_State *L){
+	if(lua_gettop(L) < 1 || LUA_TNUMBER != lua_type(L,1))
+		return luaL_error(L,"need a integer param");	
 	pid_t pid = (pid_t)lua_tointeger(L,1);
 	lua_pushinteger(L,kill(pid,SIGINT));
 	return 1;
 }
 
 static int lua_RunOnce(lua_State *L){
+	if(lua_gettop(L) < 1 || LUA_TNUMBER != lua_type(L,1))
+		return luaL_error(L,"need a integer param");		
 	if(g_status){ 
 		uint32_t ms = (uint32_t)lua_tointeger(L,1);
 		kn_engine_runonce(g_engine,ms);
@@ -169,8 +172,15 @@ static int lua_Top(lua_State *L){
 }
 
 static int lua_AddTopFilter(lua_State *L){
-	const char *str = lua_tostring(L,1);
-	addfilter(str);
+	if(lua_gettop(L) < 1)
+		return luaL_error(L,"need a least one param");		
+	int i;
+	int size = lua_gettop(L);
+	for(i = 1; i <= size; ++i){
+		if(!lua_isstring(L,i)) 
+			return luaL_error(L,"param should be string");
+		addfilter(lua_tostring(L,i));
+	}
 	return 0;
 }
 
