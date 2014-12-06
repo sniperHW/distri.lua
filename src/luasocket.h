@@ -7,8 +7,8 @@
 typedef struct {
 	handle_t      sock;
 	stream_conn_t streamconn;
-	int           type;
-	luaRef_t      luaObj;	
+	int                type;
+	luaRef_t      luaObj;
 }*luasocket_t;
 
 void reg_luasocket(lua_State *L);

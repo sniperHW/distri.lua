@@ -34,9 +34,9 @@ end
 务必保证对产生的每个socket对象调用Close。
 ]]--
 function socket:Close()
-	--print("socket:Close")
 	local luasocket = self.luasocket
 	if luasocket then
+		--print("socket:Close")
 		self.luasocket = nil
 		CSocket.close(luasocket)
 	end	
@@ -67,7 +67,7 @@ function socket:Listen(ip,port)
 end
 
 local function process_c_disconnect_event(self,errno)
-	--print("process_c_disconnect_event")
+	print("process_c_disconnect_event")
 	self.errno = errno
 	local co
 	while self.block_noaccept do

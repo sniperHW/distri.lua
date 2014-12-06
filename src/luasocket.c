@@ -40,6 +40,12 @@ static int luasocket_new2(lua_State *L){
 	return 1;	
 }
 
+static void destroy_luasocket(luasocket_t lsock){
+	printf("destroy_luasocket\n");
+	release_luaRef(&lsock->luaObj);
+	free(lsock);	
+}
+
 typedef struct{
 	luaPushFunctor base;
 	packet_t p;
@@ -64,16 +70,24 @@ static int  on_packet(stream_conn_t c,packet_t p){
 }
 
 static void on_disconnected(stream_conn_t c,int err){
+	printf("on_disconnected\n");
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
+
+	/*f(luasock->streamconn){
+		LuaRef_Set(*obj,"p","luasocket",NULL);//              const char *fmt,...);
+		luasock->streamconn = NULL;
+	}*/
 	const char *error = push_obj_callback(obj->L,"sri","__on_disconnected",*obj,err);
 	if(error){
 		printf("error on __on_disconnected:%s\n",error);	
 	}
-	//printf("luasocket on_disconnected\n");
-	/*refobj_dec((refobj*)c);
-	release_luaRef(&luasock->luaObj);
-	free(luasock);*/		
+	if(!luasock->streamconn){
+		destroy_luasocket(luasock);
+	}else{
+		luasock->streamconn = NULL;
+	}
+	//destroy_luasocket(luasock);	
 }
 
 int mask_http_decode;
@@ -169,16 +183,19 @@ static int luasocket_listen(lua_State *L){
 }
 
 static int luasocket_close(lua_State *L){
-	//printf("luasocket_close\n");
+	printf("luasocket_close\n");
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type == _SOCKET){
-		kn_close_sock(luasock->sock);				
+		kn_close_sock(luasock->sock);
+		destroy_luasocket(luasock);						
 	}else{
-		stream_conn_close(luasock->streamconn);
-		refobj_dec((refobj*)luasock->streamconn);
+		if(luasock->streamconn){
+			stream_conn_close(luasock->streamconn);
+			refobj_dec((refobj*)luasock->streamconn);
+			luasock->streamconn = NULL;
+		}else
+			destroy_luasocket(luasock);
 	}
-	release_luaRef(&luasock->luaObj);
-	free(luasock);	
 	return 0;
 }
 
