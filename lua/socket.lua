@@ -34,6 +34,7 @@ end
 务必保证对产生的每个socket对象调用Close。
 ]]--
 function socket:Close()
+	--print("socket:Close")
 	local luasocket = self.luasocket
 	if luasocket then
 		self.luasocket = nil
@@ -201,7 +202,7 @@ function socket:Connect(ip,port)
 		self.connect_co = Sche.Running()
 		self.___cb_connect = cb_connect
 		Sche.Block()
-		if not self.luasocket then
+		if not self.luasocket or  self.errno ~= 0 then
 			return self.errno
 		else
 			--establish(self,max_packet_size or 65535,decoder)	
