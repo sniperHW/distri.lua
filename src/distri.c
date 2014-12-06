@@ -77,6 +77,8 @@ static int lua_ForkExec(lua_State *L){
 		}
 		pid_t pid;
 		if((pid = fork()) == 0 ){
+
+#if 1			
 			int i, fd0, fd1, fd2;
 			struct rlimit	rl;
 			struct sigaction	sa;
@@ -123,7 +125,8 @@ static int lua_ForkExec(lua_State *L){
 				//snprintf(buf,4096,"unexpected file descriptors %d %d %d",fd0, fd1, fd2);
 				//write(fd0,buf,strlen(buf));
 				exit(1);
-			}			
+			}
+#endif						
 			if(execv(exepath,argv) < 0){
 				exit(-1);
 			}

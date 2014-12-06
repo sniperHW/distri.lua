@@ -1,7 +1,11 @@
 local Sche = require "lua.sche"
 local Redis = require "lua.redis"
 local Cjson = require "cjson"
-local Http = require "lua.http"
+local Socket = require "lua.socket"
+
+local err
+local toredis
+local serverip = "192.168.0.87"
 
 local deployment={
 	{groupname="central",service={
@@ -28,6 +32,9 @@ local deployment={
 	},	
 }
 
+local process
+local localservice
+
 local function split(s,separator)
 	local ret = {}
 	local initidx = 1
@@ -46,24 +53,126 @@ local function split(s,separator)
 	return ret
 end
 
-local err,toredis = Redis.Connect("127.0.0.1",6379,function () print("disconnected") end)
+--server for php request
+local function RunDaemonServer()
+	local function FindByLogicname(logicname)
+		for k,v in pairs(localservice) do
+			if v[3] == logicname then
+				return  v
+			end
+		end
+		return nil
+	end
+	
+	local function processMsg(sock,msg)
+		print("processMsg")
+		local opreq = Cjson.decode(msg);
+		local retpk = nil
+		while true do
+			if opreq.ip ~= "" and opreq.ip ~= serverip then
+				break
+			end
+			if opreq.logicname == '' then
+				break
+			end
+			if opreq.op == "Start" then
+				local got = nil
+				for i = 1,#process do
+					if string.find(process[i].cmd,opreq.logicname,1) then
+						got = true
+						break
+					end
+				end
+				if got then
+					break
+				end
+				local r = FindByLogicname(opreq.logicname)
+				if r then
+					local luafile = string.format("SurviveServer/%s/%s.lua",r[2],r[2])
+					C.ForkExec("./distrilua",luafile,r[1],r[3])
+					retpk = CPacket.NewRawPacket("operation success")
+				end
+				break
+			elseif opreq.op == "Stop" or opreq.op == "Kill" then
+				print(opreq.op)
+				local got = nil
+				for i = 1,#process do
+					if string.find(process[i].cmd,opreq.logicname,1) then
+						got = process[i]
+						break
+					end
+				end
+				if not got then
+					break
+				end
+				print(opreq.op,1)
+				if opreq.op == "Stop" then
+					C.StopProcess(got.pid)
+				else
+					C.KillProcess(got.pid)	
+				end
+				print(opreq.op,2)
+				retpk = CPacket.NewRawPacket("operation success")
+				break
+			else
+				break
+			end
+		end
+		if not retpk then
+			retpk = CPacket.NewRawPacket("invaild operation")
+		end
+		sock:Send(retpk)
+		sock:Close()
+	end
+
+	local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+	if not server:Listen("127.0.0.1",8800) then
+			print("DaemonServer listen on 127.0.0.1 8800")
+			while true do
+				local client = server:Accept()
+				print("new client")
+				client:Establish()
+				Sche.Spawn(function ()
+					local unpackbuff = ''
+					while true do
+						local packet,err = client:Recv()
+						if err then
+							print("client disconnected err:" .. err)			
+							client:Close()
+							return
+						end
+						processMsg(client,packet:Read_rawbin())
+					end
+				end)
+			end		
+	else
+		print("create DaemonServer on 127.0.0.1 8800 error")
+	end
+end
+
+
+err,toredis = Redis.Connect("127.0.0.1",6379,function () print("disconnected") end)
 if not err then
 
-	Sche.Spawn(function ()
-		Http.CreateServer(function (req, res) 
-		  res:WriteHead(200,"OK", {"Content-Type: text/plain"})
-		  res:End("Hello World\n");
-		  print("get http request")
-		end):Listen("127.0.0.1",8800)
-		print("create HttpServer on 127.0.0.1 8800")
-	end)
+	localservice = {}
+	for k1,v1 in pairs(deployment) do
+		for k2,v2 in pairs(v1.service) do
+			if v2.ip == serverip then
+				table.insert(localservice,{v1.groupname,v2.type,v2.logicname})
+			end
+		end
+	end
 
+	for k,v in pairs(localservice) do
+		print(v[1],v[2],v[3])
+	end
+
+	Sche.Spawn(RunDaemonServer)
 	toredis:Command("set deployment " .. Cjson.encode(deployment))
 	C.AddTopFilter("distrilua")
 	C.AddTopFilter("ssdb-server")
 	while true do
 		local machine_status = C.Top()
-		--print(machine_status)
 		local tb = split(machine_status,"\n")
 		local machine = {}
 		local i = 1
@@ -76,7 +185,7 @@ if not err then
 			end
 			i = i + 1
 		end
-		local process = {}
+		process = {}
 		while i <= #tb do
 			if tb[i] ~= "" then
 				local tmp = {}
@@ -89,12 +198,8 @@ if not err then
 			end
 			i = i + 1	
 		end
-
-
 		local str = string.format("hmset MachineStatus 192.168.0.87 %s",CBase64.encode(Cjson.encode({machine,process})))
 		toredis:Command(str)
-		--toredis:Command("set machine " .. CBase64.encode(Cjson.encode(machine)))
-		--toredis:Command("set process " .. CBase64.encode(Cjson.encode(process)))
 		collectgarbage("collect")			
 		Sche.Sleep(1000)
 	end

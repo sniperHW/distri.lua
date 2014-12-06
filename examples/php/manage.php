@@ -446,12 +446,18 @@
 								logicname = item.value;
 							//constructor http request
 							var request = createXMLHttpRequest();
-							var url="control_action.php?" + "ip=" + ip +"&group=" + group + "&logicname=" + logicname;
-							request.open("GET",url,true);
+							var url="control_action.php";//?op=" + id + "&ip=" + ip +"&group=" + group + "&logicname=" + logicname;
+							request.open("POST",url,true);
 							request.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
 							request.onreadystatechange = buttoncallback;
-							request.send(null);//ip+":" + group + ":" + logicname);
-							//webix.message("2");							
+							//var str = "op=" + id + "&ip=" + ip +"&group=" + group + "&logicname=" + logicname;
+							var op = {};
+							op['op'] = id;
+							op['ip'] = ip;
+							op['group'] = group;
+							op['logicname'] = logicname;
+							var str = JSON.stringify(op);
+							request.send("op=" + str);						
 						}
 					}
 					//webix.message("3");
