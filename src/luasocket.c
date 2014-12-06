@@ -40,8 +40,9 @@ static int luasocket_new2(lua_State *L){
 	return 1;	
 }
 
-static void destroy_luasocket(luasocket_t lsock){
+static void destroy_luasocket(void *_){
 	printf("destroy_luasocket\n");
+	luasocket_t lsock = (luasocket_t)_;
 	release_luaRef(&lsock->luaObj);
 	free(lsock);	
 }
@@ -69,25 +70,27 @@ static int  on_packet(stream_conn_t c,packet_t p){
 	return 0;	
 }
 
+static int luasocket_close(lua_State *L){
+	printf("luasocket_close\n");
+	luasocket_t luasock = lua_touserdata(L,1);
+	if(luasock->type == _SOCKET){
+		kn_close_sock(luasock->sock);
+		destroy_luasocket(luasock);						
+	}else{
+		stream_conn_close(luasock->streamconn);
+		refobj_dec((refobj*)luasock->streamconn);
+	}
+	return 0;
+}
+
 static void on_disconnected(stream_conn_t c,int err){
 	printf("on_disconnected\n");
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
-
-	/*f(luasock->streamconn){
-		LuaRef_Set(*obj,"p","luasocket",NULL);//              const char *fmt,...);
-		luasock->streamconn = NULL;
-	}*/
 	const char *error = push_obj_callback(obj->L,"sri","__on_disconnected",*obj,err);
 	if(error){
 		printf("error on __on_disconnected:%s\n",error);	
-	}
-	if(!luasock->streamconn){
-		destroy_luasocket(luasock);
-	}else{
-		luasock->streamconn = NULL;
-	}
-	//destroy_luasocket(luasock);	
+	}	
 }
 
 int mask_http_decode;
@@ -104,7 +107,7 @@ static int luasocket_establish(lua_State *L){
 	//printf("luasocket_establish\n");
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
-	stream_conn_setud(conn,luasock);
+	stream_conn_setud(conn,luasock,destroy_luasocket);
 	return 0;
 }
 
@@ -180,23 +183,6 @@ static int luasocket_listen(lua_State *L){
 	}else
 		lua_pushnil(L);
 	return 1;		
-}
-
-static int luasocket_close(lua_State *L){
-	printf("luasocket_close\n");
-	luasocket_t luasock = lua_touserdata(L,1);
-	if(luasock->type == _SOCKET){
-		kn_close_sock(luasock->sock);
-		destroy_luasocket(luasock);						
-	}else{
-		if(luasock->streamconn){
-			stream_conn_close(luasock->streamconn);
-			refobj_dec((refobj*)luasock->streamconn);
-			luasock->streamconn = NULL;
-		}else
-			destroy_luasocket(luasock);
-	}
-	return 0;
 }
 
 static int luasocket_tostring(lua_State *L){
