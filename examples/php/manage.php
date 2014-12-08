@@ -207,9 +207,9 @@
 					var tmp2 = DeployPhyTree[machinedata[i].ip]
 					var tmp3 = machinedata[i].status[1];
 					for(var j = 0,len2 = tmp2.length; j < len2;j++){
-						var process = match(tmp2[j],tmp3);
+						var process = match(tmp2[j][0],tmp3);
 						if(process){
-							tmp1.process[tmp2[j]] = process;
+							tmp1.process[tmp2[j][0]] = process;
 						}
 					}	
 				}
@@ -235,13 +235,14 @@
 				DeployPhyTree = {};
 				for(var i = 0,len1 = deploydata.length; i < len1; i++){
 					var tmp1 = deploydata[i].service;
+					var group = deploydata[i].groupname;
 					for(var j = 0,len2 = tmp1.length; j < len2; j++){
 						var tmp2 = DeployPhyTree[tmp1[j].ip];
 						if(!tmp2){
 							tmp2 = [];
 							DeployPhyTree[tmp1[j].ip] = tmp2;
 						}
-						tmp2.push(tmp1[j].logicname);	
+						tmp2.push([tmp1[j].logicname,group]);	
 					}		
 				}
 			}
@@ -267,14 +268,14 @@
 						var item;
 						var icon;
 						var ip = key;
-						var logicname = services[i];
+						var logicname = services[i][0];
 						if(PhysicalTree[ip] && PhysicalTree[ip].process[logicname]){
 							icon = "";
 						}else{
 							icon = "error";
 							goterror = true;
 						}
-						item = {id:key + ":" + services[i],value:services[i],icon:icon};
+						item = {id:key + ":" + services[i][0],value:services[i][0],icon:icon,group:services[i][1]};
 						var id = PhysicalView.add(item, null, rootid);
 					}
 					if(goterror){
@@ -318,8 +319,8 @@
 					var icon;
 					for(var i = 0,len = services.length; i < len; i++){
 						var ip = key;
-						var logicname = services[i];
-						var id = key + ":" + services[i]
+						var logicname = services[i][0];
+						var id = key + ":" + services[i][0]
 						var item = PhysicalView.getItem(id);
 						if(!item){
 							//new item
@@ -434,28 +435,34 @@
 							root = CurrentView.getItem(CurrentView.getParentId(selectID));
 						}
 						if(root){	
-							var ip = '';
-							var group = '';
-							var logicname = '';				
+							var ip = false;
+							var group = false;
+							var logicname = false;				
 							if(CurrentView == PhysicalView){
 								ip = root.value;
 							}else if (CurrentView == LogicalView){
 								group = root.value;
 							}
-							if(root.id != selectID && item)
+							if(root.id != selectID && item){
 								logicname = item.value;
+								if(!group) group = item.group;
+							}
 							//constructor http request
 							var request = createXMLHttpRequest();
-							var url="control_action.php";//?op=" + id + "&ip=" + ip +"&group=" + group + "&logicname=" + logicname;
+							var url="control_action.php";
 							request.open("POST",url,true);
 							request.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");		
 							request.onreadystatechange = buttoncallback;
-							//var str = "op=" + id + "&ip=" + ip +"&group=" + group + "&logicname=" + logicname;
+							//webix.message("1");
 							var op = {};
 							op['op'] = id;
-							op['ip'] = ip;
-							op['group'] = group;
-							op['logicname'] = logicname;
+							//webix.message("2");
+							if(ip) op['ip'] = ip;
+							//webix.message("3");
+							if(group) op['group'] = group;
+							//webix.message("4");
+							if(logicname) op['logicname'] = logicname;
+							//webix.message("5");
 							var str = JSON.stringify(op);
 							request.send("op=" + str);						
 						}
@@ -485,7 +492,10 @@
 							on:{
 								"onAfterSelect":function(id){
 									physelectID = id;
+									//var item = this.getItem(id)
+									//webix.message(item.group)
 									fetchdata();
+
 								}
 							},
 							data:[]

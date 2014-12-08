@@ -8,10 +8,10 @@ local toredis
 local serverip = "192.168.0.87"
 
 local deployment={
-	{groupname="central",service={
+	--[[{groupname="central",service={
 				{type="ssdb-server",logicname="ssdb-server",conf="ssdb.conf",ip="192.168.0.87"},
 		}
-	},
+	},]]--
 	{groupname="group1",service={
 			{type="groupserver",logicname="groupserver",ip="192.168.0.87",port="8010"},
 			{type="gameserver",logicname="gameserver",ip="192.168.0.87",port="8011"},
@@ -33,6 +33,7 @@ local deployment={
 }
 
 local process
+--{groupname,type,logicname}
 local localservice
 
 local function split(s,separator)
@@ -55,13 +56,34 @@ end
 
 --server for php request
 local function RunDaemonServer()
-	local function FindByLogicname(logicname)
+	local function FindByLogicname(logicname,group)
 		for k,v in pairs(localservice) do
-			if v[3] == logicname then
+			if v[3] == logicname and v[1] == group then
 				return  v
 			end
 		end
 		return nil
+	end
+
+	local function FindProcess(logicname,group)
+		local got = nil
+		for i = 1,#process do
+			if string.find(process[i].cmd,logicname,1) and 
+			   string.find(process[i].cmd,group,1) then
+				got = process[i]
+				break
+			end
+		end
+		return got
+	end
+
+	local function StartProcess(serv)
+		if serv[2] == "ssdb-server" then
+			C.ForkExec("../ssdb-master/ssdb-server","../ssdb-server/ssdb.conf",serv[1])
+		else
+			local luafile = string.format("SurviveServer/%s/%s.lua",serv[2],serv[2])
+			C.ForkExec("./distrilua",luafile,serv[1],serv[3])
+		end		
 	end
 	
 	local function processMsg(sock,msg)
@@ -69,49 +91,89 @@ local function RunDaemonServer()
 		local opreq = Cjson.decode(msg);
 		local retpk = nil
 		while true do
-			if opreq.ip ~= "" and opreq.ip ~= serverip then
-				break
-			end
-			if opreq.logicname == '' then
+			if opreq.ip  and opreq.ip ~= serverip then
 				break
 			end
 			if opreq.op == "Start" then
-				local got = nil
-				for i = 1,#process do
-					if string.find(process[i].cmd,opreq.logicname,1) then
-						got = true
+				if opreq.logicname  then
+					--start one service
+					if not opreq.group then
 						break
 					end
-				end
-				if got then
-					break
-				end
-				local r = FindByLogicname(opreq.logicname)
-				if r then
-					local luafile = string.format("SurviveServer/%s/%s.lua",r[2],r[2])
-					C.ForkExec("./distrilua",luafile,r[1],r[3])
+					local got = FindProcess(opreq.logicname,opreq.group)
+					if got then
+						break
+					end
+					local r = FindByLogicname(opreq.logicname,opreq.group)
+					if r then
+						StartProcess(r)
+						retpk = CPacket.NewRawPacket("operation success")
+					end
+				else
+					if opreq.group then
+						for k,v in pairs(localservice) do
+							if opreq.group == v[1] and
+							   not FindProcess(v[3],v[1]) then
+							   	StartProcess(v)
+							end
+						end
+					elseif opreq.ip then
+						for k,v in pairs(localservice) do
+							if not FindProcess(v[3],v[1]) then
+							   	StartProcess(v)
+							end
+						end
+					else
+						break
+					end
 					retpk = CPacket.NewRawPacket("operation success")
 				end
 				break
 			elseif opreq.op == "Stop" or opreq.op == "Kill" then
-				print(opreq.op)
-				local got = nil
-				for i = 1,#process do
-					if string.find(process[i].cmd,opreq.logicname,1) then
-						got = process[i]
+				if opreq.logicname then
+					--stop or kill one service
+					if not opreq.group then
+						break
+					end	
+					local got = FindProcess(opreq.logicname,opreq.group)
+					if not got then
+						break
+					end
+					if opreq.op == "Stop" then
+						--print(got.pid)
+						C.StopProcess(got.pid)
+					else
+						C.KillProcess(got.pid)	
+					end
+				else
+					if opreq.group then
+						for k,v in pairs(localservice) do
+							if opreq.group == v[1] then
+								local p = FindProcess(v[3],v[1])
+								if p then
+									if opreq.op == "Stop" then
+										C.StopProcess(p.pid)
+									else
+										C.KillProcess(p.pid)	
+									end
+								end
+							end
+						end
+					elseif opreq.ip then
+						for k,v in pairs(localservice) do
+							local p = FindProcess(v[3],v[1])
+							if p then
+								if opreq.op == "Stop" then
+									C.StopProcess(p.pid)
+								else
+									C.KillProcess(p.pid)	
+								end
+							end							
+						end
+					else
 						break
 					end
 				end
-				if not got then
-					break
-				end
-				print(opreq.op,1)
-				if opreq.op == "Stop" then
-					C.StopProcess(got.pid)
-				else
-					C.KillProcess(got.pid)	
-				end
-				print(opreq.op,2)
 				retpk = CPacket.NewRawPacket("operation success")
 				break
 			else

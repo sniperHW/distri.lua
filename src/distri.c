@@ -136,7 +136,7 @@ static int lua_ForkExec(lua_State *L){
 }
 
 static int lua_KillProcess(lua_State *L){
-	if(lua_gettop(L) < 1 || LUA_TNUMBER != lua_type(L,1))
+	if(lua_gettop(L) < 1 || !lua_isnumber(L,1))
 		return luaL_error(L,"need a integer param");
 	pid_t pid = (pid_t)lua_tointeger(L,1);
 	lua_pushinteger(L,kill(pid,SIGKILL));
@@ -144,7 +144,7 @@ static int lua_KillProcess(lua_State *L){
 }
 
 static int lua_StopProcess(lua_State *L){
-	if(lua_gettop(L) < 1 || LUA_TNUMBER != lua_type(L,1))
+	if(lua_gettop(L) < 1 || !lua_isnumber(L,1))
 		return luaL_error(L,"need a integer param");	
 	pid_t pid = (pid_t)lua_tointeger(L,1);
 	lua_pushinteger(L,kill(pid,SIGINT));
@@ -152,7 +152,7 @@ static int lua_StopProcess(lua_State *L){
 }
 
 static int lua_RunOnce(lua_State *L){
-	if(lua_gettop(L) < 1 || LUA_TNUMBER != lua_type(L,1))
+	if(lua_gettop(L) < 1 || !lua_isnumber(L,1))
 		return luaL_error(L,"need a integer param");		
 	if(g_status){ 
 		uint32_t ms = (uint32_t)lua_tointeger(L,1);
