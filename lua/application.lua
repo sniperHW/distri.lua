@@ -83,12 +83,11 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 					if socket.luasocket then
 						if Time.SysTick() > socket.lastrecv + recvtimeout then
 							socket:Close()
-							return false
+							return "stoptimer"
 						end
 					else
-						return false
+						return "stoptimer"
 					end
-					return true
 				end,1000)
 
 			--[[Sche.Spawn(function ()
@@ -114,9 +113,8 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 						wpk:Write_uint32(CMD_PING)
 						socket:Send(wpk)
 					else
-						return false
+						return "stoptimer"
 					end
-					return true
 				end,pinginterval)			
 			--[[Sche.Spawn(function ()
 				while true do

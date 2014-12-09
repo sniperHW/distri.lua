@@ -44,7 +44,9 @@ function LinkQue:Remove(node)
 		node.__pre = nil
 		node.__owner = nil
 		self.size = self.size - 1
+		return true
 	end
+	return false
 end
 
 function LinkQue:Pop()

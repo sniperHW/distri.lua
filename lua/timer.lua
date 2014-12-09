@@ -5,11 +5,12 @@ local timer = {
 	minheap,
 }
 
-function timer:new(runImmediate)
+function timer:new(runImmediate,tickinterval)
   local o = {}   
   setmetatable(o, self)
   self.__index = self
   o.minheap = MinHeap.New()
+  o.tickinterval = tickinterval or 1
   if runImmediate then
   	Sche.SpawnAndRun(function () o:Run() end)
   end
@@ -56,19 +57,21 @@ function timer:Run()
 				if not status then
 					local err = ret
 					CLog.SysLog(CLog.LOG_ERROR,"timer error:" .. err)
-				elseif ret then
-					self:Register(t.callback,t.ms,table.unpack(t.arg))
+				else
+					if ret == nil then
+						self:Register(t.callback,t.ms,table.unpack(t.arg))
+					end
 				end
 			end
 		end
 		if self.stop  then 
 			return nil
 		end
-		Sche.Sleep(1)
+		Sche.Sleep(self.tickinterval)
 	end	
 end
 
 return {
-	New = function (runImmediate) return timer:new(runImmediate) end
+	New = function (runImmediate,tickinterval) return timer:new(runImmediate,tickinterval) end
 }
 

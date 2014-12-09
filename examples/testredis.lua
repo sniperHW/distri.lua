@@ -54,6 +54,5 @@ local timer = Timer.New():Register(function ()
 	print("count:" .. count*1000/(now-last) .. " " .. now-last)
 	count = 0
 	last = now
-	return true --return true to register once again	
 end,1000):Run()		
 

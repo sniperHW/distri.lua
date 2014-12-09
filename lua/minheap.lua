@@ -1,11 +1,11 @@
 local minheap = {
-	m_size = 0, --元素的数量
-	m_data = {}  --元素
+	m_size = 0, 
+	m_data = {}
 }
 
 
-function minheap:new(o)
-  local o = o or {}   
+function minheap:new()
+  local o = {}   
   setmetatable(o, self)
   self.__index = self
   o.m_size = 0
@@ -66,11 +66,8 @@ function minheap:Change(co)
     if index == 0 then
         return
     end
-    --尝试往下调整
     self:Down(index)
-	--如果向下调整过必定不再需要向上调整
 	if index == co.index then
-		--尝试往上调整
 		self:Up(index)
 	end
 end

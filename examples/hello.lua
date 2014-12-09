@@ -33,7 +33,6 @@ if success then
 		count = 0
 		size = 0
 		last = now
-		return true --return true to register once again	
 	end,1000):Run()
 else
 	print("hello start error\n")
