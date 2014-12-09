@@ -186,6 +186,7 @@ static int lua_AddTopFilter(lua_State *L){
 
 void reg_luahttp(lua_State *L);
  void reg_luabase64(lua_State *L);
+ void reg_timeutil(lua_State *L);
 int main(int argc,char **argv)
 {
 	if(argc < 2){
@@ -225,6 +226,7 @@ int main(int argc,char **argv)
 	reg_luaredis(L);
 	reg_lualog(L);
 	reg_luabase64(L);
+	reg_timeutil(L);
 	g_engine = kn_new_engine();
 	start(L,argc,argv);
 	return 0;
