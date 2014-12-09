@@ -132,6 +132,7 @@ static int lua_ForkExec(lua_State *L){
 	}
 	if(argv) free(argv);	
 	lua_pushinteger(L,ret);
+	wait(NULL);
 	return 1;
 }
 
