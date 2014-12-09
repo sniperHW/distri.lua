@@ -24,7 +24,7 @@ local function RPC_Process_Call(app,s,rpk)
 			response.ret = {table.unpack(ret)}
 		else
 			response.err = ret[2]
-			print("rpc process error:",ret[2])
+			CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
 		end
 	end
 	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)

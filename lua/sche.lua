@@ -138,7 +138,7 @@ end
 local function start_fun(co)
     local ret,err = pcall(co.start_func,table.unpack(co.args))
     if not ret then
-        print("error on start_fun:" .. err)
+        CLog.SysLog(CLog.LOG_ERROR,string.format("error on start_fun::%s",err))
     end
     sche.allcos[co.identity] = nil
     co.status = stat_dead

@@ -67,7 +67,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 				--Sche.Schedule(co)
 				Sche.WakeUp(co)		
 			elseif app.running then
-				print("SpawnAndRun")
+				--print("SpawnAndRun")
 				Sche.SpawnAndRun(recver,app,socket)
 			end
 		end
@@ -77,13 +77,13 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 			Sche.Spawn(function ()
 				while true do
 				              Sche.Sleep(1000)
-					if not socket.luasocket then
+					if socket.luasocket then
 						if Time.SysTick() > socket.lastrecv + recvtimeout then
 							socket:Close()
-							break
+							return
 						end
 					else
-						break
+						return
 					end
 				end
 			end)	
@@ -98,7 +98,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 						wpk:Write_uint32(CMD_PING)
 						socket:Send(wpk)
 					else
-						break
+						return
 					end
 				end
 			end)			
