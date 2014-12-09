@@ -1,6 +1,7 @@
 local Sche = require "lua.sche"
 local RPC = require "lua.rpc"
 local Time = require "lua.time"
+local Timer = require "lua.timer"
 local application = {}
 
 function application:new(o)
@@ -49,6 +50,9 @@ local function recver(app,socket)
 	app.sockets[socket] = nil	
 end
 
+
+local heart_beat_timer = Timer.New("runImmediate")
+
 function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterval)
 	if not self.sockets[socket] then
 		self.sockets[socket] = socket
@@ -74,7 +78,20 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 		
 		if recvtimeout then
 			socket.lastrecv = Time.SysTick()
-			Sche.Spawn(function ()
+			heart_beat_timer:Register(
+				function ()
+					if socket.luasocket then
+						if Time.SysTick() > socket.lastrecv + recvtimeout then
+							socket:Close()
+							return false
+						end
+					else
+						return false
+					end
+					return true
+				end,1000)
+
+			--[[Sche.Spawn(function ()
 				while true do
 				              Sche.Sleep(1000)
 					if socket.luasocket then
@@ -86,11 +103,22 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 						return
 					end
 				end
-			end)	
+			end)]]--	
 		end
 		
 		if pinginterval then
-			Sche.Spawn(function ()
+			heart_beat_timer:Register(
+				function ()
+					if socket.luasocket then
+						local wpk = CPacket.NewWPacket(64)
+						wpk:Write_uint32(CMD_PING)
+						socket:Send(wpk)
+					else
+						return false
+					end
+					return true
+				end,pinginterval)			
+			--[[Sche.Spawn(function ()
 				while true do
 				    Sche.Sleep(pinginterval)
 					if socket.luasocket then
@@ -101,7 +129,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 						return
 					end
 				end
-			end)			
+			end)]]--			
 		end	
 	end
 	return self

@@ -5,11 +5,14 @@ local timer = {
 	minheap,
 }
 
-function timer:new(o)
-  local o = o or {}   
+function timer:new(runImmediate)
+  local o = {}   
   setmetatable(o, self)
   self.__index = self
   o.minheap = MinHeap.New()
+  if runImmediate then
+  	Sche.SpawnAndRun(function () o:Run() end)
+  end
   return o
 end
 
@@ -39,7 +42,11 @@ function timer:Stop()
 end
 
 function timer:Run()
+	if self.running then
+		return "timer already running"
+	end
 	local timer = self.minheap
+	self.stop = false
 	while true do
 		local now = Time.SysTick()
 		while not self.stop  and timer:Min() ~= 0 and timer:Min() <= now do
@@ -54,12 +61,14 @@ function timer:Run()
 				end
 			end
 		end
-		if self.stop  then return end
+		if self.stop  then 
+			return nil
+		end
 		Sche.Sleep(1)
 	end	
 end
 
 return {
-	New = function () return timer:new() end
+	New = function (runImmediate) return timer:new(runImmediate) end
 }
 
