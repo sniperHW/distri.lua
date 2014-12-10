@@ -1,7 +1,6 @@
 local Redis = require "lua.redis"
 local Sche = require "lua.sche"
 local Timer = require "lua.timer"
-local Time = require "lua.time"
 
 local count = 0
 local toredis
@@ -48,9 +47,9 @@ for j=1,1000 do
 		end
 	end)
 end	
-local last = Time.SysTick()
+local last = C.GetSysTick()
 local timer = Timer.New():Register(function ()
-	local now = Time.SysTick()
+	local now = C.GetSysTick()
 	print("count:" .. count*1000/(now-last) .. " " .. now-last)
 	count = 0
 	last = now

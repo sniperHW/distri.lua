@@ -5,7 +5,6 @@ Recv,Send,Connect,Accept等接口,而实际是异步处理的
 
 local Sche = require "lua.sche"
 local LinkQue  = require "lua.linkque"
-local Time = require "lua.time"
 local socket = {}
 
 function socket:new(domain,type,protocal)

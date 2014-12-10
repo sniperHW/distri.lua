@@ -2,16 +2,16 @@
 local Socket = require "lua.socket"
 local Sche = require "lua.sche"
 local Timer = require "lua.timer"
-local Time = require "lua.time"
+
 
 local count = 0
 local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
 if not server:Listen("127.0.0.1",8001) then
 		print("hello2 listen on 127.0.0.1 8001")
 		Sche.Spawn(function ()
-						local last = Time.SysTick()
+						local last = C.GetSysTick()
 						local timer = Timer.New():Register(function ()
-							local now = Time.SysTick()
+							local now = C.GetSysTick()
 							print("count:" .. count*1000/(now-last) .. " " .. now-last)
 							count = 0
 							last = now

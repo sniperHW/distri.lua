@@ -1,6 +1,5 @@
 local MinHeap = require "lua.minheap"
 local LinkQue =  require "lua.linkque"
-local Time = require "lua.time"
 
 
 local sche = {
@@ -32,7 +31,7 @@ local function Sleep(ms)
 		return
 	end	
 	if ms and ms > 0 then
-		co.timeout = Time.SysTick() + ms
+		co.timeout = C.GetSysTick() + ms
         		if co.index == 0 then
             			sche.timer:Insert(co)
         		else
@@ -56,7 +55,7 @@ local function Block(ms)
 	end
     	if ms and ms > 0 then
 		ms = ms * 1000
-       		local nowtick = Time.SysTick()
+       		local nowtick = C.GetSysTick()
         		co.timeout = nowtick + ms
         		if co.index == 0 then
             			sche.timer:Insert(co)
@@ -112,7 +111,7 @@ local function Schedule(co)
 			end			
 			co = readylist:Pop()
 		end
-		local now = Time.SysTick()
+		local now = C.GetSysTick()
 		local timer = sche.timer
 		while timer:Min() ~=0 and timer:Min() <= now do
 			co = timer:PopMin()
@@ -147,16 +146,13 @@ end
 local g_counter = 0
 local function gen_identity()
 	g_counter = g_counter + 1
-	return string.format("%d%d",Time.SysTick(),g_counter) --"l" .. Time.SysTick() .. "" .. g_counter
+	return string.format("%d%d",C.GetSysTick(),g_counter)
 end
 
 --产生一个coroutine在下次调用Schedule时执行
 local function Spawn(func,...)
 	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
 	co.coroutine = coroutine.create(start_fun)
-	--if not sche.mainco then
-	--	sche.mainco = co
-	--end   
 	sche.allcos[co.identity] = co
 	add2Ready(co)
 	return co
@@ -166,9 +162,6 @@ end
 local function SpawnAndRun(func,...)
 	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
 	co.coroutine = coroutine.create(start_fun)
-	--if not sche.mainco then
-	--	sche.mainco = co
-	--end   
 	sche.allcos[co.identity] = co
 	Schedule(co)
 	return co

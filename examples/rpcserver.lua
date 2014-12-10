@@ -2,7 +2,6 @@ local TcpServer = require "lua.tcpserver"
 local App = require "lua.application"
 local RPC = require "lua.rpc"
 local Timer = require "lua.timer"
-local Time = require "lua.time"
 
 
 local count = 0
@@ -25,9 +24,9 @@ end)
 
 if success then
 	print("server start on 127.0.0.1:8000")
-	local last = Time.SysTick()
+	local last = C.GetSysTick()
 	local timer = Timer.New():Register(function ()
-		local now = Time.SysTick()
+		local now = C.GetSysTick()
 		print("count:" .. count*1000/(now-last) .. " " .. now-last)
 		count = 0
 		last = now

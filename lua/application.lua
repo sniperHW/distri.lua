@@ -1,11 +1,10 @@
 local Sche = require "lua.sche"
 local RPC = require "lua.rpc"
-local Time = require "lua.time"
 local Timer = require "lua.timer"
 local application = {}
 
-function application:new(o)
-  local o = o or {}   
+function application:new()
+  local o = {}   
   setmetatable(o, self)
   self.__index = self
   o.sockets = {}
@@ -25,7 +24,7 @@ local function recver(app,socket)
 		end
 		if rpk then
 			if socket.check_recvtimeout then 
-				socket.lastrecv = Time.SysTick()
+				socket.lastrecv = C.GetSysTick()
 			end
 			local cmd = rpk:Peek_uint32()
 			if cmd and cmd == RPC.CMD_RPC_CALL or cmd == RPC.CMD_RPC_RESP then
@@ -77,11 +76,11 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 		end
 		
 		if recvtimeout then
-			socket.lastrecv = Time.SysTick()
+			socket.lastrecv = C.GetSysTick()
 			heart_beat_timer:Register(
 				function ()
 					if socket.luasocket then
-						if Time.SysTick() > socket.lastrecv + recvtimeout then
+						if C.GetSysTick() > socket.lastrecv + recvtimeout then
 							socket:Close()
 							return "stoptimer"
 						end
@@ -89,20 +88,6 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 						return "stoptimer"
 					end
 				end,1000)
-
-			--[[Sche.Spawn(function ()
-				while true do
-				              Sche.Sleep(1000)
-					if socket.luasocket then
-						if Time.SysTick() > socket.lastrecv + recvtimeout then
-							socket:Close()
-							return
-						end
-					else
-						return
-					end
-				end
-			end)]]--	
 		end
 		
 		if pinginterval then
@@ -115,19 +100,7 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 					else
 						return "stoptimer"
 					end
-				end,pinginterval)			
-			--[[Sche.Spawn(function ()
-				while true do
-				    Sche.Sleep(pinginterval)
-					if socket.luasocket then
-						local wpk = CPacket.NewWPacket(64)
-						wpk:Write_uint32(CMD_PING)
-						socket:Send(wpk)
-					else
-						return
-					end
-				end
-			end)]]--			
+				end,pinginterval)		
 		end	
 	end
 	return self

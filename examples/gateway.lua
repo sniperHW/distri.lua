@@ -11,7 +11,6 @@ local TcpServer = require "lua.tcpserver"
 local App = require "lua.application"
 local Timer = require "lua.timer"
 local Socket = require "lua.socket"
-local Time = require "lua.time"
 
 --首先建立到127.0.0.1:8001的连接
 local toserver = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
@@ -55,9 +54,9 @@ else
 
 	if success then
 		print("gateway start on 127.0.0.1:8000")
-		local last = Time.SysTick()
+		local last = C.GetSysTick()
 		local timer = Timer.New():Register(function ()
-			local now = Time.SysTick()
+			local now = C.GetSysTick()
 			print("count:" .. count*1000/(now-last) .. " " .. now-last)
 			count = 0
 			last = now
