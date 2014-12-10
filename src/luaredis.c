@@ -1,5 +1,6 @@
 #include "luaredis.h"
 #include "push_callback.h"
+#include "log.h"
 
 extern engine_t g_engine;
 
@@ -12,7 +13,8 @@ static void cb_connect(redisconn_t conn,int err,void *ud){
 	luaRef_t   *cbObj = (luaRef_t*)ud;
 	const char *e = errmsg[err == 0 ? 0:1];
 	const char *error = push_obj_callback(cbObj->L,"srps","__cb_connect",*cbObj,conn,e);
-	if(error) printf("error on lua redis __cb_connect:%s\n",error);	
+	if(error) 
+		SYS_LOG(LOG_ERROR,"error on lua redis __cb_connect:%s\n",error);
 	if(error || e){	
 		release_luaRef(cbObj);
 		free(cbObj);
@@ -23,7 +25,7 @@ static void cb_disconnected(redisconn_t conn,void *ud){
 	luaRef_t   *cbObj = (luaRef_t*)ud;
 	const char *error = push_obj_callback(cbObj->L,"sr","__on_disconnected",*cbObj);
 	if(error){
-		printf("error on __on_disconnected:%s\n",error);	
+		SYS_LOG(LOG_ERROR,"error on __on_disconnected:%s\n",error);	
 	}		
 	release_luaRef(cbObj);
 	free(cbObj);	
@@ -78,23 +80,23 @@ void redis_command_cb(redisconn_t conn,struct redisReply* reply,void *pridata)
 	//callback,self,error,result
 	if(!reply){
 		if((error = push_obj_callback(cbObj->L,"srsp","__callback",*cbObj,"unknow error",NULL))){
-			printf("error on redis_command_cb:%s\n",error);	
+			SYS_LOG(LOG_ERROR,"error on redis_command_cb:%s\n",error);	
 		}
 	}
 	else if(reply->type == REDIS_REPLY_NIL){
 		if((error = push_obj_callback(cbObj->L,"srpp","__callback",*cbObj,NULL,NULL))){
-			printf("error on redis_command_cb:%s\n",error);	
+			SYS_LOG(LOG_ERROR,"error on redis_command_cb:%s\n",error);	
 		}					
 	}else if(reply->type == REDIS_REPLY_ERROR){
 		if((error = push_obj_callback(cbObj->L,"srsp","__callback",*cbObj,reply->str,NULL))){
-			printf("error on redis_command_cb:%s\n",error);	
+			SYS_LOG(LOG_ERROR,"error on redis_command_cb:%s\n",error);	
 		}						
 	}else{
 		stPushResultSet st;
 		st.reply = reply;
 		st.base.Push = PushResultSet;
 		if((error = push_obj_callback(cbObj->L,"srsf","__callback",*cbObj,NULL,&st))){
-			printf("error on redis_command_cb:%s\n",error);	
+			SYS_LOG(LOG_ERROR,"error on redis_command_cb:%s\n",error);	
 		}			
 	} 	
 	release_luaRef(cbObj);

@@ -70,7 +70,6 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 				--Sche.Schedule(co)
 				Sche.WakeUp(co)		
 			elseif app.running then
-				--print("SpawnAndRun")
 				Sche.SpawnAndRun(recver,app,socket)
 			end
 		end

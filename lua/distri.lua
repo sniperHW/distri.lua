@@ -18,8 +18,6 @@ function push_c_callback(fun,...)
 end
 
 function push_c_obj_callback(fun,obj,...)
-	--print("push_c_obj_callback")
-	--print(fun)
 	local cbobj = {obj_callback,fun,obj,table.pack(...)}
 	c_callback_que:Push(cbobj)
 	if block_on_c_callback_que then
@@ -61,13 +59,14 @@ end
 
 function Exit()
 	--StopEngine()
-	print("Exit")
 	Sche.Exit()
 end 
 
 function distri_lua_start_run(mainfile)
 	local main,err= loadfile(mainfile)
-	if err then print(err) end
+	if err then 
+		CLog.SysLog(CLog.LOG_ERROR,string.format("distri_lua_start_run load %s %s",mainfile,err))
+	 end
 	Sche.Spawn(function () main() end)
 	Sche.Spawn(process_c_callback)--启动一个协程去处理回调
 	local ms = 5

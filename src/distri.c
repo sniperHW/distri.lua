@@ -14,7 +14,6 @@ engine_t      g_engine = NULL;
 volatile int  g_status = 1;
 
 static void sig_int(int sig){
-	printf("sig_int\n");
 	g_status = 0;
 	kn_stop_engine(g_engine);
 }
@@ -44,13 +43,13 @@ static void start(lua_State *L,int argc,char **argv)
 	if (luaL_dofile(L,"lua/distri.lua")) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
-		printf("%s\n",error);
+		SYS_LOG(LOG_ERROR,"do distri.lua %s\n",error);
 		exit(0);
 	}
 	set_luaarg(L,argc,argv);
 	const char *error = LuaCall(L,"distri_lua_start_run","s",start_file);
 	if(error){
-		printf("%s\n",error);
+		SYS_LOG(LOG_ERROR,"distri_lua_start_run: %s\n",error);
 		exit(0);
 	}
 }

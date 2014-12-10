@@ -25,7 +25,6 @@ function Que:Pop()
 	if #self.data > 0 then
 		local r = self.data[1]
 		table.remove(self.data,1)
-		--print(r)
 		return r
 	else
 		return nil

@@ -107,7 +107,7 @@ int  on_http_cb(stream_conn_t c,packet_t p){
 	if(__result){
 		const char *error = lua_tostring(__L,-1);
 		if(error){
-			printf("error on __on_packet:%s\n",error);
+			SYS_LOG(LOG_ERROR,"error on __on_packet:%s\n",error);
 		}	
 	}
 	lua_settop(__L,__oldtop);	
