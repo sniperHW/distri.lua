@@ -82,12 +82,12 @@ static int lua_DiffDay(lua_State *L)
 	struct tm tmp2 = { 0 };
 	struct tm *_tma = localtime_r(&a,&tmp1);	
 	struct tm *_tmb = localtime_r(&b,&tmp2);
-	_tma->tm_hour = 0;
-	_tma->tm_min = 0;
-	_tma->tm_sec = 0;
-	_tmb->tm_hour = 0;
-	_tmb->tm_min = 0;
-	_tmb->tm_sec = 0;
+	//_tma->tm_hour = 0;
+	//_tma->tm_min = 0;
+	//_tma->tm_sec = 0;
+	//_tmb->tm_hour = 0;
+	//_tmb->tm_min = 0;
+	//_tmb->tm_sec = 0;
 	a = mktime(_tma);
 	b = mktime(_tmb);
 	lua_pushnumber(L,(int32_t)((b - a)/(3600*24)));
@@ -105,12 +105,12 @@ static int lua_DiffWeek(lua_State *L)
 	struct tm tmp2 = { 0 };
 	struct tm *_tma = localtime_r(&a,&tmp1);	
 	struct tm *_tmb = localtime_r(&b,&tmp2);
-	_tma->tm_hour = 0;
-	_tma->tm_min = 0;
-	_tma->tm_sec = 0;
-	_tmb->tm_hour = 0;
-	_tmb->tm_min = 0;
-	_tmb->tm_sec = 0;
+	//_tma->tm_hour = 0;
+	//_tma->tm_min = 0;
+	//_tma->tm_sec = 0;
+	//_tmb->tm_hour = 0;
+	//_tmb->tm_min = 0;
+	//_tmb->tm_sec = 0;
 	time_t weektimeA = mktime(_tma);
 	time_t weektimeB = mktime(_tmb);
 	
