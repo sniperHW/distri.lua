@@ -2,6 +2,7 @@ local TcpServer = require "lua.tcpserver"
 local App = require "lua.application"
 local RPC = require "lua.rpc"
 local Timer = require "lua.timer"
+local Sche = require "lua.sche"
 
 
 local count = 0
@@ -27,7 +28,7 @@ if success then
 	local last = C.GetSysTick()
 	local timer = Timer.New():Register(function ()
 		local now = C.GetSysTick()
-		print("count:" .. count*1000/(now-last) .. " " .. now-last)
+		print(string.format("cocount:%d,rpccount:%d,elapse:%d",Sche.GetCoCount(),count*1000/(now-last),now-last))
 		count = 0
 		last = now
 	end,1000):Run()

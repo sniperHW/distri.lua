@@ -97,10 +97,10 @@ local function process_c_disconnect_event(self,errno)
 			Sche.Schedule(v)
 		end					
 	end
-	if self.application then
+	--[[if self.application then
 		self.application.sockets[self] = nil
 		self.application = nil
-	end
+	end]]--
 	if self.on_disconnected then
 		if Sche.Running() then
 			self.on_disconnected(self,errno)

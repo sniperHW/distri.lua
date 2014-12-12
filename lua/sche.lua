@@ -6,6 +6,7 @@ local sche = {
 	ready_list = LinkQue.New(),
 	timer = MinHeap.New(),
 	allcos = {},
+	co_count = 0,
 	runningco = nil,
 }
 
@@ -140,6 +141,7 @@ local function start_fun(co)
         CLog.SysLog(CLog.LOG_ERROR,string.format("error on start_fun::%s",err))
     end
     sche.allcos[co.identity] = nil
+    sche.co_count = sche.co_count - 1
     co.status = stat_dead
 end
 
@@ -154,6 +156,7 @@ local function Spawn(func,...)
 	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
 	co.coroutine = coroutine.create(start_fun)
 	sche.allcos[co.identity] = co
+	sche.co_count = sche.co_count + 1
 	add2Ready(co)
 	return co
 end
@@ -163,6 +166,7 @@ local function SpawnAndRun(func,...)
 	local co = {index=0,timeout=0,identity=gen_identity(),start_func = func,args={...}}
 	co.coroutine = coroutine.create(start_fun)
 	sche.allcos[co.identity] = co
+	sche.co_count = sche.co_count + 1	
 	Schedule(co)
 	return co
 end
@@ -182,5 +186,6 @@ return {
 		Running = Running,
 		GetCoByIdentity = GetCoByIdentity,
 		Schedule = Schedule,
+		GetCoCount = function () return  sche.co_count  end,
 		Exit = Exit,
 }

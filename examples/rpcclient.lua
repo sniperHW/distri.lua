@@ -25,7 +25,6 @@ rpcclient:Run(function ()
 							return
 						end
 					end
-					print("co end")
 				end,client)
 			end
 		end)	
