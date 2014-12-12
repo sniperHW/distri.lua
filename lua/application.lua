@@ -7,8 +7,8 @@ function application:new()
   local o = {}   
   setmetatable(o, self)
   self.__index = self
-  o.sockets = {}
-  o.running = false
+  --o.sockets = {}
+  --o.running = false
   o._RPCService = {}
   return o
 end
@@ -18,7 +18,7 @@ local CMD_PING = 0xABABCBCB
 local max_recver_per_socket = 10
 
 local function recver(app,socket)
-	while app.running do
+	while true do--app.running do
 		local rpk,err = socket:Recv()
 		if err then
 			socket:Close()
@@ -55,20 +55,20 @@ end
 local heart_beat_timer = Timer.New("runImmediate")
 
 function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterval)
-	if not self.sockets[socket] then
-		self.sockets[socket] = socket
-		--socket.application = self
+	if not socket.app then--self.sockets[socket] then
+		--self.sockets[socket] = socket
+		socket.app = self
 		socket.recver_count = 0
 		socket.process_packet = on_packet
 		local app = self
-		socket.on_disconnected = function (sock,errno) 
+		socket.on_disconnected = function (sock,errno)
+						--app.sockets[sock] = nil 
+						sock.app = nil
 						if on_disconnected then
 							on_disconnected(sock,errno)
 						end
-						app.sockets[sock] = nil
 					end
 		socket.check_recvtimeout = recvtimeout
-		local app = self
 		--改变conn.sock.__on_packet的行为
 		socket.__on_packet = function (socket,packet)
 			socket.packet:Push({packet})
@@ -77,7 +77,8 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 				co = co[1]
 				socket.timeout = nil
 				Sche.WakeUp(co)		
-			elseif app.running and socket.recver_count < max_recver_per_socket then
+			--elseif app.running and socket.recver_count < max_recver_per_socket then
+			elseif socket.recver_count < max_recver_per_socket then
 				socket.recver_count = socket.recver_count + 1
 				Sche.SpawnAndRun(recver,app,socket)
 			end
@@ -118,11 +119,13 @@ function application:RPCService(name,func)
 	self._RPCService[name] = func
 end
 
-function application:Run(start_fun)
-	if start_fun then
-		start_fun()
+--[[function application:Run(start_fun)
+	if not self.running then 
+		if start_fun then
+			self.running = true
+			start_fun()
+		end
 	end
-	self.running = true
 end
 
 function application:Stop()
@@ -130,7 +133,7 @@ function application:Stop()
 	for k,v in pairs(self.sockets) do
 		v:Close()
 	end
-end
+end]]--
 
 local function SetMaxRecverPerSocket(count)
 	if not count or count == 0 then

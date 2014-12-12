@@ -16,12 +16,12 @@ end)
 
 local success
 
-rpcserver:Run(function ()
-	success = not TcpServer.Listen("127.0.0.1",8000,function (client)
+--rpcserver:Run(function ()
+local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
 			print("on new client")		
 			rpcserver:Add(client:Establish(CSocket.rpkdecoder()))		
 	end)
-end)
+--end)
 
 if success then
 	print("server start on 127.0.0.1:8000")

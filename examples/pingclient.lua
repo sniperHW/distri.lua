@@ -72,25 +72,25 @@ local str = [[111111111111111111111111111111111111111111111111111111111111111111
                         11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111]]
 local pingpong = App.New()
 print(string.len(str))
-pingpong:Run(function ()
-	for i=1,10 do
-	       sche.Spawn(function () 
-			local client = socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-			if client:Connect("127.0.0.1",8000) then
-				print("connect to 127.0.0.1:8000 error")
-				return
-			end
-			client:Establish(CSocket.rpkdecoder(65535))
-			local wpk = CPacket.NewWPacket(65535)
-			wpk:Write_string(str)
-			client:Send(wpk) -- send the first packet
-			pingpong:Add(client,
-                                                                                                              function (s,rpk)
-			                                    s:Send(CPacket.NewWPacket(rpk))		
-			                          end,
-                                                                                                               function ()
-                                                                                                                        print("disconnected")   
-                                                                                                               end)
-		end)	
-	end
-end)
+
+for i=1,10 do
+       sche.Spawn(function () 
+		local client = socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+		if client:Connect("127.0.0.1",8000) then
+			print("connect to 127.0.0.1:8000 error")
+			return
+		end
+		client:Establish(CSocket.rpkdecoder(65535))
+		local wpk = CPacket.NewWPacket(65535)
+		wpk:Write_string(str)
+		client:Send(wpk) -- send the first packet
+		pingpong:Add(client,
+                                                                                                        function (s,rpk)
+		                                    s:Send(CPacket.NewWPacket(rpk))		
+		                          end,
+                                                                                                         function ()
+                                                                                                                  print("disconnected")   
+                                                                                                         end)
+	end)	
+end
+

@@ -30,7 +30,7 @@ else
 			client:Send(CPacket.NewRawPacket(str))	
 		end
 	end
-	toserver_app:Add(toserver:Establish(CSocket.rpkdecoder()),on_server_packet):Run()
+	toserver_app:Add(toserver:Establish(CSocket.rpkdecoder()),on_server_packet)
 	local toclient_app = App.New()
 	local function on_client_packet(s,rpk)
 		local str = rpk:Read_rawbin()
@@ -40,9 +40,9 @@ else
 		toserver:Send(wpk)	
 	end
 	--连接服务器成功,启动对客户端的监听
-	local success
-	toclient_app:Run(function ()
-		success = not TcpServer.Listen("127.0.0.1",8000,function (client)
+	--local success
+	--toclient_app:Run(function ()
+	local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
 			client:Establish(CSocket.rawdecoder())
 			socketmap[client:tostring()] = client
 			toclient_app:Add(client,on_client_packet,function (s,err)
@@ -50,7 +50,6 @@ else
 			end
 			)		
 		end)
-	end)
 
 	if success then
 		print("gateway start on 127.0.0.1:8000")

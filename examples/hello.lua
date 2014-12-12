@@ -16,12 +16,12 @@ end
 
 local success
 
-pingpong:Run(function ()
-	success = not TcpServer.Listen("127.0.0.1",8000,function (client)
+--pingpong:Run(function ()
+local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
 		client:Establish(CSocket.rpkdecoder(65535))
 		pingpong:Add(client,on_packet,function () print("disconnected") end,5000)		
 	end)
-end)
+--end)
 
 if success then
 	print("hello start on 127.0.0.1:8000")

@@ -5,7 +5,7 @@ local Sche = require "lua.sche"
 
 local rpcclient = App.New()
 
-rpcclient:Run(function ()
+--rpcclient:Run(function ()
 	for i=1,10 do
 		Sche.Spawn(function () 
 			local client = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
@@ -29,4 +29,4 @@ rpcclient:Run(function ()
 			end
 		end)	
 	end
-end)
+--end)
