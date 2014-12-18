@@ -112,11 +112,17 @@
 											str = str + ",cmd:" + process[key].cmd + "</br>";
 											c++;
 										}
-										if(c != DeployPhyTree[root.value].length){
+										if(c == DeployPhyTree[root.value].length)
+											flag= [0,1,1];
+										else if(c == 0 &&  DeployPhyTree[root.value].length > 0)
+											flag= [1,0,0];
+										else
+											flag= [1,1,1];
+										/*if(c != DeployPhyTree[root.value].length){
 											flag= [1,1,1];
 										}else{
 											flag= [0,1,1];
-										}			
+										}*/			
 									}else if(process[item.value]){
 										str = str + "pid:" + process[item.value].pid + ",usr:" + process[item.value].usr;
 										str = str + ",cpu:" + process[item.value].cpu + ",mem:" + process[item.value].mem;
@@ -141,13 +147,14 @@
 										str = str + ",cpu:" + group[key][1].cpu + ",mem:" + group[key][1].mem;
 										str = str + ",cmd:" + group[key][1].cmd + "</br>";
 										c++;
-										if(c != DeployLogTree[root.value].length){
-											flag= [1,1,1];
-										}else{
-											flag= [0,1,1];	
-										}										
-									}		
-
+									}
+									if(c == DeployLogTree[root.value].length){
+										flag= [0,1,1];
+									}else if(c == 0 &&  DeployLogTree[root.value].length > 0){
+										flag= [1,0,0];
+									}else{
+										flag= [1,1,1];	
+									}										
 								}else if(group[item.value]){
 									str = str + "pid:" + group[item.value][1].pid + ",usr:" + group[item.value][1].usr;
 									str = str + ",cpu:" + group[item.value][1].cpu + ",mem:" + group[item.value][1].mem;
