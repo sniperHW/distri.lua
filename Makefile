@@ -3,8 +3,8 @@ LDFLAGS = -lpthread -lrt -llua -lm -ldl
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
-INCLUDE = -Ideps/KendyNet/include -Ideps -Ideps/lua-5.2.3/src 
-LIB = -L deps/jemalloc/lib -L deps/KendyNet -L deps/hiredis/ -L deps/http-parser -L deps/lua-5.2.3/src -L deps/myprocps/
+INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.2.3/src 
+LIB = -L deps/jemalloc/lib -L KendyNet -L deps/hiredis/ -L deps/http-parser -L deps/lua-5.2.3/src -L deps/myprocps/
 		
 test:test.c
 	$(CC) $(CFLAGS) -o test test.c $(LDFLAGS) $(DEFINE)
@@ -12,8 +12,8 @@ test:test.c
 testusrdata:testusrdata.c
 	$(CC) $(CFLAGS) -o testusrdata testusrdata.c $(LDFLAGS) $(DEFINE) 
 	
-deps/KendyNet/libkendynet.a:
-		cd deps/KendyNet;make libkendynet.a
+KendyNet/libkendynet.a:
+		cd KendyNet;make libkendynet.a
 deps/jemalloc/lib/libjemalloc.a:
 		cd deps/jemalloc;./configure;make
 deps/hiredis/libhiredis.a:
@@ -23,7 +23,10 @@ deps/http-parser/libhttp_parser.a:
 		cd deps/http-parser/;make package
 		
 deps/lua-5.2.3/liblua.a:		
-		cd deps/lua-5.2.3/;make linux					
+		cd deps/lua-5.2.3/;make linux
+
+deps/myprocps/libproc.a:
+		cd deps/myprocps/;make							
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./
@@ -40,11 +43,20 @@ source =  src/luasocket.c\
 	  src/timeutil.c\
 	  src/distri.c 		
 
-distrilua: deps/KendyNet/libkendynet.a\
+distrilua: KendyNet/libkendynet.a\
 	  deps/jemalloc/lib/libjemalloc.a\
 	  deps/hiredis/libhiredis.a\
 	  deps/http-parser/libhttp_parser.a\
 	  deps/lua-5.2.3/liblua.a\
+	  deps/myprocps/libproc.a\
 	  cjson.so\
 	  $(source)	
-	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) -lkendynet deps/hiredis/libhiredis.a -lhttp_parser deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB)
+	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) -lkendynet\
+	 deps/hiredis/libhiredis.a\
+	 deps/jemalloc/lib/libjemalloc.a\
+	 deps/myprocps/libproc.a\
+	 $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB) -lhttp_parser
+
+survive:distrilua
+	cd Survive;make
+
