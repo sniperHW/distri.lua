@@ -1,5 +1,5 @@
 local Sche = require "lua.sche"
-local Actor = require "actor"
+local Actor = require "examples.actor"
 
 for i=1,10 do
 	Actor.Spawn(i,function (self)
