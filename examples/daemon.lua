@@ -79,9 +79,9 @@ local function RunDaemonServer()
 
 	local function StartProcess(serv)
 		if serv[2] == "ssdb-server" then
-			C.ForkExec("../ssdb-master/ssdb-server","../ssdb-server/ssdb.conf",serv[1])
+			C.ForkExec("~/ssdb-master/ssdb-server","~/ssdb-server/ssdb.conf",serv[1])
 		else
-			local luafile = string.format("SurviveServer/%s/%s.lua",serv[2],serv[2])
+			local luafile = string.format("Survive/%s/%s.lua",serv[2],serv[2])
 			C.ForkExec("./distrilua",luafile,serv[1],serv[3])
 		end		
 	end
