@@ -33,8 +33,8 @@ typedef struct refobj
         atomic_32_t refcount;
         union{
             struct{
-                uint32_t low32; 
-                uint32_t high32;       
+                atomic_32_t low32; 
+                atomic_32_t high32;       
             };
             atomic_64_t identity;
         };
@@ -58,6 +58,7 @@ static inline atomic_32_t refobj_dec(refobj *r)
     if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
         r->identity = 0;
         c = 0;
+        FENCE;
         for(;;){
             if(COMPARE_AND_SWAP(&r->flag,0,1))
                 break;
@@ -77,43 +78,68 @@ static inline atomic_32_t refobj_dec(refobj *r)
 
 
 typedef struct ident{
-	union{	
-		struct{ 
-			uint64_t identity;    
-			refobj   *ptr;
-		};
-		uint32_t _data[4];
-	};
+    union{  
+        struct{ 
+            atomic_64_t identity;    
+            volatile refobj   *ptr;
+        };
+        uint32_t _data[4];
+    };
 }ident;
 
 static inline ident make_ident(refobj *ptr)
 {
-	ident _ident = {.identity=ptr->identity,.ptr=ptr};
+    ident _ident = {.identity=ptr->identity,.ptr=ptr};
     return _ident;
 }
+
+/*
+static inline refobj *cast2refobj(ident _ident)
+{
+    refobj *ptr = NULL;
+    if(!_ident.ptr) return NULL;
+    TRY{
+    refobj *o = (refobj*)_ident.ptr;
+              atomic_64_t identity = o->identity;     
+              while(_ident.identity == identity){
+                    if(COMPARE_AND_SWAP(&o->flag,0,1)){                
+                        if(_ident.identity == identity && refobj_inc((refobj*)o) > 0)
+                                ptr = (refobj*)o;
+                        o->flag = 0;
+                        break;
+                    }
+                    identity = o->identity;
+              }
+    }CATCH_ALL{
+            ptr = NULL;      
+    }ENDTRY;
+    return ptr; 
+}*/
 
 static inline refobj *cast2refobj(ident _ident)
 {
     refobj *ptr = NULL;
     if(!_ident.ptr) return NULL;
     TRY{
-		refobj *o = _ident.ptr;    
-        while(_ident.identity == o->identity)
-        {
-            if(COMPARE_AND_SWAP(&o->flag,0,1))
-            {                
-                if(_ident.identity == o->identity &&refobj_inc(o) > 0)
-                        ptr = o;
-                o->flag = 0;
-                break;
-            }
-        }
-    }CATCH_ALL
-    {
-        ptr = NULL;      
+    refobj *o = (refobj*)_ident.ptr;
+              do{
+                    atomic_64_t identity = o->identity; 
+                    if(_ident.identity == identity){
+                        FENCE;
+                        if(COMPARE_AND_SWAP(&o->flag,0,1)){                
+                            if(_ident.identity == identity && refobj_inc((refobj*)o) > 0)
+                                    ptr = (refobj*)o;
+                            o->flag = 0;
+                            break;
+                        }
+                    }else
+                        break;
+              }while(1);
+    }CATCH_ALL{
+            ptr = NULL;      
     }ENDTRY;
     return ptr; 
-}
+}    
 
 static inline void make_empty_ident(ident *_ident)
 {
@@ -122,7 +148,7 @@ static inline void make_empty_ident(ident *_ident)
 }
 
 static inline int is_empty_ident(ident ident){
-	return ident.ptr == NULL ? 1 : 0;
+    return ident.ptr == NULL ? 1 : 0;
 }
 
 #endif
