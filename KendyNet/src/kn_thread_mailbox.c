@@ -33,6 +33,7 @@ typedef struct kn_thread_mailbox{
 	kn_list        global_queue;
 	kn_list        private_queue;
 	int            wait;
+	int            emptytry;
 	int            notifyfd;
 	pthread_t      tid;
 	engine_t       e;
@@ -105,44 +106,22 @@ static void mailbox_destroctor(void *ptr){
 }
 
 static __thread char buf[4096];
-
-static void on_events_fair(handle_t h,int events){
-	kn_thread_mailbox *mailbox = (kn_thread_mailbox*)h;
-	struct mail *mail = NULL;
-	do{
-		mail = (struct mail*)kn_list_pop(&mailbox->private_queue);
-		if(mail) break;
-		LOCK(mailbox->mtx);
-		kn_list_swap(&mailbox->private_queue,&mailbox->global_queue);
-		mail = (struct mail*)kn_list_pop(&mailbox->private_queue);
-		if(mail){
-			UNLOCK(mailbox->mtx);
-			break;
-		}
-		while(TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,buf,4096)) > 0);
-		mailbox->wait = 1;
-		UNLOCK(mailbox->mtx);	
-	}while(0);
-	
-	if(mail){
-		kn_thread_mailbox_t *sender = NULL;
-		if(mail->sender.ptr) sender = &mail->sender;
-		mailbox->cb_on_mail(sender,mail->data);
-		if(mail->fn_destroy) mail->fn_destroy(mail->data);
-		free(mail);	
-	}
-}
-
-
+#define MAX_EMPTY_TRY 16
+#define MAX_EVENTS 512
 static inline  struct mail* kn_getmail(kn_thread_mailbox *mailbox){
 	if(!kn_list_size(&mailbox->private_queue)){
 		LOCK(mailbox->mtx);
 		if(!kn_list_size(&mailbox->global_queue)){
-			while(TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,buf,4096)) > 0);
-			mailbox->wait = 1;
+			++mailbox->emptytry;
+			if(mailbox->emptytry > MAX_EMPTY_TRY){
+				while(TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,buf,4096)) > 0);
+				mailbox->emptytry = 0;
+				mailbox->wait = 1;
+			}
 			UNLOCK(mailbox->mtx);
 			return NULL;
 		}else{
+			mailbox->emptytry = 0;
 			kn_list_swap(&mailbox->private_queue,&mailbox->global_queue);
 		}
 		UNLOCK(mailbox->mtx);
@@ -150,10 +129,10 @@ static inline  struct mail* kn_getmail(kn_thread_mailbox *mailbox){
 	return (struct mail*)kn_list_pop(&mailbox->private_queue);
 }
 
-static void on_events_fast(handle_t h,int events){
+static void on_events(handle_t h,int events){
 	kn_thread_mailbox *mailbox = (kn_thread_mailbox*)h;
 	struct mail *mail;
-	int n = 65535;//关键参数
+	int n = MAX_EVENTS;
 	while((mail = kn_getmail(mailbox)) != NULL){
 		kn_thread_mailbox_t *sender = NULL;
 		if(mail->sender.ptr) sender = &mail->sender;
@@ -164,8 +143,7 @@ static void on_events_fast(handle_t h,int events){
 	}
 }
 
-
-static kn_thread_mailbox* create_mailbox(engine_t e,int mode,cb_on_mail cb){	
+static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){	
 	int tmp[2];
 	if(pipe2(tmp,O_NONBLOCK|O_CLOEXEC) != 0){
 		NULL;
@@ -183,10 +161,7 @@ static kn_thread_mailbox* create_mailbox(engine_t e,int mode,cb_on_mail cb){
 		return NULL;	
 	}
 	mailbox->comm_head.type = KN_MAILBOX;
-	if(mode == MODE_FAST)
-		mailbox->comm_head.on_events = on_events_fast;
-	else
-		mailbox->comm_head.on_events = on_events_fair;
+	mailbox->comm_head.on_events = on_events;
 	mailbox->tid = pthread_self();
 	mailbox->hash.key = (void*)mailbox->tid;
 	mailbox->mtx = LOCK_CREATE();
@@ -204,7 +179,7 @@ static kn_thread_mailbox* create_mailbox(engine_t e,int mode,cb_on_mail cb){
 }
 
 
-void kn_setup_mailbox(engine_t e,int mode,cb_on_mail cb){
+void kn_setup_mailbox(engine_t e,cb_on_mail cb){
 	assert(e);
 	assert(cb);
 	if(!e || !cb) return;
@@ -213,7 +188,7 @@ void kn_setup_mailbox(engine_t e,int mode,cb_on_mail cb){
 #endif	
 	kn_thread_mailbox *mailbox = (kn_thread_mailbox*)pthread_getspecific(g_mailbox_key);
 	if(!mailbox){
-		mailbox = create_mailbox(e,mode,cb);
+		mailbox = create_mailbox(e,cb);
 		if(!mailbox){
 			return;
 		}

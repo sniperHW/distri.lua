@@ -40,7 +40,7 @@ static int raw_unpack(decoder *_,stream_conn_t c){
 			c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 		}
 		if(c->on_packet(c,r)) destroy_packet(r);
-		if(c->is_close) return decode_socket_close;
+		if(stream_conn_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;
 }
@@ -78,7 +78,7 @@ static int rpk_unpack(decoder *d,stream_conn_t c){
 			}
 		}while(pk_total_size);
 		if(c->on_packet(c,r)) destroy_packet(r);
-		if(c->is_close) return decode_socket_close;
+		if(stream_conn_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;	
 }
@@ -215,8 +215,8 @@ stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,decoder *_decode
 }
 
 static void _force_close(stream_conn_t c,int err){
-	if(c->is_close == 2) return;
-	c->is_close = 2;
+	if(c->close_step == 2) return;
+	c->close_step = 2;
 	if(c->on_disconnected) c->on_disconnected(c,err);
 	if(c->sendtimer){ 				 
 		kn_del_timer(c->sendtimer);
@@ -233,8 +233,8 @@ int cb_lastsend(kn_timer_t t){
 }
 
 void stream_conn_close(stream_conn_t c){
-	if(c->is_close) return;
-	c->is_close = 1;
+	if(c->close_step) return;
+	c->close_step = 1;
 	if(!c->doing_send){
 		_force_close(c,0);
 	}else{
@@ -317,7 +317,7 @@ void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 			st_io *io = prepare_send(c);
 			if(!io) {
 				c->doing_send = 0;
-				if(c->is_close){
+				if(stream_conn_isclose(c)){
 					//数据发送完毕且收到关闭请求，可以安全关闭了
 					_force_close(c,0);
 				}
@@ -354,7 +354,7 @@ int stream_conn_send(stream_conn_t c,packet_t w)
 		destroy_packet(w);
 		return -1;
 	}	
-	if(c->is_close){
+	if(stream_conn_isclose(c)){
 		destroy_packet(w);
 		return -1;
 	}

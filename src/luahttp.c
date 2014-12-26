@@ -198,7 +198,7 @@ static int unpack(decoder *d,stream_conn_t c){
 			c->unpack_pos = 0;
 			c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 		}
-		if(c->is_close) return decode_socket_close;
+		if(stream_conn_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;
 }

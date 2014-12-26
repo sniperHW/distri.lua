@@ -50,7 +50,7 @@ typedef struct stream_conn
 	decoder* _decoder;
 	uint8_t  doing_send:1;
 	uint8_t  doing_recv:1;
-	uint8_t  is_close:2;
+	uint8_t  close_step:2;
 	uint8_t  processing:1;		   
 }stream_conn,*stream_conn_t;
 
@@ -75,6 +75,10 @@ static inline void stream_conn_setud(stream_conn_t c,void *ud,void (*destroy_ud)
 }
 static inline void* stream_conn_getud(stream_conn_t c){
 	return c->ud;
+}
+
+static inline int stream_conn_isclose(stream_conn_t c){
+	return c->close_step > 0;
 }
 /*
  * 与engine关联并启动接收过程.
