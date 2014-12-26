@@ -91,7 +91,7 @@ static void create_httpevent(lua_State *L,struct luahttp_parser *parser,const ch
 		ev->len = len;
 }
 
-int  on_http_cb(stream_conn_t c,packet_t p){
+void  on_http_cb(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;	
 	int __result;
@@ -111,7 +111,7 @@ int  on_http_cb(stream_conn_t c,packet_t p){
 		}	
 	}
 	lua_settop(__L,__oldtop);	
-	return 0;	
+	//return 0;	
 }
 
 static inline int _http_data_cb(http_parser *_parser, const char *at, size_t length,int evtype){

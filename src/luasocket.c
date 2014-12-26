@@ -55,19 +55,19 @@ typedef struct{
 static void PushPacket(lua_State *L,luaPushFunctor_t _){
 	stPushPacket *self = (stPushPacket*)_;
 	push_luapacket(L,self->p);
+	//packet_ref_inc(self->p);
 }
 
-static int  on_packet(stream_conn_t c,packet_t p){
+static void  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
 	stPushPacket st;
-	st.p = p;
+	st.p = packet_copy_create(p);
 	st.base.Push = PushPacket;
 	const char *error = push_obj_callback(obj->L,"srf","__on_packet",*obj,&st);
 	if(error){
 		SYS_LOG(LOG_ERROR,"error on __on_packet:%s\n",error);	
-	}
-	return 0;	
+	}	
 }
 
 static int luasocket_close(lua_State *L){
@@ -93,7 +93,7 @@ static void on_disconnected(stream_conn_t c,int err){
 }
 
 int mask_http_decode;
-int on_http_cb(stream_conn_t c,packet_t p);
+void on_http_cb(stream_conn_t c,packet_t p);
 static int luasocket_establish(lua_State *L){
 	luasocket_t luasock = (luasocket_t)lua_touserdata(L,1);
 	uint32_t    recvbuf_size = lua_tointeger(L,2);

@@ -34,5 +34,5 @@ typedef volatile int64_t atomic_64_t;
 #define ATOMIC_INCREASE(PTR) __sync_add_and_fetch(PTR,1)
 #define ATOMIC_DECREASE(PTR) __sync_sub_and_fetch(PTR,1)
 
-#define FENCE __sync_synchronize()
+#define FENCE __sync_synchronize
 #endif

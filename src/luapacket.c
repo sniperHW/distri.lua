@@ -30,7 +30,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
-			p->_packet = (packet_t)wpk_copy_create(other->_packet);
+			p->_packet = packet_copy_create(other->_packet);
 			return 1;												
 		}else
 			return luaL_error(L,"invaild opration for arg1");		
@@ -53,7 +53,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
-			p->_packet = (packet_t)rawpacket_copy_create((rawpacket_t)other->_packet);
+			p->_packet = packet_copy_create(other->_packet);
 			return 1;							
 		}else
 			return luaL_error(L,"invaild opration for arg1");
@@ -67,7 +67,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
-			p->_packet = (packet_t)rpk_copy_create(other->_packet);
+			p->_packet = packet_copy_create(other->_packet);
 			return 1;					
 		}else
 			return luaL_error(L,"invaild opration for arg1");	
@@ -87,6 +87,7 @@ static int destroy_luapacket(lua_State *L) {
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet){ 
 		destroy_packet(p->_packet);
+		p->_packet = NULL;
 	}
     return 0;
 }

@@ -10,16 +10,14 @@ int  packet_count = 0;
 stream_conn_t clients[MAX_CLIENTS];
 
 
-int  on_packet(stream_conn_t c,packet_t p){
+void  on_packet(stream_conn_t c,packet_t p){
 	int i = 0;
 	for(; i < MAX_CLIENTS; ++i){
 		if(clients[i]){
 			stream_conn_send(clients[i],(packet_t)wpk_copy_create(p));
 			++packet_count;
 		}
-	}	
-	
-	return 1;
+	}
 }
 
 void on_disconnected(stream_conn_t c,int err){

@@ -30,7 +30,7 @@ wpacket_t wpk_create_by_bin(int8_t *addr,uint32_t size)
 	uint32_t datasize = size;
 	size = size_of_pow2(size);
 	if(size < 64) size = 64;
-	wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));
+	wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));	
 	packet_buf(w) = buffer_create(size);
 	w->writebuf = buffer_acquire(NULL,packet_buf(w));
 	packet_begpos(w)= 0;
@@ -59,7 +59,7 @@ wpacket_t wpk_create_by_wpacket(struct wpacket *_w)
 
 wpacket_t wpk_create_by_rpacket(struct rpacket *r)
 {
-	wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));
+	wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));	
 	w->writebuf = NULL;
 	w->len = NULL;//触发拷贝之前len没有作用
 	w->wpos = 0;

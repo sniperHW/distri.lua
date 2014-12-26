@@ -4,7 +4,7 @@
 
 int  client_count = 0; 
 
-int  on_packet(stream_conn_t c,packet_t p){
+void  on_packet(stream_conn_t c,packet_t p){
 	
 	rpacket_t rpk = (rpacket_t)p;
 	const char *str = rpk_read_string(rpk);
@@ -13,8 +13,7 @@ int  on_packet(stream_conn_t c,packet_t p){
 		printf("error\n");
 		exit(0);
 	}
-	stream_conn_send(c,(packet_t)wpk_copy_create(p));	
-	return 1;
+	stream_conn_send(c,(packet_t)wpk_copy_create(p));
 }
 
 void on_disconnected(stream_conn_t c,int err){

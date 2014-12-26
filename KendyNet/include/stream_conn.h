@@ -44,7 +44,7 @@ typedef struct stream_conn
 	buffer_t unpack_buf;
 	kn_list  send_list;//待发送的包
 	uint32_t recv_bufsize;
-	int      (*on_packet)(struct stream_conn*,packet_t);
+	void     (*on_packet)(struct stream_conn*,packet_t);
 	void     (*on_disconnected)(struct stream_conn*,int err);
 	kn_timer_t sendtimer;
 	decoder* _decoder;
@@ -58,7 +58,7 @@ typedef struct stream_conn
  *   返回1：process_packet调用后rpacket_t自动销毁
  *   否则,将由使用者自己销毁
  */
-typedef int  (*CCB_PROCESS_PKT)(stream_conn_t,packet_t);
+typedef void  (*CCB_PROCESS_PKT)(stream_conn_t,packet_t);
 typedef void (*CCB_DISCONNECTD)(stream_conn_t,int err);
 
 /*packet_type:RPACKET/RAWPACKET*/

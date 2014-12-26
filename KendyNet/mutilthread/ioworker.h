@@ -9,6 +9,7 @@ typedef struct{
 	engine_t _engine;
 	kn_thread_mailbox_t _logicprocessor;
 	kn_thread_mailbox_t _mailbox;
+	kn_thread_t _thread;
 }ioworker,*worker_t;
 
 worker_t ioworker_new(kn_thread_mailbox_t _logicprocessor);

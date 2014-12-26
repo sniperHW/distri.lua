@@ -29,7 +29,7 @@ rpacket_t rpk_create(buffer_t b,
 
 static inline rpacket_t rpk_create_by_rpacket(rpacket_t other)
 {
-	rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));
+	rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));	
     	r->binbuf = NULL;
 	r->binbufpos = 0;
     	packet_buf(r) = buffer_acquire(NULL,packet_buf(other));
@@ -46,7 +46,7 @@ static inline rpacket_t rpk_create_by_rpacket(rpacket_t other)
 static inline rpacket_t rpk_create_by_wpacket(struct wpacket *w)
 {
 	uint32_t hlen;
-	rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));
+	rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));	
 	r->binbuf = NULL;
 	r->binbufpos = 0;
     	packet_buf(r) = buffer_acquire(NULL,packet_buf(w));

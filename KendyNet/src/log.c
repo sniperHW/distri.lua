@@ -126,7 +126,7 @@ void _write_log(logfile_t logfile,const char *content)
 	struct log_item *item = calloc(1,sizeof(*item) + content_len);
 	item->_logfile = logfile;
 	strncpy(item->content,content,content_len);	
-	while(!g_logthd_mailbox.ptr) FENCE;	
+	while(!g_logthd_mailbox.ptr) FENCE();	
 	int8_t ret = kn_send_mail(g_logthd_mailbox,item,free);
 	if(ret != 0) free(item);
 }

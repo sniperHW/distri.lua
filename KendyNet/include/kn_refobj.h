@@ -58,7 +58,7 @@ static inline atomic_32_t refobj_dec(refobj *r)
     if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
         r->identity = 0;
         c = 0;
-        FENCE; 
+        FENCE(); 
         for(;;){
             if(COMPARE_AND_SWAP(&r->flag,0,1))
                 break;
@@ -103,7 +103,7 @@ static inline refobj *cast2refobj(ident _ident)
                     atomic_64_t identity = o->identity; 
                     if(_ident.identity == identity){
                         if(COMPARE_AND_SWAP(&o->flag,0,1)){
-                            FENCE;  
+                            FENCE();  
                             identity = o->identity;
                             if(_ident.identity == identity){                
                                 if(refobj_inc((refobj*)o) > 1)

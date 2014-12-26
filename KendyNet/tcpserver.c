@@ -5,7 +5,7 @@
 int  client_count = 0; 
 int  packet_count = 0;
 
-int  on_packet(stream_conn_t c,packet_t p){
+void  on_packet(stream_conn_t c,packet_t p){
 	//printf("on_packet\n");
 	//stream_conn_send(c,p);
 	//stream_conn_close(c);
@@ -18,7 +18,6 @@ int  on_packet(stream_conn_t c,packet_t p){
 	}
 	++packet_count;
 	stream_conn_send(c,(packet_t)wpk_copy_create(p));	
-	return 1;
 }
 
 void on_disconnected(stream_conn_t c,int err){

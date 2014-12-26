@@ -39,7 +39,8 @@ static int raw_unpack(decoder *_,stream_conn_t c){
 			c->unpack_pos = 0;
 			c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 		}
-		if(c->on_packet(c,r)) destroy_packet(r);
+		c->on_packet(c,r); 
+		destroy_packet(r);
 		if(stream_conn_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;
@@ -77,7 +78,8 @@ static int rpk_unpack(decoder *d,stream_conn_t c){
 				c->unpack_buf = buffer_acquire(c->unpack_buf,c->unpack_buf->next);
 			}
 		}while(pk_total_size);
-		if(c->on_packet(c,r)) destroy_packet(r);
+		c->on_packet(c,r);
+		destroy_packet(r);
 		if(stream_conn_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;	
@@ -197,7 +199,7 @@ static void stream_conn_destroy(void *ptr)
 stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,decoder *_decoder)
 {
 	buffersize = size_of_pow2(buffersize);
-    if(buffersize < 1024) buffersize = 1024;	
+    	if(buffersize < 1024) buffersize = 1024;	
 	stream_conn_t c = calloc(1,sizeof(*c));
 	c->recv_bufsize = buffersize;
 	c->unpack_buf = buffer_create(buffersize);
