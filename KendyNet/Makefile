@@ -1,5 +1,5 @@
-CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic 
-LDFLAGS = -lpthread -lrt -lm -ldl 
+CFLAGS = -g -Wall -fno-strict-aliasing
+LDFLAGS = -lpthread -lrt -lm
 SHARED = -fPIC -shared
 CC = gcc
 DEPDIR = ../deps

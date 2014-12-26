@@ -1,5 +1,5 @@
-CFLAGS = -g -Wall -fno-strict-aliasing -rdynamic 
-LDFLAGS = -lpthread -lrt -llua -lm -ldl 
+CFLAGS = -g -Wall -fno-strict-aliasing 
+LDFLAGS = -lpthread -lrt -llua -lm 
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
