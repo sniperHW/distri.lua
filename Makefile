@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall -fno-strict-aliasing 
-LDFLAGS = -lpthread -lrt -llua -lm 
+LDFLAGS = -lpthread -lrt -llua -lm -ldl
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 
@@ -55,7 +55,7 @@ distrilua: KendyNet/libkendynet.a\
 	 deps/hiredis/libhiredis.a\
 	 deps/jemalloc/lib/libjemalloc.a\
 	 deps/myprocps/libproc.a\
-	 $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB) -lhttp_parser
+	 $(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB) -lhttp_parser -rdynamic 
 
 survive:distrilua
 	cd Survive;make
