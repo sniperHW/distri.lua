@@ -58,7 +58,7 @@ static inline atomic_32_t refobj_dec(refobj *r)
     if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
         r->identity = 0;
         c = 0;
-        FENCE;
+        FENCE; 
         for(;;){
             if(COMPARE_AND_SWAP(&r->flag,0,1))
                 break;
@@ -78,13 +78,13 @@ static inline atomic_32_t refobj_dec(refobj *r)
 
 
 typedef struct ident{
-    union{  
-        struct{ 
-            atomic_64_t identity;    
-            volatile refobj   *ptr;
-        };
-        uint32_t _data[4];
-    };
+	union{	
+		struct{ 
+			atomic_64_t identity;    
+			volatile refobj   *ptr;
+		};
+		uint32_t _data[4];
+	};
 }ident;
 
 static inline ident make_ident(refobj *ptr)
@@ -93,42 +93,22 @@ static inline ident make_ident(refobj *ptr)
     return _ident;
 }
 
-/*
 static inline refobj *cast2refobj(ident _ident)
 {
     refobj *ptr = NULL;
     if(!_ident.ptr) return NULL;
     TRY{
-    refobj *o = (refobj*)_ident.ptr;
-              atomic_64_t identity = o->identity;     
-              while(_ident.identity == identity){
-                    if(COMPARE_AND_SWAP(&o->flag,0,1)){                
-                        if(_ident.identity == identity && refobj_inc((refobj*)o) > 0)
-                                ptr = (refobj*)o;
-                        o->flag = 0;
-                        break;
-                    }
-                    identity = o->identity;
-              }
-    }CATCH_ALL{
-            ptr = NULL;      
-    }ENDTRY;
-    return ptr; 
-}*/
-
-static inline refobj *cast2refobj(ident _ident)
-{
-    refobj *ptr = NULL;
-    if(!_ident.ptr) return NULL;
-    TRY{
-    refobj *o = (refobj*)_ident.ptr;
+              refobj *o = (refobj*)_ident.ptr;
               do{
                     atomic_64_t identity = o->identity; 
                     if(_ident.identity == identity){
-                        FENCE;
-                        if(COMPARE_AND_SWAP(&o->flag,0,1)){                
-                            if(_ident.identity == identity && refobj_inc((refobj*)o) > 0)
+                        if(COMPARE_AND_SWAP(&o->flag,0,1)){
+                            FENCE;  
+                            identity = o->identity;
+                            if(_ident.identity == identity){                
+                                if(refobj_inc((refobj*)o) > 1)
                                     ptr = (refobj*)o;
+                            }
                             o->flag = 0;
                             break;
                         }
@@ -148,7 +128,7 @@ static inline void make_empty_ident(ident *_ident)
 }
 
 static inline int is_empty_ident(ident ident){
-    return ident.ptr == NULL ? 1 : 0;
+	return ident.ptr == NULL ? 1 : 0;
 }
 
 #endif
