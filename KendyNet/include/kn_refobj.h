@@ -31,6 +31,7 @@ typedef  void (*refobj_destructor)(void*);
 typedef struct refobj
 {
         atomic_32_t refcount;
+        atomic_32_t flag;        
         union{
             struct{
                 atomic_32_t low32; 
@@ -38,7 +39,6 @@ typedef struct refobj
             };
             atomic_64_t identity;
         };
-        atomic_32_t flag;
         void (*destructor)(void*);
 }refobj;
 
@@ -106,8 +106,10 @@ static inline refobj *cast2refobj(ident _ident)
                             FENCE();  
                             identity = o->identity;
                             if(_ident.identity == identity){                
-                                if(refobj_inc((refobj*)o) > 1)
-                                    ptr = (refobj*)o;
+                                if(refobj_inc(o) > 1)
+                                    ptr = o;
+                                else
+                                    ATOMIC_DECREASE(&o->refcount);
                             }
                             o->flag = 0;
                             break;
