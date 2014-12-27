@@ -1,6 +1,3 @@
-CFLAGS = -g
-LDFLAGS = -lpthread -lrt -lm -ldl -ltcmalloc 
-SHARED = -fPIC -shared
 CC = gcc
 INCLUDE = -I proc
 
