@@ -6,13 +6,12 @@
 
 typedef struct lockfree_stack
 {
-	kn_list_node *head;
+	kn_list_node * volatile head;
 }lockfree_stack,*lockfree_stack_t;
 
 static  void lfstack_push(lockfree_stack_t ls,kn_list_node *n)
 {
-	for( ; ;){
-		FENCE();//防止编译器优化,强制每次重新load head		
+	for( ; ;){	
 		kn_list_node *lhead = ls->head;
 		n->next = lhead;
 		if(COMPARE_AND_SWAP(&ls->head,lhead,n))//if head unchange,set n to be the new head
@@ -22,8 +21,7 @@ static  void lfstack_push(lockfree_stack_t ls,kn_list_node *n)
 
 static  kn_list_node* lfstack_pop(lockfree_stack_t ls)
 {
-	for( ; ;){
-		FENCE();//防止编译器优化,强制每次重新load head		
+	for( ; ;){	
 		kn_list_node *lhead = ls->head;
 		if(!lhead) return NULL;
 		kn_list_node *next = lhead->next;				
