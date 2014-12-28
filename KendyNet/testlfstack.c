@@ -12,8 +12,8 @@ typedef struct lockfree_stack
 static  void lfstack_push(lockfree_stack_t ls,kn_list_node *n)
 {
 	for( ; ;){
+		FENCE();//防止编译器优化,强制每次重新load head		
 		kn_list_node *lhead = ls->head;
-		FENCE();//防止编译器优化,强制每次重新load head
 		n->next = lhead;
 		if(COMPARE_AND_SWAP(&ls->head,lhead,n))//if head unchange,set n to be the new head
 			break;
@@ -23,8 +23,8 @@ static  void lfstack_push(lockfree_stack_t ls,kn_list_node *n)
 static  kn_list_node* lfstack_pop(lockfree_stack_t ls)
 {
 	for( ; ;){
+		FENCE();//防止编译器优化,强制每次重新load head		
 		kn_list_node *lhead = ls->head;
-		FENCE();//防止编译器优化,强制每次重新load head
 		if(!lhead) return NULL;
 		kn_list_node *next = lhead->next;				
 		if(COMPARE_AND_SWAP(&ls->head,lhead,next))
@@ -99,7 +99,7 @@ void *consumer(void *arg)
 			if(count == 0){
 				 tick = kn_systemms();
 			}
-			if(++count  == 10000000) {
+			if(++count  == 5000000) {
 				uint32_t now = kn_systemms();
             				uint32_t elapse = (uint32_t)(now-tick);
 				printf("pop %d/ms\n",count/elapse*1000);
