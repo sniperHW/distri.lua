@@ -20,12 +20,10 @@ atomic_32_t refobj_dec(refobj *r)
     if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
         r->identity = 0;
         c = 0;
-        FENCE(); 
         for(;;){
             if(COMPARE_AND_SWAP(&r->flag,0,1))
                 break;
-            if(c < 4000){
-                ++c;
+            if(++c < 4000){
                 __asm__("pause");
             }else{
                 ts.tv_sec = 0;
@@ -44,11 +42,12 @@ refobj *cast2refobj(ident _ident)
     if(!_ident.ptr) return NULL;
     TRY{
               refobj *o = (refobj*)_ident.ptr;
+              int c = 0;
+    	struct timespec ts;              
               do{
                     atomic_64_t identity = o->identity; 
                     if(_ident.identity == identity){
                         if(COMPARE_AND_SWAP(&o->flag,0,1)){
-                            FENCE();  
                             identity = o->identity;
                             if(_ident.identity == identity){                
                                 if(refobj_inc(o) > 1)
@@ -61,6 +60,14 @@ refobj *cast2refobj(ident _ident)
                         }
                     }else
                         break;
+                    if(++c < 4000){
+                	__asm__("pause");
+            	       }else{
+            	       	c = 0;
+                	ts.tv_sec = 0;
+                	ts.tv_nsec = 500000;
+                	nanosleep(&ts, NULL);
+            	       }    
               }while(1);
     }CATCH_ALL{
             ptr = NULL;      
