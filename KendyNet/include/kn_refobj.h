@@ -49,79 +49,25 @@ static inline atomic_32_t refobj_inc(refobj *r)
     return ATOMIC_INCREASE(&r->refcount);
 }
 
-static inline atomic_32_t refobj_dec(refobj *r)
-{
-    atomic_32_t count;
-    int c;
-    struct timespec ts;
-    assert(r->refcount > 0);
-    if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
-        r->identity = 0;
-        c = 0;
-        FENCE(); 
-        for(;;){
-            if(COMPARE_AND_SWAP(&r->flag,0,1))
-                break;
-            if(c < 4000){
-                ++c;
-                __asm__("pause");
-            }else{
-                ts.tv_sec = 0;
-                ts.tv_nsec = 500000;
-                nanosleep(&ts, NULL);
-            }
-        }
-        r->destructor(r);
-    }
-    return count;
-}
+atomic_32_t refobj_dec(refobj *r);
 
-
-typedef struct ident{
-	union{	
-		struct{ 
-			atomic_64_t identity;    
-			volatile refobj   *ptr;
-		};
-		uint32_t _data[4];
-	};
+typedef struct{
+    union{  
+        struct{ 
+            atomic_64_t identity;    
+            volatile refobj   *ptr;
+        };
+        uint32_t _data[4];
+    };
 }ident;
+
+refobj *cast2refobj(ident _ident);
 
 static inline ident make_ident(refobj *ptr)
 {
     ident _ident = {.identity=ptr->identity,.ptr=ptr};
     return _ident;
 }
-
-static inline refobj *cast2refobj(ident _ident)
-{
-    refobj *ptr = NULL;
-    if(!_ident.ptr) return NULL;
-    TRY{
-              refobj *o = (refobj*)_ident.ptr;
-              do{
-                    atomic_64_t identity = o->identity; 
-                    if(_ident.identity == identity){
-                        if(COMPARE_AND_SWAP(&o->flag,0,1)){
-                            FENCE();  
-                            identity = o->identity;
-                            if(_ident.identity == identity){                
-                                if(refobj_inc(o) > 1)
-                                    ptr = o;
-                                else
-                                    ATOMIC_DECREASE(&o->refcount);
-                            }
-                            o->flag = 0;
-                            break;
-                        }
-                    }else
-                        break;
-              }while(1);
-    }CATCH_ALL{
-            ptr = NULL;      
-    }ENDTRY;
-    return ptr; 
-}    
 
 static inline void make_empty_ident(ident *_ident)
 {
@@ -130,7 +76,9 @@ static inline void make_empty_ident(ident *_ident)
 }
 
 static inline int is_empty_ident(ident ident){
-	return ident.ptr == NULL ? 1 : 0;
+    return ident.ptr == NULL ? 1 : 0;
 }
+
+
 
 #endif
