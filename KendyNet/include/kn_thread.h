@@ -44,4 +44,10 @@ static inline pthread_t   kn_thread_getid(kn_thread_t t){
 	return t->threadid;
 }
 
+#define RUN_THREAD(TYPE,ROUTINE,PTR)\
+                    ({kn_thread_t ___thread = kn_create_thread(TYPE);\
+                       if(___thread)\
+                             kn_thread_start_run(___thread,ROUTINE,PTR);\
+                         ___thread;})
+
 #endif

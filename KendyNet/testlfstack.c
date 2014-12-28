@@ -1,38 +1,6 @@
-//#include "lf_stack.h"
-#include "kn_list.h"
+#include "lockfree/lf_stack.h"
 #include "kn_time.h"
 #include "kn_thread.h"
-#include "kn_atomic.h"
-
-typedef struct lockfree_stack
-{
-	kn_list_node * volatile head;
-}lockfree_stack,*lockfree_stack_t;
-
-static  void lfstack_push(lockfree_stack_t ls,kn_list_node *n)
-{
-	for( ; ;){	
-		kn_list_node *lhead = ls->head;
-		n->next = lhead;
-		if(COMPARE_AND_SWAP(&ls->head,lhead,n))//if head unchange,set n to be the new head
-			break;
-	}
-}
-
-static  kn_list_node* lfstack_pop(lockfree_stack_t ls)
-{
-	for( ; ;){	
-		kn_list_node *lhead = ls->head;
-		if(!lhead) return NULL;
-		kn_list_node *next = lhead->next;				
-		if(COMPARE_AND_SWAP(&ls->head,lhead,next))
-		{
-			lhead->next = NULL;
-			return lhead;
-		}
-	}
-}
-
 
 volatile int count = 0;
 atomic_32_t c1 = 0;
@@ -46,7 +14,7 @@ struct element{
 struct element *element_pool1;
 struct element *element_pool2;
 
-lockfree_stack lf_stack;
+lockfree_stack lf_stack={.head = NULL};
 
 void *producer1(void *arg)
 {
@@ -59,7 +27,6 @@ void *producer1(void *arg)
 			lfstack_push(&lf_stack,(kn_list_node*)ele);
 		}
 		while(c1 > 0){
-			FENCE();
 			kn_sleepms(0);
 		}
 	}
@@ -79,7 +46,6 @@ void *producer2(void *arg)
 
 		}
 		while(c2 > 0){
-			FENCE();
 			kn_sleepms(0);
 		}
 	}
@@ -121,13 +87,9 @@ int main(){
 	int i;
 	for(i = 0; i < 10000000; ++i) element_pool1[i].value = 1;
 	for(i = 0; i < 10000000; ++i) element_pool2[i].value = 2;		
-	lf_stack.head = NULL;
-	kn_thread_t t1 = kn_create_thread(THREAD_JOINABLE);
-	kn_thread_t t2 = kn_create_thread(THREAD_JOINABLE);	
-	kn_thread_t t3 = kn_create_thread(THREAD_JOINABLE);	
-	kn_thread_start_run(t1,producer1,NULL);
-	kn_thread_start_run(t2,producer2,NULL);	
-	kn_thread_start_run(t3,consumer,NULL);		
+	RUN_THREAD(THREAD_DETACH,producer1,NULL);
+	RUN_THREAD(THREAD_DETACH,producer2,NULL);
+	RUN_THREAD(THREAD_DETACH,consumer,NULL);	
  	getchar();
 	return 0;
 }

@@ -33,6 +33,7 @@ source =  src/kn_epoll.c \
 	   src/kn_daemonize.c \
 	   src/lua_util.c \
 	   src/kn_curl.c\
+	   src/uthread.c\
 	   src/buffer.c
 
 libkendynet.a: $(source)
