@@ -1,5 +1,5 @@
 /*	
-    Copyright (C) <2012>  <huangweilook@21cn.com>
+    Copyright (C) <2012-2014>  <huangweilook@21cn.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,12 +17,37 @@
 #ifndef _UTHREAD_H
 #define _UTHREAD_H
 #include <stdint.h>
-typedef struct uthread *uthread_t;
+#include "kn_refobj.h"
 
-uthread_t uthread_create(uthread_t parent,void*stack,uint32_t stack_size,void*(*fun)(void*));
-void   uthread_destroy(uthread_t*);
-void *uthread_switch(uthread_t from,uthread_t to,void *para);
+typedef ident uthread_t;
 
+/*
+*    init uthread system for current thread 
+*/
+int                 uscheduler_init(uint32_t stack_size);
 
+int                 uscheduler_clear();
+int                 uschedule();
+int                 ut_yield();
+int                 ut_sleep(uint32_t ms);
+int                 ut_block(uint32_t ms);
+int                 ut_wakeup(uthread_t);
+uthread_t     ut_spawn(void(*fun)(void*),void *param);
+
+static inline int is_vaild_uthread(uthread_t u){
+    return is_empty_ident(u);
+}
+
+/*
+*   get current running uthread or current thread
+*   if not running in a uthread context,the return value should be empty_ident,
+*   use is_vaild_uthread() to check the return value
+*/
+uthread_t     ut_getcurrent();
+
+/*
+void *ut_getud(uthread_t);
+void   ut_setud(uthread_t,void *ud);
+*/
 
 #endif

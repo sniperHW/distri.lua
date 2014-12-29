@@ -119,6 +119,18 @@ function minheap:Clear()
     self.m_size = 0
 end
 
+function minheap:Remove(co)
+    if co.index > 0 then
+        if self.m_size > 1 then
+            local index = co.index
+            local other = self.m_data[self.m_size]
+            self:swap(index,self.m_size)
+            self:Change(other)        
+        end
+        self.m_size = self.m_size - 1
+    end
+end
+
 return {
 	New = function () return minheap:new() end
 }

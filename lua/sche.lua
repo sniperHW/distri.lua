@@ -22,7 +22,8 @@ local function add2Ready(co)
     if status == stat_ready or status == stat_dead or status == stat_running then
     	return
     end
-    co.status = stat_ready    
+    co.status = stat_ready
+    sche.timer:Remove(co)    
     sche.ready_list:Push(co) 
 end
 
@@ -116,9 +117,9 @@ local function Schedule(co)
 		local timer = sche.timer
 		while timer:Min() ~=0 and timer:Min() <= now do
 			co = timer:PopMin()
-			if co.status == stat_block or co.status == stat_sleep then
-				add2Ready(co)
-			end
+			--if co.status == stat_block or co.status == stat_sleep then
+			add2Ready(co)
+			--end
 		end
 		for k,v in pairs(yields) do
 			add2Ready(v)

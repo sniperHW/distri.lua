@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing
+CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm
 SHARED = -fPIC -shared
 CC = gcc
@@ -84,5 +84,11 @@ testcurl:$(SAMPLE)/testcurl.c libkendynet.a
 	$(CC) $(CFLAGS) -o testcurl $(SAMPLE)/testcurl.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl	
 
 testlfstack:libkendynet.a $(SAMPLE)/testlfstack.c
-	$(CC) $(CFLAGS) -o testlfstack $(SAMPLE)/testlfstack.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)						
+	$(CC) $(CFLAGS) -o testlfstack $(SAMPLE)/testlfstack.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+
+testminheap:libkendynet.a $(SAMPLE)/testminheap.c
+	$(CC) $(CFLAGS) -o testminheap $(SAMPLE)/testminheap.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+
+ccoroutine:libkendynet.a $(SAMPLE)/ccoroutine.c
+	$(CC) $(CFLAGS) -o ccoroutine $(SAMPLE)/ccoroutine.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)							
 					

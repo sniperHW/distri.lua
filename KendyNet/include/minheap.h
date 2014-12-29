@@ -138,6 +138,17 @@ static inline void minheap_insert(minheap_t m,struct heapele *e)
 	e->index = m->size;
 	up(m,e->index);	
 }
+
+static inline void minheap_remove(minheap_t m,struct heapele *e){
+	int32_t index = e->index;
+	if(index == 0) return;
+	if(m->size > 1){
+		struct heapele *other = m->data[m->size];
+		minheap_swap(m,index,m->size);
+		minheap_change(m,other);
+	}
+	--m->size;
+}
 /*
 #include <stdio.h>
 static inline void minheap_remove(minheap_t m,struct heapele *e)
