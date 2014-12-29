@@ -55,7 +55,7 @@ static inline kn_dlist_node *kn_dlist_end(kn_dlist *dl)
 static inline int32_t kn_dlist_remove(kn_dlist_node *dln)
 {
 	if(!dln->owner || (!dln->pre && !dln->next)) return -1;
-    dln->pre->next = dln->next;
+              dln->pre->next = dln->next;
 	dln->next->pre = dln->pre;
 	dln->pre = dln->next = NULL;
 	dln->owner = NULL;
@@ -65,9 +65,9 @@ static inline int32_t kn_dlist_remove(kn_dlist_node *dln)
 static inline kn_dlist_node *kn_dlist_pop(kn_dlist *dl)
 {
 	kn_dlist_node *n = NULL;
-    if(!kn_dlist_empty(dl)){
-        n = dl->head.next;
-        kn_dlist_remove(n);
+              if(!kn_dlist_empty(dl)){
+                    n = dl->head.next;
+                    kn_dlist_remove(n);
 	}
 	return n;
 }

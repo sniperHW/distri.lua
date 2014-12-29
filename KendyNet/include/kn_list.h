@@ -54,12 +54,11 @@ static inline kn_list_node* kn_list_tail(kn_list *l)
 
 static inline void kn_list_pushback(kn_list *l,kn_list_node *n)
 {
-    if(n->next) return;
-	n->next = NULL;
+    	if(n->next) 
+    		return;
 	if(0 == l->size)
 		l->head = l->tail = n;
-	else
-	{
+	else{
 		l->tail->next = n;
 		l->tail = n;
 	}
@@ -68,12 +67,11 @@ static inline void kn_list_pushback(kn_list *l,kn_list_node *n)
 
 static inline void kn_list_pushfront(kn_list*l,kn_list_node *n)
 {
-    if(n->next) return;
-	n->next = NULL;
+    	if(n->next) 
+    		return;
 	if(0 == l->size)
 		l->head = l->tail = n;
-	else
-	{
+	else{
 		n->next = l->head;
 		l->head = n;
 	}
@@ -82,16 +80,13 @@ static inline void kn_list_pushfront(kn_list*l,kn_list_node *n)
 
 static inline kn_list_node* kn_list_pop(kn_list *l)
 {
-	kn_list_node *ret = NULL;
-	if(0 == l->size)
-		return ret;
-    ret = l->head;
-	l->head = l->head->next;
-	if(NULL == l->head)
-		l->tail = NULL;
+	kn_list_node *head = l->head;
+	if(!head) return NULL;
+	l->head = head->next;
+	if(!l->head) l->tail = NULL;
 	--l->size;
-	ret->next = NULL;
-	return ret;
+	head->next = NULL;
+	return head;
 }
 
 static inline int32_t kn_list_size(kn_list *l)
