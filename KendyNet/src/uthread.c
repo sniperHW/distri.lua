@@ -1,11 +1,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <ucontext.h>
-#include "kn_list.h"
+#include "kn_dlist.h"
 #include "uthread/uthread.h"
 #include "minheap.h"
 #include "kn_common_define.h"
 #include "kn_time.h"
+#include "hash_map.h"
+#include "common_hash_function.h"
 //uthread status
 enum{
 	start,
@@ -19,7 +21,7 @@ enum{
 
 struct uthread
 {
-   kn_list_node  node;
+   kn_dlist_node  node;
    refobj             refobj;	   
    struct heapele heapnode;	
    ucontext_t ucontext;
@@ -28,15 +30,26 @@ struct uthread
    struct uthread* parent;
    uint8_t       status;
    void   *stack;
+   hash_map_t    dictionary;
    void (*main_fun)(void*);
 };
 
+#define MAX_KEY_SIZE 64
+
+struct ut_dic_node{
+	hash_node _hash_node;
+	char            _key[MAX_KEY_SIZE];
+	void          *value;
+	void           (*value_destroyer)(void*);
+};
+
 typedef struct {
-	kn_list ready_list;
+	kn_dlist ready_list;
 	struct uthread *current;
 	struct uthread *ut_scheduler;
 	uint32_t      stacksize;
 	minheap_t  timer;
+	uint32_t       activecount;
 }*utscheduler_t;
 
 static __thread utscheduler_t t_scheduler = NULL;
@@ -55,12 +68,36 @@ static void uthread_main_function(void *arg)
 		uthread_switch(u,u->parent);
 }
 
+static void hash_destroyer(hash_node *_node){
+	struct ut_dic_node *node = (struct ut_dic_node*)_node;
+	if(node->value_destroyer && node->value){
+		node->value_destroyer(node->value);	
+	}
+	free(node);
+}
+
 void uthread_destroy(void *_u)
 {
-	struct uthread* u = (struct uthread*)((char*)_u -  sizeof(kn_list_node));
+	struct uthread* u = (struct uthread*)((char*)_u -  sizeof(kn_dlist_node));
+	if(u->dictionary){
+		hash_map_destroy(u->dictionary,hash_destroyer);
+	}
 	free(u->stack);
 	free(u);	
 }
+
+static uint64_t ut_hash_func(void *key){
+	return burtle_hash((uint8_t*)key,strlen((char*)key),1);
+}
+
+static uint64_t ut_snd_hash_func(void *key){
+	return burtle_hash((uint8_t*)key,strlen((char*)key),2);	
+}
+
+static int ut_key_cmp(void *key1,void*key2){
+	return strncmp((char*)key1,(char*)key2,64);
+} 
+
 
 static struct uthread* uthread_create(struct uthread* parent,void*stack,void(*fun)(void*),void *param)
 {
@@ -75,14 +112,15 @@ static struct uthread* uthread_create(struct uthread* parent,void*stack,void(*fu
 		u->main_fun = fun;
 		u->param = param;
 		u->stack = stack;
+		u->dictionary = hash_map_create(16,ut_hash_func,ut_key_cmp,ut_snd_hash_func);
 		makecontext(&(u->ucontext),(void(*)())uthread_main_function,1,u);
 	}	
 	return u;
 }
 
 static int8_t less(struct heapele* _l,struct heapele* _r){
-	struct uthread* ut_l = (struct uthread*)((char*)_l -  sizeof(kn_list_node) - sizeof(refobj));
-	struct uthread* ut_r = (struct uthread*)((char*)_r -  sizeof(kn_list_node) - sizeof(refobj));
+	struct uthread* ut_l = (struct uthread*)((char*)_l -  sizeof(kn_dlist_node) - sizeof(refobj));
+	struct uthread* ut_r = (struct uthread*)((char*)_r -  sizeof(kn_dlist_node) - sizeof(refobj));
 	return ut_l->timeout < ut_r->timeout ? 1:0;
 }
 
@@ -95,9 +133,11 @@ static int add2ready(struct uthread* ut){
 			//remove from timer
 			minheap_remove(t_scheduler->timer,&ut->heapnode);
 		}
-		ut->status = ready;
-		kn_list_pushback(&(t_scheduler->ready_list),(kn_list_node*)ut);
-		return 0;
+		if(0 == kn_dlist_push(&(t_scheduler->ready_list),(kn_dlist_node*)ut)){
+			ut->status = ready;
+			++t_scheduler->activecount;
+			return 0;
+		}
 	} 
 	return -1;
 }
@@ -109,7 +149,7 @@ int     uscheduler_init(uint32_t stack_size){
 	if(stack_size < 4096) stack_size = 4096;
 	t_scheduler->stacksize = stack_size;
 	t_scheduler->ut_scheduler = uthread_create(NULL,NULL,NULL,NULL);
-	kn_list_init(&(t_scheduler->ready_list));
+	kn_dlist_init(&(t_scheduler->ready_list));
 	t_scheduler->timer = minheap_create(4096,less);
 	return 0;
 }
@@ -117,11 +157,11 @@ int     uscheduler_init(uint32_t stack_size){
 int uscheduler_clear(){
 	if(t_scheduler && t_scheduler->current == NULL){
 		struct uthread *next;
-		while((next = (struct uthread *)kn_list_pop(&t_scheduler->ready_list))){
+		while((next = (struct uthread *)kn_dlist_pop(&t_scheduler->ready_list))){
 			refobj_dec(&next->refobj);
 		};			
 		while((next = (struct uthread *)minheap_popmin(t_scheduler->timer))){
-			next = (struct uthread*)((char*)next - sizeof(refobj) - sizeof(kn_list_node));
+			next = (struct uthread*)((char*)next - sizeof(refobj) - sizeof(kn_dlist_node));
 			refobj_dec(&next->refobj);
 		}
 		refobj_dec(&t_scheduler->ut_scheduler->refobj);
@@ -144,9 +184,10 @@ uthread_t ut_spawn(void(*fun)(void*),void *param){
 
 int uschedule(){
 	if(!t_scheduler) return -1;
-	kn_list tmp = {.size=0,.head=NULL,.tail=NULL};
+	kn_dlist tmp;
+	kn_dlist_init(&tmp);
 	struct uthread *next;
-	while((next = (struct uthread *)kn_list_pop(&t_scheduler->ready_list))){
+	while((next = (struct uthread *)kn_dlist_pop(&t_scheduler->ready_list))){
 		t_scheduler->current = next;
 		next->status = running;
 		uthread_switch(t_scheduler->ut_scheduler,next);
@@ -154,21 +195,21 @@ int uschedule(){
 		if(next->status == dead){
 			refobj_dec(&next->refobj);
 		}else if(next->status == yield){
-			kn_list_pushback(&tmp,(kn_list_node*)next);
+			kn_dlist_push(&tmp,(kn_dlist_node*)next);
 		}
 	};
 	//process timeout
 	uint32_t now = kn_systemms();
 	while((next = (struct uthread *)minheap_min(t_scheduler->timer))){
-		next = (struct uthread*)((char*)next - sizeof(refobj) - sizeof(kn_list_node));
+		next = (struct uthread*)((char*)next - sizeof(refobj) - sizeof(kn_dlist_node));
 		if(next->timeout > now) break;
 		minheap_popmin(t_scheduler->timer);
 		add2ready(next);
 	}
-	while((next = (struct uthread *)kn_list_pop(&tmp))){
+	while((next = (struct uthread *)kn_dlist_pop(&tmp))){
 		add2ready(next);
 	}
-	return kn_list_size(&t_scheduler->ready_list);
+	return t_scheduler->activecount;
 }
 
 int ut_yield(){
@@ -205,11 +246,48 @@ uthread_t ut_getcurrent(){
 int ut_wakeup(uthread_t u){
 	struct uthread *ut = (struct uthread*)cast2refobj(u);
 	if(!ut) return -1;
-	ut = (struct uthread*)((char*)ut  - sizeof(kn_list_node));
+	ut = (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
 	add2ready(ut);
 	refobj_dec(&ut->refobj);
 	return 0;
 } 
+
+
+void *ut_dic_get(uthread_t u,const char *key){
+	struct uthread *ut = (struct uthread*)cast2refobj(u);
+	if(!ut) return NULL;
+	ut = (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
+	struct ut_dic_node *node = (struct ut_dic_node*)hash_map_find(ut->dictionary,(void*)key);
+	if(node)
+		return node->value;
+	return NULL;
+}
+
+int   ut_dic_set(uthread_t u,const char *key,void *value,void (*value_destroyer)(void*)){
+	if(strlen(key) +1 > MAX_KEY_SIZE) return -1;
+	struct uthread *ut = (struct uthread*)cast2refobj(u);
+	if(!ut) return 0;
+	ut = (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
+	struct ut_dic_node *node = (struct ut_dic_node*)hash_map_find(ut->dictionary,(void*)key);
+	if(node){
+		//clear old
+		if(node->value_destroyer && node->value){
+			node->value_destroyer(node->value);	
+		}
+		node->value = value;
+		node->value_destroyer = value_destroyer;		
+	}else{
+		node = calloc(1,sizeof(*node));
+		node->_hash_node.key = node->_key;
+		strncpy(node->_key,(char*)key,64);
+		node->value = value;
+		node->value_destroyer = value_destroyer;
+		hash_map_insert(ut->dictionary,(hash_node*)node);		
+	}
+
+	return 0;
+}
+
 
 
 

@@ -5,8 +5,9 @@ int utcount = 0;
 
 void uthread_fun(void *arg){
 	int i = 0;
+	ut_dic_set(ut_getcurrent(),"key",(void*)rand(),NULL);
 	while(i++ < 10){
-		printf("%lld,%d\n",ut_getcurrent().identity,(int)arg);
+		printf("%lld,%d,%d\n",ut_getcurrent().identity,(int)arg,(int)ut_dic_get(ut_getcurrent(),"key"));
 		ut_sleep(1000);
 	}
 	--utcount;

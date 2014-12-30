@@ -45,9 +45,8 @@ static inline int is_vaild_uthread(uthread_t u){
 */
 uthread_t     ut_getcurrent();
 
-/*
-void *ut_getud(uthread_t);
-void   ut_setud(uthread_t,void *ud);
-*/
+void *ut_dic_get(uthread_t,const char *key);
+int      ut_dic_set(uthread_t,const char *key,void *value,void (*value_destroyer)(void*));
+
 
 #endif
