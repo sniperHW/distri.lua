@@ -1,14 +1,25 @@
 #include "ioworker.h"
 #include "kn_thread.h"
+#include "logicprocessor.h"
+#include "stream_conn.h"
 
-static __thread worker_t t_worker = NUL;
+static __thread worker_t t_worker = NULL;
 
-static int  on_packet(stream_conn_t c,packet_t p){	
-	return 1;
+
+static void sendmsg2logic(msg_t msg){
+	send2logic(t_worker->_logicprocessor,msg);
+}
+
+static void  on_packet(stream_conn_t c,packet_t _p){	
+	packet_t p = packet_copy_create(_p);
+	msg_t _msg = new_msg(MSG_PACKET,make_ident((refobj*)c),p,NULL);
+	sendmsg2logic(_msg);	
 }
 
 static void on_disconnected(stream_conn_t c,int err){
-
+	//notify logic disconnected
+	msg_t _msg = new_msg(MSG_CLOSED,make_ident((refobj*)c),NULL,(void*)err);
+	sendmsg2logic(_msg);
 }
 
 static void on_mail(kn_thread_mailbox_t *from,void *mail){
@@ -21,6 +32,8 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 		switch(_msg->_msg_type){
 			case MSG_CONNECTION:{
 				stream_conn_associate(t_worker->_engine,conn,on_packet,on_disconnected);
+				msg_t _msg1 = new_msg(MSG_CONNECTION,_msg->_stream_conn,NULL,NULL);
+				sendmsg2logic(_msg1);				
 				break;
 			}
 			case MSG_PACKET:{
@@ -29,29 +42,31 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 				break;
 			}
 			case MSG_ACTIVECLOSE:{
-
+				stream_conn_close(conn);
 				break;
 			}
 			default:
 				break;
 		}
-		refobj_dec((ref_obj*)conn);
-	}while(0);	
-	destroy_msg(_msg);
+		refobj_dec((refobj*)conn);
+	}while(0);
 }
 
 static void* worker_routine(void *_){
+	printf("worker_routine\n");
 	worker_t _worker  = (worker_t)_;
 	t_worker = _worker;
 	engine_t _engine = (engine_t)_worker->_engine;
 	kn_setup_mailbox(_engine,on_mail);
 	_worker->_mailbox = kn_self_mailbox();
 	kn_engine_run(_engine);
+	return NULL;
 }
 
-worker_t ioworker_new(kn_thread_mailbox_t _logicprocessor){
+worker_t ioworker_new(struct logicprocessor *_logicprocessor){
 	worker_t _worker = calloc(1,sizeof(*_worker));
 	_worker->_engine = kn_new_engine();
+	_worker->_logicprocessor = _logicprocessor;
 	return _worker;
 }
 
@@ -63,7 +78,7 @@ void ioworker_sendmsg(worker_t _worker,msg_t msg){
 	}
 }
 
-void ioworker_run(worker_t _worker){
+void ioworker_startrun(worker_t _worker){
 	if(!_worker->_thread){
 		_worker->_thread = kn_create_thread(THREAD_JOINABLE);
 		kn_thread_start_run(_worker->_thread,worker_routine,_worker);
