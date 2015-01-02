@@ -17,6 +17,11 @@ end
 function minheap:Up(index)
     local parent_idx = self:Parent(index)
     while parent_idx > 0 do
+        --print(debug.traceback())
+        --if index == 0 then
+        --    print(debug.traceback())
+        --end
+        --print("minheap:Up",index,parent_idx,self.m_size)
         if self.m_data[index].timeout < self.m_data[parent_idx].timeout then
             self:swap(index,parent_idx)
             index = parent_idx
@@ -67,9 +72,9 @@ function minheap:Change(co)
         return
     end
     self:Down(index)
-	if index == co.index then
-		self:Up(index)
-	end
+    if index == co.index then
+	self:Up(index)
+    end
 end
 
 function minheap:Insert(co)
@@ -121,13 +126,21 @@ end
 
 function minheap:Remove(co)
     if co.index > 0 then
+        --print("Remove",self.m_size)
         if self.m_size > 1 then
             local index = co.index
             local other = self.m_data[self.m_size]
             self:swap(index,self.m_size)
-            self:Change(other)        
+            self.m_data[self.m_size] = nil
+            self.m_size = self.m_size - 1
+            self:Down(other.index)
+            --self:Change(other)        
+        else
+            self.m_data[self.m_size] = nil
+            self.m_size = self.m_size - 1           
         end
-        self.m_size = self.m_size - 1
+        co.index = 0
+        --print("Remove end")
     end
 end
 

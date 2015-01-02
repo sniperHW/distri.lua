@@ -145,9 +145,12 @@ static inline void minheap_remove(minheap_t m,struct heapele *e){
 	if(m->size > 1){
 		struct heapele *other = m->data[m->size];
 		minheap_swap(m,index,m->size);
-		minheap_change(m,other);
+		--m->size;
+		down(m,other->index);
+	}else{
+		--m->size;
 	}
-	--m->size;
+	e->index = 0;
 }
 /*
 #include <stdio.h>
