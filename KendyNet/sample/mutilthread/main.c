@@ -16,7 +16,7 @@ static void on_new_connection(kn_thread_mailbox_t ioworker,ident conn){
 }
 
 static void on_packet(kn_thread_mailbox_t ioworker,ident conn,packet_t packet){
-	packet_t wpk = packet_copy_create(packet);
+	packet_t wpk = rpk_copy_create(packet);
 	Send(ioworker,conn,wpk);
 }
 

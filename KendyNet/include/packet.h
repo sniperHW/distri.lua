@@ -39,7 +39,7 @@ typedef struct packet
 }packet,*packet_t;
 
 void _destroy_packet(packet_t);
-packet_t packet_copy_create(packet_t);
+
 
 #define destroy_packet(p) _destroy_packet((packet_t)p)
 #define packet_next(p)   ((packet_t)p)->listnode.next

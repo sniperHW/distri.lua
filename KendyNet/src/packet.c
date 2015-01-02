@@ -33,12 +33,3 @@ void _destroy_packet(packet_t p){
 	else if(packet_type(p) == RAWPACKET) rawpacket_destroy((rawpacket_t)p);
 }
 
-packet_t packet_copy_create(packet_t p){
-	if(p->type == RAWPACKET) 
-		return (packet_t)rawpacket_copy_create(p);
-	else if(p->type == WPACKET)
-		return (packet_t)wpk_copy_create(p);
-	else if(p->type == RPACKET)
-		return (packet_t)rpk_copy_create(p);
-	return NULL;
-}

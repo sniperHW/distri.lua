@@ -62,7 +62,7 @@ static void  on_packet(stream_conn_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
 	stPushPacket st;
-	st.p = packet_copy_create(p);
+	st.p = (packet_t)rpk_copy_create(p);
 	st.base.Push = PushPacket;
 	const char *error = push_obj_callback(obj->L,"srf","__on_packet",*obj,&st);
 	if(error){

@@ -11,7 +11,7 @@ static void sendmsg2logic(msg_t msg){
 }
 
 static void  on_packet(stream_conn_t c,packet_t _p){	
-	packet_t p = packet_copy_create(_p);
+	packet_t p = rpk_copy_create(_p);
 	msg_t _msg = new_msg(MSG_PACKET,make_ident((refobj*)c),p,NULL);
 	sendmsg2logic(_msg);	
 }
