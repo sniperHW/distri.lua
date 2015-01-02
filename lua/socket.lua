@@ -183,25 +183,30 @@ local function cb_connect(self,s,err)
 		self.luasocket = CSocket.new2(self,s)
 	end
 	local co = self.connect_co
-	self.connect_co = nil
-	Sche.WakeUp(co)--Schedule(co)	
+	if co then
+		self.connect_co = nil
+		Sche.WakeUp(co)--Schedule(co)
+	end	
 end
 
 --[[
 尝试与ip:port建立TCP连接，如果连接成功建立，将连接的接收缓冲设为max_packet_size
 ]]--
 function socket:Connect(ip,port)
-	local ret = CSocket.connect(self.luasocket,ip,port)
-	if ret then
-		return ret
+	local err,ret = CSocket.connect(self.luasocket,ip,port)
+	if err then
+		return err
 	else
-		self.connect_co = Sche.Running()
-		self.___cb_connect = cb_connect
-		Sche.Block()
+		if ret == 0 then
+			self.connect_co = Sche.Running()
+			self.___cb_connect = cb_connect
+			Sche.Block()
+		elseif ret == 1 then
+			--success immediately
+		end
 		if not self.luasocket or  self.errno ~= 0 then
 			return self.errno
 		else
-			--establish(self,max_packet_size or 65535,decoder)	
 			return nil
 		end				
 	end

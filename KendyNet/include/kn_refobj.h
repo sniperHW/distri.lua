@@ -65,8 +65,7 @@ refobj *cast2refobj(ident _ident);
 
 static inline ident make_ident(refobj *ptr)
 {
-    ident _ident = {.identity=ptr->identity,.ptr=ptr};
-    return _ident;
+    return (ident){.identity=ptr->identity,.ptr=ptr};
 }
 
 static inline void make_empty_ident(ident *_ident)
@@ -79,6 +78,6 @@ static inline int is_empty_ident(ident ident){
     return ident.ptr == NULL ? 1 : 0;
 }
 
-
+static const ident empty_ident = {.identity=0,.ptr=NULL};
 
 #endif

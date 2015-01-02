@@ -528,7 +528,7 @@ int kn_sock_connect(engine_t e,
 	}else if(ret == 1){
 		s->comm_head.status = SOCKET_ESTABLISH;
 		cb_connect(h,0,ud,&s->addr_remote);
-		ret = 0;
+		//ret = 0;
 	}	
 	return ret;
 }

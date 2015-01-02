@@ -139,13 +139,17 @@ static int luasocket_connect(lua_State *L){
 	const char *ip = lua_tostring(L,2);
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr host;
-	kn_addr_init_in(&host,ip,port);	
-	if(0 != kn_sock_connect(g_engine,luasock->sock,&host,NULL,cb_connect,NULL)){
+	kn_addr_init_in(&host,ip,port);
+	int ret;	
+	if( 0 > (ret = kn_sock_connect(g_engine,luasock->sock,&host,NULL,cb_connect,NULL))){
 		lua_pushstring(L,"connect error");
-	}else
 		lua_pushnil(L);
+	}else{
+		lua_pushnil(L);
+		lua_pushinteger(L,ret);
+	}
 	kn_sock_setud(luasock->sock,luasock);
-	return 1;
+	return 2;
 }
 
 static void on_new_conn(handle_t s,void* ud){
