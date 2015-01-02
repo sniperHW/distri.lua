@@ -17,7 +17,7 @@ void  on_packet(stream_conn_t c,packet_t p){
 		exit(0);
 	}
 	++packet_count;
-	stream_conn_send(c,(packet_t)wpk_copy_create(p));	
+	stream_conn_send(c,(packet_t)make_writepacket(p));	
 }
 
 void on_disconnected(stream_conn_t c,int err){

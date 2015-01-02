@@ -35,10 +35,25 @@ typedef struct packet
     buffer_t      buf;    
     uint32_t      begin_pos;
     uint32_t      data_size;
-    uint8_t       type;
+    uint8_t        type;
+    struct packet * (*clone)(struct packet*);
+    struct packet*  (*makeforwrite)(struct packet*);
+    struct packet*  (*makeforread)(struct packet*);
 }packet,*packet_t;
 
 void _destroy_packet(packet_t);
+
+static inline packet_t clone_packet(packet_t p){
+    return p->clone(p);
+}
+
+static inline packet_t make_readpacket(packet_t p){
+    return p->makeforread(p);
+}
+
+static inline packet_t make_writepacket(packet_t p){
+    return p->makeforwrite(p);
+} 
 
 
 #define destroy_packet(p) _destroy_packet((packet_t)p)
@@ -47,4 +62,8 @@ void _destroy_packet(packet_t);
 #define packet_type(p)   ((packet_t)p)->type
 #define packet_begpos(p) ((packet_t)p)->begin_pos
 #define packet_datasize(p) ((packet_t)p)->data_size
+#define packet_clone(p) ((packet_t)p)->clone
+#define packet_makeforwrite(p) ((packet_t)p)->makeforwrite
+#define packet_makeforread(p) ((packet_t)p)->makeforread
+
 #endif

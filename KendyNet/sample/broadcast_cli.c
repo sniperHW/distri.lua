@@ -8,7 +8,8 @@ void  on_packet(stream_conn_t c,packet_t p){
 	
 	rpacket_t rpk = (rpacket_t)p;
 	uint64_t id = rpk_read_uint64(rpk);
-	if(id == (uint64_t)c) stream_conn_send(c,(packet_t)wpk_copy_create(p));	
+	if(id == (uint64_t)c) 
+		stream_conn_send(c,make_writepacket(p));	
 }
 
 void on_disconnected(stream_conn_t c,int err){

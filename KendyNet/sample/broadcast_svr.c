@@ -14,7 +14,7 @@ void  on_packet(stream_conn_t c,packet_t p){
 	int i = 0;
 	for(; i < MAX_CLIENTS; ++i){
 		if(clients[i]){
-			stream_conn_send(clients[i],(packet_t)wpk_copy_create(p));
+			stream_conn_send(clients[i],(packet_t)make_writepacket(p));
 			++packet_count;
 		}
 	}

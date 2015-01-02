@@ -35,7 +35,7 @@ struct wpacket;
 
 rpacket_t rpk_create(buffer_t,uint32_t pos,uint32_t pk_len);
 
-rpacket_t rpk_copy_create(struct packet*);
+//rpacket_t rpk_copy_create(struct packet*);
 
 static inline buffer_t  rpk_readbuf(rpacket_t r)
 {
