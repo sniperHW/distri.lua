@@ -3,8 +3,8 @@
 #include "kn_thread.h"
 
 volatile int count = 0;
-atomic_32_t c1 = 0;
-atomic_32_t c2 = 0;
+volatile uint32_t c1 = 0;
+volatile uint32_t c2 = 0;
 
 struct element{
 	kn_list_node node;

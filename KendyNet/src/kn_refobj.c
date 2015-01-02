@@ -1,7 +1,7 @@
 #include "kn_refobj.h"
 #include "kn_time.h"
 
-atomic_32_t g_ref_counter = 0;
+volatile uint32_t g_ref_counter = 0;
 
 void refobj_init(refobj *r,void (*destructor)(void*))
 {
@@ -11,9 +11,9 @@ void refobj_init(refobj *r,void (*destructor)(void*))
 	ATOMIC_INCREASE(&r->refcount);
 }
 
-atomic_32_t refobj_dec(refobj *r)
+uint32_t refobj_dec(refobj *r)
 {
-    atomic_32_t count;
+    volatile uint32_t count;
     int c;
     struct timespec ts;
     assert(r->refcount > 0);
@@ -45,7 +45,7 @@ refobj *cast2refobj(ident _ident)
               int c = 0;
     	struct timespec ts;              
               do{
-                    atomic_64_t identity = o->identity; 
+                    volatile uint32_t identity = o->identity; 
                     if(_ident.identity == identity){
                         if(COMPARE_AND_SWAP(&o->flag,0,1)){
                             identity = o->identity;

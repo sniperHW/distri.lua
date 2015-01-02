@@ -30,31 +30,31 @@ typedef  void (*refobj_destructor)(void*);
 
 typedef struct refobj
 {
-        atomic_32_t refcount;
-        atomic_32_t flag;        
+        volatile uint32_t refcount;
+        volatile uint32_t flag;        
         union{
             struct{
-                atomic_32_t low32; 
-                atomic_32_t high32;       
+                volatile uint32_t low32; 
+                volatile uint32_t high32;       
             };
-            atomic_64_t identity;
+            volatile uint64_t identity;
         };
         void (*destructor)(void*);
 }refobj;
 
 void refobj_init(refobj *r,void (*destructor)(void*));
 
-static inline atomic_32_t refobj_inc(refobj *r)
+static inline uint32_t refobj_inc(refobj *r)
 {
     return ATOMIC_INCREASE(&r->refcount);
 }
 
-atomic_32_t refobj_dec(refobj *r);
+uint32_t refobj_dec(refobj *r);
 
 typedef struct{
     union{  
         struct{ 
-            atomic_64_t identity;    
+            volatile uint64_t identity;    
             volatile refobj   *ptr;
         };
         uint32_t _data[4];

@@ -4,8 +4,8 @@
 #include "kn_msgque.h"
 #include "kn_atomic.h"
 volatile int count = 0;
-atomic_32_t c1 = 0;
-atomic_32_t c2 = 0;
+volatile uint32_t c1 = 0;
+volatile uint32_t c2 = 0;
 
 kn_msgque_t  msgque;
 
