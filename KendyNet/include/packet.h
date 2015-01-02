@@ -56,14 +56,14 @@ static inline packet_t make_writepacket(packet_t p){
 } 
 
 
-#define destroy_packet(p) _destroy_packet((packet_t)p)
-#define packet_next(p)   ((packet_t)p)->listnode.next
-#define packet_buf(p)    ((packet_t)p)->buf
-#define packet_type(p)   ((packet_t)p)->type
-#define packet_begpos(p) ((packet_t)p)->begin_pos
-#define packet_datasize(p) ((packet_t)p)->data_size
-#define packet_clone(p) ((packet_t)p)->clone
-#define packet_makeforwrite(p) ((packet_t)p)->makeforwrite
-#define packet_makeforread(p) ((packet_t)p)->makeforread
+#define destroy_packet(p) _destroy_packet((packet_t)(p))
+#define packet_next(p)   ((packet_t)(p))->listnode.next
+#define packet_buf(p)    ((packet_t)(p))->buf
+#define packet_type(p)   ((packet_t)(p))->type
+#define packet_begpos(p) ((packet_t)(p))->begin_pos
+#define packet_datasize(p) ((packet_t)(p))->data_size
+#define packet_clone(p) ((packet_t)(p))->clone
+#define packet_makeforwrite(p) ((packet_t)(p))->makeforwrite
+#define packet_makeforread(p) ((packet_t)(p))->makeforread
 
 #endif

@@ -77,7 +77,7 @@ function distri_lua_start_run(mainfile)
 		elseif ret > 0 then
 			ms = 0
 		else
-			ms = 5
+			ms = 1
 		end
 	end
 end

@@ -13,3 +13,4 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder*);
 int                ut_recv(ut_socket_t,packet_t*,int *err);
 int                ut_send(ut_socket_t,packet_t);
 int                ut_close(ut_socket_t);
+void             ut_socket_run();
