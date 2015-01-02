@@ -41,7 +41,7 @@ int ut_socket_init(engine_t e){
 }
 
 static void ut_socket_destroy(void *ptr){
-	printf("ut_socket_destroy\n");
+	//printf("ut_socket_destroy\n");
 	ut_socket *ut_sock = (ut_socket*)ptr;
 	if(ut_sock->type == UT_SOCK){
 		kn_close_sock(ut_sock->sock);
@@ -70,7 +70,6 @@ ut_socket* ut_socket_new2(stream_conn_t conn){
 }
 
 static void on_accept(handle_t s,void *ud){
-	printf("on_accept\n");
 	ut_socket* _ut_sock = (ut_socket*)ud;
 	struct st_node_accept *node = calloc(1,sizeof(*node));
 	node->sock = s;
@@ -79,8 +78,6 @@ static void on_accept(handle_t s,void *ud){
 	struct st_node_block *_block = (struct st_node_block*)kn_list_pop(&_ut_sock->ut_block);
 	if(_block){
 		ut_wakeup(_block->_uthread);
-	}else{
-		printf("no block\n");
 	}
 }
 
@@ -271,10 +268,9 @@ int ut_close(ut_socket_t _){
 
 void ut_socket_run(){
 	while(1){
-		uschedule();
-		if(activecount > 0)
-			kn_engine_runonce(p,0);
+		if(uschedule() > 0)
+			kn_engine_runonce(g_engine,0);
 		else
-			kn_engine_runonce(p,1);
+			kn_engine_runonce(g_engine,1);
 	}
 }

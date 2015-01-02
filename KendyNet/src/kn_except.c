@@ -28,7 +28,6 @@ static void signal_segv(int signum,siginfo_t* info, void*ptr){
 }
 
 int setup_sigsegv(){
-	printf("setup_sigsegv\n");
 	struct sigaction action;
 	memset(&action, 0, sizeof(action));
 	//sigaddset(&action.sa_mask,SIGINT);

@@ -14,14 +14,15 @@ void uthread_fun(void *arg){
 }
 
 int main(){
-	uscheduler_init(4096);
+	uscheduler_init(8192);
 	int i = 0;
 	for(; i < 10; ++i){
 		utcount++;
 		ut_spawn(uthread_fun,(void*)i);
-	}	
+	}
 	while(utcount > 0)
 		uschedule();
-	printf("finish\n");
+	int activecount = uschedule();
+	printf("finish,%d\n",activecount);
 	return 0;
 }

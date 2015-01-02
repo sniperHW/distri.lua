@@ -64,6 +64,7 @@ static void uthread_main_function(void *arg)
 	struct uthread* u = (struct uthread*)arg;
 	u->main_fun(u->param);
 	u->status = dead;
+	--t_scheduler->activecount;
 	if(u->parent)
 		uthread_switch(u,u->parent);
 }
@@ -146,7 +147,7 @@ int     uscheduler_init(uint32_t stack_size){
 	if(t_scheduler) return -1;
 	t_scheduler = calloc(1,sizeof(*t_scheduler));
 	stack_size = get_pow2(stack_size);
-	if(stack_size < 4096) stack_size = 4096;
+	if(stack_size < 8192) stack_size = 8192;
 	t_scheduler->stacksize = stack_size;
 	t_scheduler->ut_scheduler = uthread_create(NULL,NULL,NULL,NULL);
 	kn_dlist_init(&(t_scheduler->ready_list));
@@ -166,6 +167,7 @@ int uscheduler_clear(){
 		}
 		refobj_dec(&t_scheduler->ut_scheduler->refobj);
 		minheap_destroy(&t_scheduler->timer);
+		free(t_scheduler);
 		t_scheduler = NULL;
 		return 0;
 	}
@@ -216,6 +218,7 @@ int ut_yield(){
 	if(!t_scheduler || !t_scheduler->current)
 		return -1;
 	t_scheduler->current->status = yield;
+	--t_scheduler->activecount;
 	uthread_switch(t_scheduler->current,t_scheduler->ut_scheduler);
 	return 0;
 }
@@ -229,6 +232,7 @@ int ut_block(uint32_t ms){
 	}
 	if(t_scheduler->current->status != sleeping)
 		t_scheduler->current->status = blocking;
+	--t_scheduler->activecount;	
 	uthread_switch(t_scheduler->current,t_scheduler->ut_scheduler);
 	return 0;		
 }

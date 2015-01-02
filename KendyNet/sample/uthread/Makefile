@@ -5,5 +5,11 @@ CC = gcc
 INCLUDE = -I../../include -I./ 
 DEFINE = -D_DEBUG -D_LINUX
 
-all:ut_socket.c main.c
-	$(CC) $(CFLAGS) -o main main.c ut_socket.c ../../libkendynet.a $(INCLUDE)  $(LDFLAGS)
+ut_socket.o:ut_socket.c
+	$(CC) $(CFLAGS) -c ut_socket.c $(INCLUDE)
+
+server:ut_socket.o server.c
+	$(CC) $(CFLAGS) -o server server.c ut_socket.o ../../libkendynet.a $(INCLUDE)  $(LDFLAGS)
+
+client:ut_socket.o client.c
+	$(CC) $(CFLAGS) -o client client.c ut_socket.o ../../libkendynet.a $(INCLUDE)  $(LDFLAGS)	
