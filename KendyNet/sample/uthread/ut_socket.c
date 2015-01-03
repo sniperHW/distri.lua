@@ -197,12 +197,15 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder* _decoder
 }
 
 int ut_recv(ut_socket_t _,packet_t *p,int *err){
+	uthread_t  ut_current = ut_getcurrent();
+	if(!p || is_empty_ident(ut_current))
+		return -1;
 	if(err) *err = 0;
 	*p = NULL;
 	ut_socket*  _utsock = (ut_socket*)cast2refobj(_);
 	if(!_utsock) return -1;
-	uthread_t  ut_current = ut_getcurrent();
-	if(_utsock->type != UT_CONN || !p || is_empty_ident(ut_current)){
+	
+	if(_utsock->type != UT_CONN){
 		refobj_dec((refobj*)_utsock);
 		return -1;
 	}
@@ -256,11 +259,11 @@ int ut_close(ut_socket_t _){
 	if(utsock->type == UT_CONN){
 		stream_conn_close(utsock->conn);
 	}else{
-		refobj_dec((refobj*)utsock);
 		struct st_node_block *_block;
 		while((_block = (struct st_node_block*)kn_list_pop(&utsock->ut_block))){
 			ut_wakeup(_block->_uthread);	
 		}
+		refobj_dec((refobj*)utsock);		
 	}
 	refobj_dec((refobj*)utsock);
 	return 0;

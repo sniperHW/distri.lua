@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <ucontext.h>
+#include <assert.h>
 #include "kn_dlist.h"
 #include "uthread/uthread.h"
 #include "minheap.h"
@@ -27,7 +28,6 @@ struct uthread
    ucontext_t ucontext;
    uint32_t     timeout;	
    void *param;   		
-   struct uthread* parent;
    uint8_t       status;
    void   *stack;
    hash_map_t    dictionary;
@@ -65,8 +65,7 @@ static void uthread_main_function(void *arg)
 	u->main_fun(u->param);
 	u->status = dead;
 	--t_scheduler->activecount;
-	if(u->parent)
-		uthread_switch(u,u->parent);
+	uthread_switch(u,t_scheduler->ut_scheduler);
 }
 
 static void hash_destroyer(hash_node *_node){
@@ -100,16 +99,15 @@ static int ut_key_cmp(void *key1,void*key2){
 } 
 
 
-static struct uthread* uthread_create(struct uthread* parent,void*stack,void(*fun)(void*),void *param)
+static struct uthread* uthread_create(void*stack,void(*fun)(void*),void *param)
 {
 	struct uthread* u = (struct uthread*)calloc(1,sizeof(*u));
-	refobj_init(&u->refobj,uthread_destroy);	
+	refobj_init(&u->refobj,uthread_destroy);
+	getcontext(&(u->ucontext));		
 	if(stack){	
-		getcontext(&(u->ucontext));
 		u->ucontext.uc_stack.ss_sp = stack;
 		u->ucontext.uc_stack.ss_size = t_scheduler->stacksize;
 		u->ucontext.uc_link = NULL;
-		u->parent = parent;
 		u->main_fun = fun;
 		u->param = param;
 		u->stack = stack;
@@ -149,7 +147,7 @@ int     uscheduler_init(uint32_t stack_size){
 	stack_size = get_pow2(stack_size);
 	if(stack_size < 8192) stack_size = 8192;
 	t_scheduler->stacksize = stack_size;
-	t_scheduler->ut_scheduler = uthread_create(NULL,NULL,NULL,NULL);
+	t_scheduler->ut_scheduler = uthread_create(NULL,NULL,NULL);
 	kn_dlist_init(&(t_scheduler->ready_list));
 	t_scheduler->timer = minheap_create(4096,less);
 	return 0;
@@ -179,13 +177,13 @@ uthread_t ut_spawn(void(*fun)(void*),void *param){
 	if(!t_scheduler || !fun) return uident;
 	void *stack = calloc(1,t_scheduler->stacksize);
 	if(!stack)  return uident;
-	struct uthread *ut = uthread_create(t_scheduler->ut_scheduler,stack,fun,param);
+	struct uthread *ut = uthread_create(stack,fun,param);
 	add2ready(ut);
 	return make_ident(&ut->refobj);
 }
 
 int uschedule(){
-	if(!t_scheduler) return -1;
+	assert(t_scheduler);
 	kn_dlist tmp;
 	kn_dlist_init(&tmp);
 	struct uthread *next;
@@ -247,10 +245,15 @@ uthread_t ut_getcurrent(){
 	return make_ident(&t_scheduler->current->refobj);
 }
 
-int ut_wakeup(uthread_t u){
+static inline struct uthread *cast2uthread(uthread_t u){
 	struct uthread *ut = (struct uthread*)cast2refobj(u);
+	if(!ut) return NULL;
+	return (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
+}
+
+int ut_wakeup(uthread_t u){
+	struct uthread *ut =cast2uthread(u);
 	if(!ut) return -1;
-	ut = (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
 	add2ready(ut);
 	refobj_dec(&ut->refobj);
 	return 0;
@@ -258,10 +261,10 @@ int ut_wakeup(uthread_t u){
 
 
 void *ut_dic_get(uthread_t u,const char *key){
-	struct uthread *ut = (struct uthread*)cast2refobj(u);
+	struct uthread *ut =cast2uthread(u);
 	if(!ut) return NULL;
-	ut = (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
 	struct ut_dic_node *node = (struct ut_dic_node*)hash_map_find(ut->dictionary,(void*)key);
+	refobj_dec(&ut->refobj);
 	if(node)
 		return node->value;
 	return NULL;
@@ -269,9 +272,8 @@ void *ut_dic_get(uthread_t u,const char *key){
 
 int   ut_dic_set(uthread_t u,const char *key,void *value,void (*value_destroyer)(void*)){
 	if(strlen(key) +1 > MAX_KEY_SIZE) return -1;
-	struct uthread *ut = (struct uthread*)cast2refobj(u);
-	if(!ut) return 0;
-	ut = (struct uthread*)((char*)ut  - sizeof(kn_dlist_node));
+	struct uthread *ut =cast2uthread(u);
+	if(!ut) return -1;
 	struct ut_dic_node *node = (struct ut_dic_node*)hash_map_find(ut->dictionary,(void*)key);
 	if(node){
 		//clear old
@@ -288,7 +290,7 @@ int   ut_dic_set(uthread_t u,const char *key,void *value,void (*value_destroyer)
 		node->value_destroyer = value_destroyer;
 		hash_map_insert(ut->dictionary,(hash_node*)node);		
 	}
-
+	refobj_dec(&ut->refobj);
 	return 0;
 }
 

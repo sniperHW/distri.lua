@@ -1,7 +1,7 @@
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <fcntl.h>              /* Obtain O_* constant definitions */
 #include <unistd.h>
-
+#include <sys/eventfd.h>
 #include "kn_thread_mailbox.h"
 #include "kn_thread_sync.h"
 #include "spinlock.h"
@@ -105,7 +105,6 @@ static void mailbox_destroctor(void *ptr){
 	free(mailbox);			
 }
 
-static __thread char buf[4096];
 #define MAX_EMPTY_TRY 16
 #define MAX_EVENTS 512
 static inline  struct mail* kn_getmail(kn_thread_mailbox *mailbox){
@@ -114,7 +113,8 @@ static inline  struct mail* kn_getmail(kn_thread_mailbox *mailbox){
 		if(!kn_list_size(&mailbox->global_queue)){
 			++mailbox->emptytry;
 			if(mailbox->emptytry > MAX_EMPTY_TRY){
-				while(TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,buf,4096)) > 0);
+				uint64_t _;
+				TEMP_FAILURE_RETRY(read(mailbox->comm_head.fd,&_,sizeof(_)));
 				mailbox->emptytry = 0;
 				mailbox->wait = 1;
 			}
@@ -144,7 +144,7 @@ static void on_events(handle_t h,int events){
 }
 
 static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){	
-	int tmp[2];
+	/*int tmp[2];
 	if(pipe2(tmp,O_NONBLOCK|O_CLOEXEC) != 0){
 		NULL;
 	}		
@@ -152,11 +152,19 @@ static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){
 	mailbox->comm_head.fd = tmp[0];
 	mailbox->notifyfd = tmp[1];
 	kn_set_noblock(tmp[0],0);
-	kn_set_noblock(tmp[1],0);
+	kn_set_noblock(tmp[1],0);*/
+	int evfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+	if (evfd < 0) {
+		return NULL;
+	}
+	kn_thread_mailbox *mailbox = calloc(1,sizeof(*mailbox));
+	mailbox->comm_head.fd = evfd;
+	mailbox->notifyfd = evfd;		
 	refobj_init(&mailbox->refobj,mailbox_destroctor);
 	if(kn_event_add(e,(handle_t)mailbox,EPOLLIN) != 0){
-		close(tmp[0]);
-		close(tmp[1]);
+		//close(tmp[0]);
+		//close(tmp[1]);
+		close(evfd);
 		free(mailbox);
 		return NULL;	
 	}
@@ -207,7 +215,8 @@ static inline int notify(kn_thread_mailbox *mailbox){
 	int ret;
 	for(;;){
 		errno = 0;
-		ret = TEMP_FAILURE_RETRY(write(mailbox->notifyfd,"",1));
+		uint64_t _ = 1;
+		ret = TEMP_FAILURE_RETRY(write(mailbox->notifyfd,&_,sizeof(_)));
 		if(!(ret < 0 && errno == EAGAIN))
 			break;
 	}

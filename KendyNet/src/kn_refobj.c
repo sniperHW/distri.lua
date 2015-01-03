@@ -45,7 +45,7 @@ refobj *cast2refobj(ident _ident)
               int c = 0;
     	struct timespec ts;              
               do{
-                    volatile uint32_t identity = o->identity; 
+                    volatile uint64_t identity = o->identity; 
                     if(_ident.identity == identity){
                         if(COMPARE_AND_SWAP(&o->flag,0,1)){
                             identity = o->identity;
