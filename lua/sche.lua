@@ -95,6 +95,7 @@ local function Schedule(co)
 		if status == stat_ready or status == stat_dead or status == stat_running then
 			return sche.ready_list:Len()
 		end
+		sche.timer:Remove(co)
 		if SwitchTo(co) == stat_yield then
 			add2Ready(co)
 		end
