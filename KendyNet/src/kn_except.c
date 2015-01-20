@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "kn_exception.h"
 #include "kn_except.h"
+#include "log.h"
 
 pthread_key_t g_exception_key;
 #ifndef __GNUC__
@@ -178,7 +179,16 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 						code == except_arith) i+=2;
 				continue;
 			}
-			printf("%s\n",strings[i]);
+			char *str = strstr(strings[i],"[");
+			str = str+1;
+			str[strlen(str)-1] = '\0'; 				
+			char buf[1024];
+			if(0 == addr2line(str,buf,1024)){
+				SYS_LOG(LOG_ERROR,"%s\n",buf);
+			}else{
+				SYS_LOG(LOG_ERROR,"%s\n",strings[i]);
+			}			
+			//printf("%s\n",strings[i]);
 			if(strstr(strings[i],"main+"))
 				break;
 		}
