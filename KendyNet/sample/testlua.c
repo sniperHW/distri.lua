@@ -1,10 +1,14 @@
 #include "lua_util.h"
 
 		
-int main(){
+int main(int argc,char **argv){
+	if(argc < 2){
+		printf("usage testlua luafile\n");
+		return 0;
+	}
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
-	if (luaL_dofile(L,"test.lua")) {
+	if (luaL_dofile(L,argv[1])) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);
 		printf("%s\n",error);
@@ -14,10 +18,10 @@ int main(){
 	err = LuaCall(L,"fun0",NULL);
 	if(err) printf("error on fun0:%s\n",err);
 	
-	int iret1;
-	err = LuaCall(L,"fun1","i:i",100,&iret1);
+	unsigned int iret1;
+	err = LuaCall(L,"fun1","u:u",0xFFFFFFFF,&iret1);
 	if(err) printf("error on fun1:%s\n",err);
-	else printf("ret1=%d\n",iret1);
+	else printf("ret1=%u\n",iret1);
 	
 	char *sret1;
 	err = LuaCall(L,"fun2","ss:s","hello","kenny",&sret1);
