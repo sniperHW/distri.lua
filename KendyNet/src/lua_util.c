@@ -29,7 +29,7 @@ const char *luacall(lua_State *L,const char *fmt,...){
 	//压入参数
 	for(narg=0; narg < size; ++narg){
 		switch(*fmt++){
-			case 'i':{lua_pushnumber(L,va_arg(vl,int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,int));break;}
 			case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
 			case 's':{
 						char *str = va_arg(vl,char*);
@@ -165,7 +165,7 @@ const char *LuaRef_Get(luaRef_t tab,const char *fmt,...){
 	for(i = 0; i < size; i += 2){	
 		int k = i;	
 		switch(fmt[k]){
-			case 'i':{lua_pushnumber(L,va_arg(vl,int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,int));break;}
 			case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
 			case 's':{lua_pushstring(L,va_arg(vl,char*));break;}
 			case 'S':{
@@ -272,7 +272,7 @@ const char *LuaRef_Set(luaRef_t tab,const char *fmt,...){
 	   	//push key
 	   	int k = i;	
 		switch(fmt[k]){
-			case 'i':{lua_pushnumber(L,va_arg(vl,int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,int));break;}
 			case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
 			case 's':{lua_pushstring(L,va_arg(vl,char*));break;}
 			case 'S':{
@@ -304,7 +304,7 @@ const char *LuaRef_Set(luaRef_t tab,const char *fmt,...){
 		//push value
 		int v = k + 1;
 		switch(fmt[v]){
-			case 'i':{lua_pushnumber(L,va_arg(vl,int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,int));break;}
 			case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
 			case 's':{lua_pushstring(L,va_arg(vl,char*));break;}
 			case 'S':{
