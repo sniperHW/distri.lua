@@ -63,7 +63,7 @@ function timer:Run()
 				end
 			end
 		end
-		if self.stop  then 
+		if self.stop  then
 			return nil
 		end
 		Sche.Sleep(self.tickinterval)

@@ -115,8 +115,7 @@ static int addr2line(const char *addr,char *output,int size){
 		if(ch == '\n') ch = ' ';
 		output[i++] = ch;
 		ch = fgetc(pipe);
-	}
-		
+	}		
 	fclose(pipe);
 	output[i] = '\n';	
 	return 0;
@@ -172,6 +171,18 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 	{
 		sz = backtrace(bt, 64);
 		strings = backtrace_symbols(bt, sz);
+    		char logbuf[MAX_LOG_SIZE];
+    		char *ptr = logbuf;
+    		int32_t size = 0;	
+    		void *addr = NULL;
+    		if(info)
+    			addr = info->si_addr;
+    		if(code == except_segv_fault)
+	    		size += snprintf(ptr,MAX_LOG_SIZE,"%s[invaild access addr:%p]\n",kn_exception_description(code),addr);
+    		else
+	    		size += snprintf(ptr,MAX_LOG_SIZE,"%s\n",kn_exception_description(code));
+		ptr = logbuf + size;	    		    		
+ 		int f = 0;   			
 		for(i = 0; i < sz; ++i){
 			if(strstr(strings[i],"exception_throw+")){
 				if(code == except_segv_fault ||
@@ -184,14 +195,15 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 			str[strlen(str)-1] = '\0'; 				
 			char buf[1024];
 			if(0 == addr2line(str,buf,1024)){
-				SYS_LOG(LOG_ERROR,"%s\n",buf);
+        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s",++f,buf);
 			}else{
-				SYS_LOG(LOG_ERROR,"%s\n",strings[i]);
-			}			
-			//printf("%s\n",strings[i]);
+        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s",++f,strings[i]);
+			}
+			ptr = logbuf + size;
 			if(strstr(strings[i],"main+"))
 				break;
 		}
+		SYS_LOG(LOG_ERROR,"%s",logbuf);
 		free(strings);
 		exit(0);
 	}

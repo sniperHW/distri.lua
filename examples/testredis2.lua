@@ -32,16 +32,19 @@ while not toredis do
 	Sche.Yield()
 end
 
-for i = 1,1000 do
-	toredis:Command("hmset mail mailid:" .. i .. " " .. i )
-end
+--for i = 1,1000 do
+--	toredis:Command("hmset mail mailid:" .. i .. " " .. i )
+--end
 
-local err,result = toredis:Command("hgetall mail" )
-local size = #result/2
-local key = 1
-local val = 2
-for i = 1,size do
-	print(result[key],result[val])
-	key = key + 2
-	val = val + 2
-end
+--local err,result = toredis:Command("hgetall mail" )
+--local size = #result/2
+--local key = 1
+--local val = 2
+--for i = 1,size do
+--	print(result[key],result[val])
+--	key = key + 2
+--	val = val + 2
+--end
+
+local err,result = toredis:Command("hmget test nickname")-- avatarid chainfo bag skills everydaysign everydaytask achievement")
+print(err,result[1])
