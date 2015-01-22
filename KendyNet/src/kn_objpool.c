@@ -4,15 +4,16 @@
 #include <string.h>
 #include <assert.h>
 
+#pragma pack(4)
 typedef struct{
 	kn_list_node _lnode;
-	uint32_t chunkidx;
 #ifdef _DEBUG
 	allocator_t    _allocator;
 #endif
+	uint32_t chunkidx;
 	char data[0];
 }obj;
-
+#pragma pack()
 
 typedef struct{
 	kn_list_node _lnode;
@@ -148,8 +149,8 @@ void objpool_destroy(allocator_t _){
 
 #pragma pack(4)
 typedef struct{
-	uint32_t next:8;
-	uint32_t chunkidx:24;
+	uint32_t next:10;
+	uint32_t chunkidx:22;
 #ifdef _DEBUG
 	allocator_t    _allocator;
 #endif
@@ -174,7 +175,9 @@ typedef struct {
 	kn_list        freechunk;
 }*objpool_t;
 
-#define CHUNK_SIZE 4096*1024
+#define CHUNK_SIZE 1024
+#define CHUNK_OBJSIZE (CHUNK_SIZE-1)
+#define MAX_CHUNK 0x3FFFFF
 
 obj *chunk_alloc(chunk *_chunk){
 	if(!_chunk->head) return NULL;
@@ -185,19 +188,19 @@ obj *chunk_alloc(chunk *_chunk){
 
 void chunk_dealloc(chunk *_chunk,obj *_obj){
 	uint32_t index = ((char*)_obj - _chunk->data)/_chunk->objsize;
-	assert(index >=1 && index <= 255);
+	assert(index >=1 && index <= CHUNK_OBJSIZE);
 	_obj->next = _chunk->head;
 	_chunk->head = index;
 }
 
 static chunk *new_chunk(uint32_t idx,size_t objsize){
-	chunk* newchunk = calloc(1,sizeof(*newchunk) + 256*objsize);
+	chunk* newchunk = calloc(1,sizeof(*newchunk) + CHUNK_SIZE*objsize);
 	int i = 1;
 	char *ptr = newchunk->data + objsize;
-	for(; i < 256;++i){
+	for(; i < CHUNK_SIZE;++i){
 		obj *_obj = (obj*)ptr;
 		_obj->chunkidx = idx;
-		if(i == 255)
+		if(i == CHUNK_OBJSIZE)
 			_obj->next = 0;
 		else
 			_obj->next = i + 1;
@@ -219,7 +222,7 @@ static void* _calloc(allocator_t _,size_t num,size_t size){
 	chunk *freechunk = (chunk*)kn_list_pop(&a->freechunk);
 	if(!freechunk){
 		uint32_t chunkcount = a->chunkcount*2;
-		if(chunkcount > 0xFFFFFF) chunkcount = 0xFFFFFF;
+		if(chunkcount > MAX_CHUNK) chunkcount = MAX_CHUNK;
 		if(chunkcount == a->chunkcount) return NULL;
 		chunk **tmp = calloc(chunkcount,sizeof(*tmp));
 		uint32_t i = 0;
@@ -261,11 +264,11 @@ static void   _free(allocator_t _,void *ptr){
 
 allocator_t objpool_new(size_t objsize,uint32_t initnum){
 	uint32_t chunkcount;
-	if(initnum%255 == 0)
-		chunkcount = initnum/255;
+	if(initnum%CHUNK_OBJSIZE == 0)
+		chunkcount = initnum/CHUNK_OBJSIZE;
 	else
-		chunkcount = initnum/255 + 1;
-	if(chunkcount > 0xFFFFFF) return NULL;		
+		chunkcount = initnum/CHUNK_OBJSIZE + 1;
+	if(chunkcount > MAX_CHUNK) return NULL;		
 	objsize = align_size(sizeof(obj) + objsize,8);
 	objpool_t pool = calloc(1,sizeof(*pool));
 	do{
