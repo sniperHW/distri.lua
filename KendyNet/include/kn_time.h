@@ -62,7 +62,7 @@ static inline uint64_t _clock_rdtsc ()
 static inline uint64_t _clock_time ()
 {
     struct timespec tv;
-    clock_gettime (CLOCK_REALTIME, &tv);
+    clock_gettime (CLOCK_BOOTTIME, &tv);
     return tv.tv_sec * (uint64_t) 1000 + tv.tv_nsec / 1000000;
 }
 

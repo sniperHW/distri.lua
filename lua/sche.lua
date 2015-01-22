@@ -56,9 +56,7 @@ local function Block(ms)
 		return
 	end
     	if ms and ms > 0 then
-		ms = ms * 1000
-       		local nowtick = C.GetSysTick()
-        		co.timeout = nowtick + ms
+        		co.timeout = C.GetSysTick() + ms
         		if co.index == 0 then
             			sche.timer:Insert(co)
         		else

@@ -19,7 +19,7 @@ static void sig_int(int sig){
 }
 
 static int  lua_getsystick(lua_State *L){
-	lua_pushunsigned(L,kn_systemms());
+	lua_pushnumber(L,kn_systemms64());
 	return 1;
 }
 
