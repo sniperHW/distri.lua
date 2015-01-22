@@ -35,6 +35,7 @@ source =  src/kn_epoll.c \
 	   src/lua_util.c \
 	   src/kn_curl.c\
 	   src/uthread.c\
+	   src/kn_objpool.c\
 	   src/buffer.c
 
 libkendynet.a: $(source)
@@ -90,5 +91,8 @@ testminheap:libkendynet.a $(SAMPLE)/testminheap.c
 	$(CC) $(CFLAGS) -o testminheap $(SAMPLE)/testminheap.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 
 ccoroutine:libkendynet.a $(SAMPLE)/ccoroutine.c
-	$(CC) $(CFLAGS) -o ccoroutine $(SAMPLE)/ccoroutine.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)							
+	$(CC) $(CFLAGS) -o ccoroutine $(SAMPLE)/ccoroutine.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+
+objpool:libkendynet.a $(SAMPLE)/objpool.c
+	$(CC) $(CFLAGS) -o objpool $(SAMPLE)/objpool.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)							
 					

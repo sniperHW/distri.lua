@@ -9,8 +9,8 @@ typedef struct
 {
     kn_list_node      next;
     void*             ud;
-	struct            iovec *iovec;
-	int32_t           iovec_count;
+    struct            iovec *iovec;
+    int32_t           iovec_count;
 }st_io;
 
 #ifndef TEMP_FAILURE_RETRY
@@ -53,6 +53,15 @@ static inline uint8_t get_pow2(uint32_t size)
 	return pow2;
 }
 
-
+static inline uint32_t align_size(uint32_t size,uint32_t align)
+{
+	align = size_of_pow2(align);
+	if(align < 4) align = 4;
+	uint32_t mod = size % align;
+	if(mod == 0) 
+		return size;
+	else
+		return (size/align + 1) * align;
+}
 
 #endif
