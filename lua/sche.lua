@@ -147,7 +147,7 @@ end
 
 local g_counter = 0
 local function gen_identity()
-	g_counter = g_counter + 1
+	g_counter = bit32.band(g_counter + 1,0x000FFFFF)
 	return string.format("%d-%d",C.GetSysTick(),g_counter)
 end
 
