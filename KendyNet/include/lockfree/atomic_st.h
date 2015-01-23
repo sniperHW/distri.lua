@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "kn_atomic.h"
+#include "kn_common_define.h"    
 volatile int get_count;
 volatile int set_count;
 volatile int miss_count;
@@ -34,15 +35,15 @@ struct NAME\
 };\
 static inline void NAME##_get(struct NAME *at,TYPE *ret)\
 {\
-	if(!at || !ret) return;\
+	if(unlikely(!at || !ret)) return;\
 	while(1){\
 		struct NAME##_st *ptr_p = (struct NAME##_st *)at->ptr;\
 		int save_version = ptr_p->version;\
-		_FENCE;\
+		FENCE();\
 		*ret = ptr_p->data;\
-		if(save_version == ptr_p->version){\
-			_FENCE;\
-			if(ptr_p == at->ptr)\ 
+		if(ptr_p == at->ptr){\
+			FENCE();\
+			if(save_version == ptr_p->version)\
 				break;\
 		}\
 		ATOMIC_INCREASE(&miss_count);\
@@ -51,11 +52,11 @@ static inline void NAME##_get(struct NAME *at,TYPE *ret)\
 }\
 static inline void NAME##_set(struct NAME *at,TYPE *v)\
 {\
-	if(!at || !v)return;\
+	if(unlikely(!at || !v)) return;\
 	at->array[at->index].data = *v;\
-	_FENCE;\
+	FENCE();\
 	at->array[at->index].version = ++at->g_version;\
-	_FENCE;\
+	FENCE();\
 	at->ptr = &at->array[at->index];\
 	at->index ^= 0x1;\
 	ATOMIC_INCREASE(&set_count);\

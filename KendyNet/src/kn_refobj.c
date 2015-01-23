@@ -1,5 +1,6 @@
 #include "kn_refobj.h"
 #include "kn_time.h"
+#include "kn_common_define.h"
 
 volatile uint32_t g_ref_counter = 0;
 
@@ -17,7 +18,7 @@ uint32_t refobj_dec(refobj *r)
     int c;
     struct timespec ts;
     assert(r->refcount > 0);
-    if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
+    if(unlikely((count = ATOMIC_DECREASE(&r->refcount)) == 0)){
         r->identity = 0;
         c = 0;
         for(;;){
@@ -39,7 +40,7 @@ uint32_t refobj_dec(refobj *r)
 refobj *cast2refobj(ident _ident)
 {
     refobj *ptr = NULL;
-    if(!_ident.ptr) return NULL;
+    if(unlikely(!_ident.ptr)) return NULL;
     TRY{
               refobj *o = (refobj*)_ident.ptr;
               int c = 0;

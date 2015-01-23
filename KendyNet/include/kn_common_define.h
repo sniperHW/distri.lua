@@ -2,16 +2,6 @@
 #define _COMMON_DEFINE_H
 
 #include <stdint.h>
-#include "kn_list.h"
-
-
-typedef struct
-{
-    kn_list_node      next;
-    void*             ud;
-    struct            iovec *iovec;
-    int32_t           iovec_count;
-}st_io;
 
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(expression)\

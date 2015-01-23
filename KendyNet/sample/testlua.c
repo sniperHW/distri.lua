@@ -33,8 +33,8 @@ int main(int argc,char **argv){
 	err = LuaCall(L,"fun3","ssS:SS","1","2","3",sizeof("3"),&Sret1,&Lret1,&Sret2,&Lret2);
 	if(err) printf("error on fun3:%s\n",err); 
 	else{
-		printf("%s %d\n",Sret1,Lret1);
-		printf("%s %d\n",Sret2,Lret2);		
+		printf("%s %ld\n",Sret1,Lret1);
+		printf("%s %ld\n",Sret2,Lret2);		
 	}
 	
 	

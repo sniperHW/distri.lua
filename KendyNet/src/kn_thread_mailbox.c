@@ -96,7 +96,7 @@ static void mailbox_destroctor(void *ptr){
 	kn_event_del(mailbox->e,(handle_t)mailbox);
 	LOCK_DESTROY(mailbox->mtx);	
 	close(mailbox->comm_head.fd);
-	close(mailbox->notifyfd);
+	//close(mailbox->notifyfd);
 
 	kn_mutex_lock(g_mtx);
 	hash_map_remove(h,(void*)mailbox->tid);

@@ -15,7 +15,6 @@ typedef struct string_holder
 
 static void destroy_string_holder(void *arg)
 {
-	printf("destroy_string_holder\n");
 	holder_t h = (holder_t)arg;
 	free((void*)h->str);
 	free(h);

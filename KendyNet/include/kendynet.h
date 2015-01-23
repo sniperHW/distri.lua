@@ -3,11 +3,20 @@
 
 #include "kn_common_include.h"
 #include "kn_common_define.h"
+#include "kn_list.h"
 #include "kn_sockaddr.h"
 #include "kn_time.h"
 
 typedef struct handle* handle_t;
 typedef void* engine_t;
+
+typedef struct
+{
+    kn_list_node      next;
+    void*             ud;
+    struct            iovec *iovec;
+    int32_t           iovec_count;
+}st_io;
 
 engine_t kn_new_engine();
 void     kn_release_engine(engine_t);

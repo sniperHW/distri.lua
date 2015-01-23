@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "kn_common_include.h"
+#include "kn_common_define.h"    
 #include <pthread.h>
 
 extern pthread_key_t g_systime_key;
@@ -59,7 +60,7 @@ static inline uint64_t _clock_rdtsc ()
 #endif
 }
 
-static inline uint64_t _clock_time ()
+static inline uint64_t _clock_time()
 {
     struct timespec tv;
     clock_gettime (CLOCK_BOOTTIME, &tv);
@@ -68,19 +69,19 @@ static inline uint64_t _clock_time ()
 
 static inline void _clock_init (struct _clock *c)
 {
-    c->last_tsc = _clock_rdtsc ();
-    c->last_time = _clock_time ();
+    c->last_tsc = _clock_rdtsc();
+    c->last_time = _clock_time();
 }
 
 static inline struct _clock* get_thread_clock()
 {
-	struct _clock* c = (struct _clock*)pthread_getspecific(g_systime_key);
-	if(!c){
-	   c = calloc(1,sizeof(*c));
-       _clock_init(c);
-       pthread_setspecific(g_systime_key,c);
-	}
-	return c;
+    struct _clock* c = (struct _clock*)pthread_getspecific(g_systime_key);
+    if(unlikely(!c)){
+       c = calloc(1,sizeof(*c));
+                _clock_init(c);
+                pthread_setspecific(g_systime_key,c);
+    }
+    return c;
 }
 
 
@@ -95,21 +96,21 @@ static inline uint64_t kn_systemms64()
 static inline uint64_t kn_systemms64()
 {
 #endif
-    uint64_t tsc = _clock_rdtsc ();
+    uint64_t tsc = _clock_rdtsc();
     if (!tsc)
-        return _clock_time ();
+        return _clock_time();
 
     struct _clock *c = get_thread_clock();
 
     /*  If tsc haven't jumped back or run away too far, we can use the cached
         time value. */
-    if (tsc - c->last_tsc <= (NN_CLOCK_PRECISION / 2) && tsc >= c->last_tsc)
+    if (likely(tsc - c->last_tsc <= (NN_CLOCK_PRECISION / 2) && tsc >= c->last_tsc))
         return c->last_time;
 
     /*  It's a long time since we've last measured the time. We'll do a new
         measurement now. */
     c->last_tsc = tsc;
-    c->last_time = _clock_time ();
+    c->last_time = _clock_time();
     return c->last_time;
 }
 

@@ -19,6 +19,8 @@
 #ifndef _KN_DLIST_H
 #define _KN_DLIST_H
 
+#include "kn_common_define.h"    
+
 struct kn_dlist;
 
 typedef struct kn_dlist_node
@@ -51,10 +53,10 @@ static inline kn_dlist_node *kn_dlist_end(kn_dlist *dl)
 	return &dl->tail;
 }
 
-
 static inline int32_t kn_dlist_remove(kn_dlist_node *dln)
 {
-	if(!dln->owner || (!dln->pre && !dln->next)) return -1;
+	if(unlikely(!dln->owner || (!dln->pre && !dln->next))) 
+                return -1;
               dln->pre->next = dln->next;
 	dln->next->pre = dln->pre;
 	dln->pre = dln->next = NULL;
@@ -74,7 +76,8 @@ static inline kn_dlist_node *kn_dlist_pop(kn_dlist *dl)
 
 static inline int32_t kn_dlist_push(kn_dlist *dl,kn_dlist_node *dln)
 {
-	if(dln->owner || dln->pre || dln->next) return -1;
+	if(unlikely(dln->owner || dln->pre || dln->next)) 
+                return -1;
 	dl->tail.pre->next = dln;
 	dln->pre = dl->tail.pre;
 	dl->tail.pre = dln;
@@ -85,7 +88,8 @@ static inline int32_t kn_dlist_push(kn_dlist *dl,kn_dlist_node *dln)
 
 static inline int32_t kn_dlist_push_front(kn_dlist *dl,kn_dlist_node *dln)
 {
-	if(dln->owner || dln->pre || dln->next) return -1;
+	if(unlikely(dln->owner || dln->pre || dln->next)) 
+                return -1;
 	kn_dlist_node *next = dl->head.next;
 	dl->head.next = dln;
 	dln->pre = &dl->head;

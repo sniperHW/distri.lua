@@ -36,6 +36,7 @@ source =  src/kn_epoll.c \
 	   src/kn_curl.c\
 	   src/uthread.c\
 	   src/kn_objpool.c\
+	   src/kn_chr_dev.c\
 	   src/buffer.c
 
 libkendynet.a: $(source)
@@ -94,5 +95,9 @@ ccoroutine:libkendynet.a $(SAMPLE)/ccoroutine.c
 	$(CC) $(CFLAGS) -o ccoroutine $(SAMPLE)/ccoroutine.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 
 objpool:libkendynet.a $(SAMPLE)/objpool.c
-	$(CC) $(CFLAGS) -o objpool $(SAMPLE)/objpool.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)							
+	$(CC) $(CFLAGS) -o objpool $(SAMPLE)/objpool.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+testchrdev:libkendynet.a $(SAMPLE)/testchrdev.c
+	$(CC) $(CFLAGS) -o testchrdev $(SAMPLE)/testchrdev.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+testatomicst:libkendynet.a $(SAMPLE)/testatomicst.c include/lockfree/atomic_st.h
+	$(CC) $(CFLAGS) -o testatomicst $(SAMPLE)/testatomicst.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)									
 					

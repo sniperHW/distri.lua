@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include "kn_common_define.h"
 
 typedef struct kn_list_node
 {
@@ -54,9 +55,9 @@ static inline kn_list_node* kn_list_tail(kn_list *l)
 
 static inline void kn_list_pushback(kn_list *l,kn_list_node *n)
 {
-    	if(n->next) 
+    	if(unlikely(n->next)) 
     		return;
-	if(0 == l->size)
+	if(unlikely(0 == l->size))
 		l->head = l->tail = n;
 	else{
 		l->tail->next = n;
@@ -67,9 +68,9 @@ static inline void kn_list_pushback(kn_list *l,kn_list_node *n)
 
 static inline void kn_list_pushfront(kn_list*l,kn_list_node *n)
 {
-    	if(n->next) 
+    	if(unlikely(n->next)) 
     		return;
-	if(0 == l->size)
+	if(unlikely(0 == l->size))
 		l->head = l->tail = n;
 	else{
 		n->next = l->head;
