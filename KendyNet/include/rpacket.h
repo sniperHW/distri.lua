@@ -19,6 +19,9 @@
 #include "kendynet.h"
 #include "packet.h"
 #include "kn_common_define.h"
+#include "kn_alloc.h"
+
+extern allocator_t g_rpk_allocator;    
 
 typedef struct rpacket
 {

@@ -3,6 +3,10 @@
 
 #include "packet.h"
 #include "kn_common_define.h"
+#include "kn_alloc.h"
+
+
+extern allocator_t g_rawpk_allocator;
 
 typedef struct rawpacket
 {

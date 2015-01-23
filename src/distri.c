@@ -8,6 +8,10 @@
 #include "debug.h"
 #include "myprocps/mytop.h"
 #include "kn_daemonize.h"
+#include "wpacket.h"
+#include "rpacket.h"
+#include "rawpacket.h"
+#include "kn_objpool.h"
 
 
 engine_t      g_engine = NULL;
@@ -200,6 +204,9 @@ int main(int argc,char **argv)
 			break;
 		}
 	}
+	g_wpk_allocator = objpool_new(sizeof(struct wpacket),100000);
+	g_rpk_allocator = objpool_new(sizeof(struct rpacket),100000);
+	g_rawpk_allocator = objpool_new(sizeof(struct rawpacket),100000);
 	/*if(debug_init()){
 		printf("debug_init failed\n");
 		return 0;

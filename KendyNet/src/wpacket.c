@@ -7,6 +7,8 @@
 #include "kn_common_define.h"
 #include "kn_atomic.h"
 
+allocator_t g_wpk_allocator = NULL;
+
 static packet_t wpk_clone(packet_t p);
 packet_t wpk_makeforread(packet_t p);
 packet_t rpk_makeforwrite(packet_t p);
@@ -15,7 +17,7 @@ wpacket_t wpk_create(uint32_t size)
 {
 	size = size_of_pow2(size);
 	if(size < 64) size = 64;
-	wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));
+	wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));
 	packet_buf(w) = buffer_create(size);
 	w->writebuf = buffer_acquire(NULL,packet_buf(w));
 	packet_begpos(w)= 0;
@@ -37,7 +39,7 @@ wpacket_t wpk_create_by_bin(int8_t *addr,uint32_t size)
 	uint32_t datasize = size;
 	size = size_of_pow2(size);
 	if(size < 64) size = 64;
-	wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));	
+	wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));	
 	packet_buf(w) = buffer_create(size);
 	w->writebuf = buffer_acquire(NULL,packet_buf(w));
 	packet_begpos(w)= 0;
@@ -57,7 +59,7 @@ wpacket_t wpk_create_by_bin(int8_t *addr,uint32_t size)
 static packet_t wpk_clone(packet_t p){
 	if(packet_type(p) == WPACKET){
 		wpacket_t _w = (wpacket_t)p;
-		wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));
+		wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));
 		w->writebuf = NULL;
 		w->len = NULL;
 		packet_begpos(w) = packet_begpos(_w);
@@ -76,7 +78,7 @@ static packet_t wpk_clone(packet_t p){
 packet_t rpk_makeforwrite(packet_t p){
 	if(packet_type(p) == RPACKET){
 		rpacket_t r = (rpacket_t)p;
-		wpacket_t w = (wpacket_t)calloc(1,sizeof(*w));	
+		wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));	
 		w->writebuf = NULL;
 		w->len = NULL;//触发拷贝之前len没有作用
 		w->wpos = 0;

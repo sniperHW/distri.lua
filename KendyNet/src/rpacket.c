@@ -6,6 +6,8 @@
 #include "kn_common_define.h"
 #include "kn_atomic.h"
 
+allocator_t g_rpk_allocator = NULL;
+
 static packet_t rpk_clone(packet_t p);
 packet_t wpk_makeforread(packet_t p);
 packet_t rpk_makeforwrite(packet_t p);
@@ -15,7 +17,7 @@ rpacket_t rpk_create(buffer_t b,
                      uint32_t pos,
                      uint32_t pk_len)
 {
-	rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));
+	rpacket_t r = (rpacket_t)CALLOC(g_rpk_allocator,1,sizeof(*r));//calloc(1,sizeof(*r));
 	r->binbuf = NULL;
 	r->binbufpos = 0;
 	packet_buf(r) = buffer_acquire(NULL,b);
@@ -37,7 +39,7 @@ rpacket_t rpk_create(buffer_t b,
 static packet_t rpk_clone(packet_t p){
 	if(packet_type(p) == RPACKET){
 		rpacket_t other = (rpacket_t)p;
-		rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));	
+		rpacket_t r = (rpacket_t)CALLOC(g_rpk_allocator,1,sizeof(*r));//calloc(1,sizeof(*r));	
 	    	r->binbuf = NULL;
 		r->binbufpos = 0;
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(other));
@@ -60,7 +62,7 @@ packet_t wpk_makeforread(packet_t p){
 	if(packet_type(p) == WPACKET){
 		uint32_t hlen;
 		wpacket_t w = (wpacket_t)p;
-		rpacket_t r = (rpacket_t)calloc(1,sizeof(*r));	
+		rpacket_t r = (rpacket_t)CALLOC(g_rpk_allocator,1,sizeof(*r));//calloc(1,sizeof(*r));	
 		r->binbuf = NULL;
 		r->binbufpos = 0;
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(w));
