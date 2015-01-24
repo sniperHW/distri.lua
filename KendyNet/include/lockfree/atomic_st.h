@@ -23,7 +23,7 @@ volatile int miss_count;
 
 #define DECLARE_ATOMIC_TYPE(NAME,TYPE)\
 struct NAME##_st{\
-	volatile int32_t version;\
+	volatile uint32_t version;\
 	TYPE data;\
 };\
 struct NAME\
@@ -38,7 +38,7 @@ static inline void NAME##_get(struct NAME *at,TYPE *ret)\
 	if(unlikely(!at || !ret)) return;\
 	while(1){\
 		struct NAME##_st *ptr_p = (struct NAME##_st *)at->ptr;\
-		int save_version = ptr_p->version;\
+		uint32_t save_version = ptr_p->version;\
 		FENCE();\
 		*ret = ptr_p->data;\
 		if(ptr_p == at->ptr){\
