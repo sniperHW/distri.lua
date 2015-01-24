@@ -16,10 +16,6 @@
 */
 #include "kn_atomic.h"
 #include "kn_common_define.h"    
-volatile int get_count;
-volatile int set_count;
-volatile int miss_count;
-
 
 #define DECLARE_ATOMIC_TYPE(NAME,TYPE)\
 struct NAME##_st{\
@@ -33,7 +29,7 @@ struct NAME\
 	struct NAME##_st * volatile ptr;\
 	struct NAME##_st array[2];\
 };\
-static inline void NAME##_get(struct NAME *at,TYPE *ret)\
+static inline void NAME##_get(struct NAME *at,volatile TYPE *ret)\
 {\
 	if(unlikely(!at || !ret)) return;\
 	while(1){\
@@ -46,9 +42,7 @@ static inline void NAME##_get(struct NAME *at,TYPE *ret)\
 			if(save_version == ptr_p->version)\
 				break;\
 		}\
-		ATOMIC_INCREASE(&miss_count);\
 	}\
-	ATOMIC_INCREASE(&get_count);\
 }\
 static inline void NAME##_set(struct NAME *at,TYPE *v)\
 {\
@@ -59,7 +53,6 @@ static inline void NAME##_set(struct NAME *at,TYPE *v)\
 	FENCE();\
 	at->ptr = &at->array[at->index];\
 	at->index ^= 0x1;\
-	ATOMIC_INCREASE(&set_count);\
 }\
 static inline struct NAME *NAME##_new()\
 {\
