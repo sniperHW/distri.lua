@@ -2,6 +2,8 @@
 #include "luapacket.h"
 #include "push_callback.h"
 #include "log.h"
+#include "listener.h"
+#include "kn_thread_mailbox.h"
 
 extern engine_t g_engine;
 //static __thread lua_State *g_L;
@@ -73,8 +75,12 @@ static void  on_packet(stream_conn_t c,packet_t p){
 static int luasocket_close(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
 	if(luasock->type == _SOCKET){
-		kn_close_sock(luasock->sock);
-		destroy_luasocket(luasock);						
+		if(luasock->listening){
+			listener_close_listen(luasock);
+		}else{
+			kn_close_sock(luasock->sock);
+			destroy_luasocket(luasock);
+		}						
 	}else{
 		stream_conn_close(luasock->streamconn);
 		refobj_dec((refobj*)luasock->streamconn);
@@ -152,14 +158,14 @@ static int luasocket_connect(lua_State *L){
 	return 2;
 }
 
-static void on_new_conn(handle_t s,void* ud){
+/*static void on_new_conn(handle_t s,void* ud){
 	luasocket_t luasock = (luasocket_t)ud;
 	luaRef_t  *obj = &luasock->luaObj;
 	const char *error = push_obj_callback(obj->L,"srp","__on_new_connection",*obj,s);
 	if(error){
 		SYS_LOG(LOG_ERROR,"error on __on_new_connection:%s\n",error);			
 	}	
-}
+}*/
 
 static int luasocket_listen(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
@@ -179,11 +185,18 @@ static int luasocket_listen(lua_State *L){
 	const char *ip = lua_tostring(L,2);
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr local;
-	kn_addr_init_in(&local,ip,port);		
-	if(0 != kn_sock_listen(g_engine,luasock->sock,&local,on_new_conn,luasock)){
+	kn_addr_init_in(&local,ip,port);
+	int ret = listener_listen(luasock,&local);
+	if(0 != ret){
+		lua_pushstring(L,"listen error");
+	}else{
+		luasock->listening = 1;
+		lua_pushnil(L);
+	}		
+	/*if(0 != kn_sock_listen(g_engine,luasock->sock,&local,on_new_conn,luasock)){
 		lua_pushstring(L,"listen error");
 	}else
-		lua_pushnil(L);
+		lua_pushnil(L);*/
 	return 1;		
 }
 
@@ -238,6 +251,23 @@ int lua_new_rpkdecoder(lua_State *L){
 		maxpacket_size = lua_tointeger(L,1);
 	lua_pushlightuserdata(L,new_rpk_decoder(maxpacket_size));
 	return 1;
+}
+
+static void on_mail(kn_thread_mailbox_t *from,void *mail){
+	li_msg_t _msg = (li_msg_t)mail;
+	if(_msg->_msg_type == MSG_CLOSED){
+		luasocket_t luasock = (luasocket_t)_msg->luasock;
+		destroy_luasocket(luasock);
+		//kn_close_sock(luasock->sock);
+		//send2main(new_msg(MSG_CLOSED,_msg->ud));
+	}else if(_msg->_msg_type == MSG_CONNECTION){
+		luasocket_t luasock = (luasocket_t)_msg->luasock;
+		luaRef_t  *obj = &luasock->luaObj;
+		const char *error = push_obj_callback(obj->L,"srp","__on_new_connection",*obj,_msg->ud);
+		if(error){
+			SYS_LOG(LOG_ERROR,"error on __on_new_connection:%s\n",error);			
+		}				
+	}
 }		
 
 void reg_luasocket(lua_State *L){
@@ -263,7 +293,12 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("rpkdecoder",lua_new_rpkdecoder);	
 	
 	lua_setglobal(L,"CSocket");
-	reg_luapacket(L);	
+	reg_luapacket(L);
+	kn_setup_mailbox(g_engine,on_mail);
+
+
+
+
 	//g_L = L;
 }
 

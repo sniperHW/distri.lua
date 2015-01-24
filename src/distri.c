@@ -12,6 +12,7 @@
 #include "rpacket.h"
 #include "rawpacket.h"
 #include "kn_objpool.h"
+#include "listener.h"
 
 
 engine_t      g_engine = NULL;
@@ -52,6 +53,7 @@ static void start(lua_State *L,int argc,char **argv)
 	}
 	set_luaarg(L,argc,argv);
 	const char *error = LuaCall(L,"distri_lua_start_run","s",start_file);
+	listener_stop();	
 	if(error){
 		SYS_LOG(LOG_ERROR,"distri_lua_start_run: %s\n",error);
 		exit(0);
@@ -227,14 +229,14 @@ int main(int argc,char **argv)
         		{NULL, NULL}
     	};
     	luaL_newlib(L, l);
-	lua_setglobal(L,"C");    		
+	lua_setglobal(L,"C");
+	g_engine = kn_new_engine();	    		
 	reg_luasocket(L);
 	reg_luahttp(L);
 	reg_luaredis(L);
 	reg_lualog(L);
 	reg_luabase64(L);
 	reg_timeutil(L);
-	g_engine = kn_new_engine();
 	start(L,argc,argv);
 	return 0;
 } 

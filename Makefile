@@ -41,6 +41,7 @@ source =  src/luasocket.c\
 	  src/base64/base64.c\
 	  src/base64/lua_base64.c\
 	  src/timeutil.c\
+	  src/listener.c\
 	  src/distri.c 		
 
 distrilua: KendyNet/libkendynet.a\

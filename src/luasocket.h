@@ -9,6 +9,7 @@ typedef struct {
 	stream_conn_t streamconn;
 	int                type;
 	luaRef_t      luaObj;
+	int                listening;
 }*luasocket_t;
 
 void reg_luasocket(lua_State *L);
