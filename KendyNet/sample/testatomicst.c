@@ -16,27 +16,19 @@ struct point
 
 DECLARE_ATOMIC_TYPE(atomic_point,struct point);
 	
-struct atomic_point *g_points[1000];
+struct atomic_point *g_points[3];
 
 void *SetRotine(void *arg)
 {
     	int idx = 0;
     	int pos = 0;
-    	uint32_t tick = kn_systemms();
-    	int c = 0;
 	while(1)
 	{
 		struct point p;
 		++pos;
 		p.x = p.y = p.z = pos+1;
 		atomic_point_set(g_points[idx],&p);
-		if(++c >= 10000000){
-			uint32_t now = kn_systemms();
-            			uint32_t elapse = (uint32_t)(now-tick);
-			printf("set %d/ms\n",c/elapse*1000);
-			tick = now;			
-			c = 0;
-		}	
+		idx = (idx + 1)%3;
 	}
 }
 
@@ -61,7 +53,7 @@ void *GetRoutine(void *arg)
 			tick = now;			
 			c = 0;
 		}						
-		//idx = (idx + 1)%100;
+		idx = (idx + 1)%3;
 	}
 }
 
@@ -70,7 +62,7 @@ int main()
 	struct point p;
 	p.x = p.y = p.z = 1;
 	int i;
-	for(i = 0; i < 1000; ++i)
+	for(i = 0; i < 3; ++i)
 	{
 		g_points[i] = atomic_point_new();
 		atomic_point_set(g_points[i],&p);

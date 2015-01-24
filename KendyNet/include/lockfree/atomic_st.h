@@ -19,29 +19,27 @@
 
 #define DECLARE_ATOMIC_TYPE(NAME,TYPE)\
 struct NAME##_st{\
-	volatile uint32_t version;\
+	uint32_t version;\
 	TYPE data;\
 };\
 struct NAME\
 {\
 	uint32_t g_version;\
 	int32_t index;\
-	struct NAME##_st * volatile ptr;\
+	struct NAME##_st *ptr;\
 	struct NAME##_st array[2];\
 };\
 static inline void NAME##_get(struct NAME *at,volatile TYPE *ret)\
 {\
 	if(unlikely(!at || !ret)) return;\
 	while(1){\
-		struct NAME##_st *ptr_p = (struct NAME##_st *)at->ptr;\
-		uint32_t save_version = ptr_p->version;\
+		struct NAME##_st **ptr = &at->ptr;\
+		uint32_t save_version = (*ptr)->version;\
 		FENCE();\
-		*ret = ptr_p->data;\
-		if(ptr_p == at->ptr){\
-			FENCE();\
-			if(save_version == ptr_p->version)\
-				break;\
-		}\
+		*ret = (*ptr)->data;\
+		FENCE();\
+		if(save_version == (*ptr)->version)\
+			break;\
 	}\
 }\
 static inline void NAME##_set(struct NAME *at,TYPE *v)\
