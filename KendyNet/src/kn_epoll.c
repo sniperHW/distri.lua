@@ -69,10 +69,6 @@ engine_t kn_new_engine(){
 	//kn_set_noblock(tmp[0],0); 
 	//kn_set_noblock(tmp[1],0); 
 	kn_event_add(ep,(handle_t)&ep->notify_stop,EPOLLIN);
-	
-	ep->timerfd = kn_new_timerfd(1);
-	((handle_t)ep->timerfd)->ud = kn_new_timermgr();
-	kn_event_add(ep,ep->timerfd,EPOLLIN | EPOLLOUT);	
 	return (engine_t)ep;
 }
 
@@ -159,5 +155,10 @@ void kn_stop_engine(engine_t e){
 
 kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 	kn_epoll *ep = (kn_epoll*)e;
+	if(!ep->timerfd){
+		ep->timerfd = kn_new_timerfd(1);
+		((handle_t)ep->timerfd)->ud = kn_new_timermgr();
+		kn_event_add(ep,ep->timerfd,EPOLLIN | EPOLLOUT);			
+	}
 	return reg_timer_imp(((handle_t)ep->timerfd)->ud,timeout,cb,ud);
 }
