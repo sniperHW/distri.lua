@@ -256,7 +256,7 @@ void stream_conn_close(stream_conn_t c){
 }
 
 
-static inline void Recv(stream_conn_t c){
+static inline void prepare_recv(stream_conn_t c){
 	buffer_t buf;
 	uint32_t pos;
 	int32_t i = 0;
@@ -285,28 +285,55 @@ static inline void Recv(stream_conn_t c){
 	}while(recv_size);
 	c->recv_overlap.iovec_count = i;
 	c->recv_overlap.iovec = c->wrecvbuf;
+}
+
+
+
+static inline void PostRecv(stream_conn_t c){
+	prepare_recv(c);
 	kn_sock_post_recv(c->handle,&c->recv_overlap);	
 	c->doing_recv = 1;	
 }
 
+static inline int Recv(stream_conn_t c,int32_t* err_code){
+	prepare_recv(c);
+	int ret = kn_sock_recv(c->handle,&c->recv_overlap);
+	if(err_code) *err_code = errno;
+	if(ret == 0){
+		c->doing_recv = 1;
+		return 0;
+	}
+	return ret;
+}
+
 void RecvFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 {
-	c->doing_recv = 0;	
-	if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
-		//不处理半关闭的情况，如果读到流的结尾直接关闭连接
-		//printf("recv close\n");
-		_force_close(c,err_code);	
-	}else if(bytestransfer > 0){
-		update_next_recv_pos(c,bytestransfer);
-		c->unpack_size += bytestransfer;
-		int ret; 
-		if((ret = c->_decoder->unpack(c->_decoder,c)) == decode_packet_too_big){
-			_force_close(c,err_code);	
-			return;
+	c->doing_recv = 0;
+	int total_recv = 0;
+	do{	
+		if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
+			//不处理半关闭的情况，如果读到流的结尾直接关闭连接
+			_force_close(c,err_code);
+			return;	
+		}else if(bytestransfer > 0){
+			total_recv += bytestransfer;
+			update_next_recv_pos(c,bytestransfer);
+			c->unpack_size += bytestransfer;
+			int ret; 
+			if((ret = c->_decoder->unpack(c->_decoder,c)) == decode_packet_too_big){
+				_force_close(c,err_code);	
+				return;
+			}
+			if(ret != 0) return;
+			if(total_recv > 65536){
+				PostRecv(c);
+				return;
+			}else{
+				bytestransfer = Recv(c,&err_code);
+				if(bytestransfer == 0) return;
+			}
 		}
-		if(ret != 0) return;
-		Recv(c);
-	}
+	}while(1);
 }
 
 void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
@@ -326,7 +353,10 @@ void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 				return;
 			}
 			bytestransfer = kn_sock_send(c->handle,io);
-			if(bytestransfer == 0) return;//EAGAIN
+			if(bytestransfer == 0){
+				c->doing_send = 1;
+				return;//EAGAIN
+			}
 			else if(bytestransfer < 0){
 				_force_close(c,errno);
 				return;
@@ -381,7 +411,6 @@ int stream_conn_associate(engine_t e,
       kn_sock_associate(conn->handle,e,IoFinish,NULL);
       if(on_packet) conn->on_packet = on_packet;
       if(on_disconnect) conn->on_disconnected = on_disconnect;
-      if(e && !conn->doing_recv)
-			Recv(conn);
+      if(e && !conn->doing_recv) PostRecv(conn);
       return 0;
 }

@@ -86,7 +86,7 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 	errno = 0;
 	int i;
 	handle_t h;
-	int nfds = TEMP_FAILURE_RETRY(epoll_wait(ep->epfd,ep->events,ep->maxevents,1000));
+	int nfds = TEMP_FAILURE_RETRY(epoll_wait(ep->epfd,ep->events,ep->maxevents,ms));
 	if(nfds > 0){
 		for(i=0; i < nfds ; ++i)
 		{
@@ -119,7 +119,7 @@ int kn_engine_run(engine_t e){
 		errno = 0;
 		int i;
 		handle_t h;
-		int nfds = TEMP_FAILURE_RETRY(epoll_wait(ep->epfd,ep->events,ep->maxevents,1000));
+		int nfds = TEMP_FAILURE_RETRY(epoll_wait(ep->epfd,ep->events,ep->maxevents,-1));
 		if(nfds > 0){
 			for(i=0; i < nfds ; ++i)
 			{
