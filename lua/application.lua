@@ -3,21 +3,40 @@ local RPC = require "lua.rpc"
 local Timer = require "lua.timer"
 local application = {}
 
-function application:new()
+
+--[[
+对于每一个socket至少需要1-N个coroutine为其执行recver函数,以处理在这个socket上接收到的数据包.
+但是,当recver执行处理数据包逻辑的时候,在用户的逻辑处理函数中有可能导致当前coroutine阻塞.假设只有
+一个coroutine在为一个socket执行recver,并且在执行用户处理函数的时候当前coroutine被阻塞.则在阻塞期
+间这个socket上到达的所有数据包都将无法被处理,直到coroutine解除阻塞.
+
+因此,一般情况下,当没有recver可用的情况下会spawn一个新的coroutine去执行recver.
+
+max_recver_per_socket的作用就是设定每个socket的recver上限.当达到这个数量之后,即使没有可用的
+recver,也不会为这个socket产生一个新的coroutine去执行recver
+
+如果应用在设计时就已经预计到在处理函数中会出现大量的阻塞操作,则可将此值设大点.	
+]]--
+
+
+local default_recver_per_socket = 64
+
+function application:new(max_recver_per_socket)
   local o = {}   
   setmetatable(o, self)
   self.__index = self
-  --o.sockets = {}
-  --o.running = false
+  if not max_recver_per_socket or max_recver_per_socket == 0 then
+	max_recver_per_socket = default_recver_per_socket
+  end
   o._RPCService = {}
+  o.max_recver_per_socket = max_recver_per_socket
   return o
 end
 
 local CMD_PING = 0xABABCBCB
 
-local max_recver_per_socket = 10
-
 local function recver(app,socket)
+	socket.recver_count = socket.recver_count + 1
 	while true do--app.running do
 		local rpk,err = socket:Recv()
 		if err then
@@ -46,7 +65,10 @@ local function recver(app,socket)
 					CLog.SysLog(CLog.LOG_ERROR,"application process_packet error:" .. err)
 				end
 			end
-		end		
+		end
+		--if socket.recver_count > app.max_recver_per_socket then
+		--	break
+		--end 	
 	end
 	socket.recver_count = socket.recver_count - 1
 end
@@ -55,14 +77,12 @@ end
 local heart_beat_timer = Timer.New("runImmediate")
 
 function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterval)
-	if not socket.app then--self.sockets[socket] then
-		--self.sockets[socket] = socket
+	if not socket.app then
 		socket.app = self
 		socket.recver_count = 0
 		socket.process_packet = on_packet
 		local app = self
 		socket.on_disconnected = function (sock,errno)
-						--app.sockets[sock] = nil 
 						sock.app = nil
 						if on_disconnected then
 							on_disconnected(sock,errno)
@@ -76,10 +96,8 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 			if co then
 				co = co[1]
 				socket.timeout = nil
-				Sche.WakeUp(co)		
-			--elseif app.running and socket.recver_count < max_recver_per_socket then
-			elseif socket.recver_count < max_recver_per_socket then
-				socket.recver_count = socket.recver_count + 1
+				Sche.WakeUp(co)
+			elseif socket.recver_count < app.max_recver_per_socket then
 				Sche.SpawnAndRun(recver,app,socket)
 			end
 		end
@@ -119,30 +137,6 @@ function application:RPCService(name,func)
 	self._RPCService[name] = func
 end
 
---[[function application:Run(start_fun)
-	if not self.running then 
-		if start_fun then
-			self.running = true
-			start_fun()
-		end
-	end
-end
-
-function application:Stop()
-	self.running = false
-	for k,v in pairs(self.sockets) do
-		v:Close()
-	end
-end]]--
-
-local function SetMaxRecverPerSocket(count)
-	if not count or count == 0 then
-		count = 10
-	end
-	max_recver_per_socket = count
-end
-
 return {
-	New =  function () return application:new() end,
-	SetMaxRecverPerSocket = SetMaxRecverPerSocket
+	New =  function (max_recver_per_socket) return application:new(max_recver_per_socket) end,
 }
