@@ -28,11 +28,14 @@ void uthread_worker(void *arg){
 void uthread_accept(void *arg){
 	printf("uthread_accept\n");
 	ut_socket_t server = *(ut_socket_t*)arg;
+	ut_socket_t *client = calloc(1,sizeof(*client));
 	while(1){
-		ut_socket_t *client = calloc(1,sizeof(*client));
 		*client = ut_accept(server,4096,new_rpk_decoder(4096));
-		printf("new client\n");
-		ut_spawn(uthread_worker,(void*)client);
+		if(!is_empty_ident(*client))){
+			printf("new client\n");
+			ut_spawn(uthread_worker,(void*)client);
+			client = calloc(1,sizeof(*client));
+		}
 	}
 }
 
