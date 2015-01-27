@@ -146,14 +146,26 @@ static int luasocket_connect(lua_State *L){
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr host;
 	kn_addr_init_in(&host,ip,port);
-	int ret;	
+	int ret = kn_sock_connect(g_engine,luasock->sock,&host,NULL);
+	if(ret > 0){//kn_sock_connect(p,c,&remote,NULL)){
+		lua_pushnil(L);
+		lua_pushinteger(L,ret);
+	}else if(ret == 0){
+		kn_sock_set_connect_cb(luasock->sock,cb_connect,NULL);
+		lua_pushnil(L);
+		lua_pushinteger(L,ret);		
+	}else{
+		lua_pushstring(L,"connect error");
+		lua_pushnil(L);
+	}	
+	/*int ret;	
 	if( 0 > (ret = kn_sock_connect(g_engine,luasock->sock,&host,NULL,cb_connect,NULL))){
 		lua_pushstring(L,"connect error");
 		lua_pushnil(L);
 	}else{
 		lua_pushnil(L);
 		lua_pushinteger(L,ret);
-	}
+	}*/
 	kn_sock_setud(luasock->sock,luasock);
 	return 2;
 }

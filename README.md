@@ -55,8 +55,6 @@ rpc test
 to-do list
 ----------
 * Cooperative dns query
-* Lighted HttpServer
-* SSL Connection
 * WebSocket
 * debuger
 

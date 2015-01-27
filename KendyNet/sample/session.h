@@ -12,7 +12,7 @@ void session_recv(struct session *s)
 	s->wbuf[0].iov_len = 65535;
 	s->recv_overlap.iovec_count = 1;
 	s->recv_overlap.iovec = s->wbuf;
-	kn_sock_recv(s->s,&s->recv_overlap);
+	kn_sock_post_recv(s->s,&s->recv_overlap);
 }
 
 void session_send(struct session *s,int32_t size)
@@ -21,7 +21,7 @@ void session_send(struct session *s,int32_t size)
    	s->wbuf[0].iov_len = size;
 	s->send_overlap.iovec_count = 1;
 	s->send_overlap.iovec = s->wbuf;  	
-    kn_sock_send(s->s,&s->send_overlap); 
+    	kn_sock_post_send(s->s,&s->send_overlap); 
 }
 
 int      client_count = 0;
@@ -31,11 +31,12 @@ void transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
     struct session *session = kn_sock_getud(s);
     if(!io || bytestransfer <= 0)
     {
+        printf("disconnected\n");
         kn_close_sock(s);
         free(session);
-		--client_count;           
+        --client_count;           
         return;
-	}	
+    }	
     if(io == &session->send_overlap)
 		session_recv(session);
     else if(io == &session->recv_overlap){

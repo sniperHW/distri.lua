@@ -174,16 +174,16 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder* _decoder
 	}
 	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	struct st_connect _st_connect = {.err=0,.s=NULL,.ut=NULL};
-	int ret = kn_sock_connect(g_engine,c,remote,NULL,on_connect,&_st_connect);
+	int ret = kn_sock_connect(g_engine,c,remote,NULL);//,on_connect,&_st_connect);
 	if(ret < 0){
 		if(_decoder)
 			destroy_decoder(_decoder);	
-		return empty_ident;
+		return empty_ident;		
 	}else if(ret == 0){
-		_st_connect.ut = &ut_current;		
+		_st_connect.ut = &ut_current;
+		kn_sock_set_connect_cb(c,on_connect,&_st_connect);		
 		ut_block(0);
-	}
-
+	}	
 	if(_st_connect.s){
 		stream_conn_t conn = new_stream_conn(_st_connect.s,buffersize,_decoder);
 		ut_socket_t _utsock = make_ident((refobj*)ut_socket_new2(conn));		

@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall -fno-strict-aliasing
-LDFLAGS = -lpthread -lrt -lm
+LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 SHARED = -fPIC -shared
 CC = gcc
 DEPDIR = ../deps
@@ -99,5 +99,11 @@ objpool:libkendynet.a $(SAMPLE)/objpool.c
 testchrdev:libkendynet.a $(SAMPLE)/testchrdev.c
 	$(CC) $(CFLAGS) -o testchrdev $(SAMPLE)/testchrdev.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 testatomicst:libkendynet.a $(SAMPLE)/testatomicst.c include/lockfree/atomic_st.h
-	$(CC) $(CFLAGS) -o testatomicst $(SAMPLE)/testatomicst.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)									
+	$(CC) $(CFLAGS) -o testatomicst $(SAMPLE)/testatomicst.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
+
+ssl_server:$(SAMPLE)/ssl_server.c libkendynet.a
+	$(CC) $(CFLAGS) -o ssl_server $(SAMPLE)/ssl_server.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+
+ssl_client:$(SAMPLE)/ssl_client.c libkendynet.a
+	$(CC) $(CFLAGS) -o ssl_client $(SAMPLE)/ssl_client.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)											
 					

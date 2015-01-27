@@ -20,30 +20,45 @@ typedef struct
 
 engine_t kn_new_engine();
 void     kn_release_engine(engine_t);
-int      kn_engine_run(engine_t);
+int        kn_engine_run(engine_t);
 void     kn_engine_runonce(engine_t,uint32_t);
 void     kn_stop_engine(engine_t);
+void     SSL_init();
 
 handle_t kn_new_sock(int domain,int type,int protocal);
 int      kn_close_sock(handle_t);
 
 int      kn_sock_listen(engine_t,
-						handle_t,
-						kn_sockaddr*,
-						void (*cb_accept)(handle_t,void*),
-						void*);
+		         handle_t,
+		         kn_sockaddr*,
+		         void (*cb_accept)(handle_t,void*),
+		         void*);
 						
 int      kn_sock_connect(engine_t,
-						 handle_t,
-						 kn_sockaddr *remote,
-						 kn_sockaddr *local,
-						 void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),
-						 void*);
+		             handle_t,
+		             kn_sockaddr *remote,
+		             kn_sockaddr *local);
+
+void   kn_sock_set_connect_cb(handle_t,void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),void*);
 
 int      kn_sock_associate(handle_t,
-						   engine_t,
-						   void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-						   void (*destry_stio)(st_io*));
+			  engine_t,
+			  void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+			  void (*destry_stio)(st_io*));
+
+int      kn_sock_ssllisten(engine_t,
+		             handle_t,
+		             kn_sockaddr*,
+		             void (*cb_accept)(handle_t,void*),
+		             void*,
+		             const char *certificate,
+		             const char *privatekey
+		             );
+
+int      kn_sock_sslconnect(engine_t,
+		                  handle_t,
+		                  kn_sockaddr *remote,
+		                  kn_sockaddr *local);
 
 
 /*

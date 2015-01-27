@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall -fno-strict-aliasing 
-LDFLAGS = -lpthread -lrt -llua -lm -ldl
+LDFLAGS = -lpthread -lrt -llua -lm -ldl -lssl -lcrypto
 SHARED = -fPIC -shared
 CC = gcc
 DEFINE = -D_DEBUG -D_LINUX 

@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall -fno-strict-aliasing
-LDFLAGS = -lpthread -lrt -lm
+LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 SHARED = -fPIC -shared
 CC = gcc
 INCLUDE = -I../../include -I./ 
