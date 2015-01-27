@@ -31,7 +31,7 @@ void transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
     struct session *session = kn_sock_getud(s);
     if(!io || bytestransfer <= 0)
     {
-        printf("disconnected\n");
+        printf("disconnected,%d\n",kn_get_ssl_error(s,0));
         kn_close_sock(s);
         free(session);
         --client_count;           

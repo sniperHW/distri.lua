@@ -6,6 +6,8 @@
 #include "kn_list.h"
 #include "kn_sockaddr.h"
 #include "kn_time.h"
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 typedef struct handle* handle_t;
 typedef void* engine_t;
@@ -25,6 +27,9 @@ void     kn_engine_runonce(engine_t,uint32_t);
 void     kn_stop_engine(engine_t);
 void     SSL_init();
 
+
+int      kn_is_ssl_socket(handle_t);
+int      kn_get_ssl_error(handle_t,int ret);
 handle_t kn_new_sock(int domain,int type,int protocal);
 int      kn_close_sock(handle_t);
 
