@@ -4,9 +4,10 @@
 static int lua_new_packet(lua_State *L,int packettype){
 	int argtype = lua_type(L,1); 
 	if(packettype == WPACKET){
-		if(argtype == LUA_TNUMBER){
+		if(argtype == LUA_TNUMBER || argtype == LUA_TNIL || argtype == LUA_TNONE){
 			//参数为数字,构造一个初始大小为len的wpacket
-			size_t len = size_of_pow2(lua_tointeger(L,1));
+			size_t len = 0;
+			if(argtype == LUA_TNUMBER) len = size_of_pow2(lua_tointeger(L,1));
 			if(len < 64) len = 64;
 			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);

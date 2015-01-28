@@ -27,30 +27,7 @@ local function add2Ready(co)
     sche.ready_list:Push(co) 
 end
 
-local function Sleep(ms)
-	local co = sche.runningco
-	if co.status ~= stat_running then
-		return
-	end	
-	if ms and ms > 0 then
-		co.timeout = C.GetSysTick() + ms
-        		if co.index == 0 then
-            			sche.timer:Insert(co)
-        		else
-            			sche.timer:Change(co)
-        		end
-        		co.status = stat_sleep		
-	else
-		co.status = stat_yield
-	end
-	coroutine.yield(co.coroutine)
-end
-
-local function Yield()
-    Sleep(0)
-end
-
-local function Block(ms)
+local function _block(ms,stat)
 	local co = sche.runningco
 	if co.status ~= stat_running then
 		return
@@ -63,13 +40,31 @@ local function Block(ms)
             			sche.timer:Change(co)
         		end
     	end
-	co.status = stat_block
+	co.status = stat
 	coroutine.yield(co.coroutine)
 	if co.index ~= 0 then
 	        co.timeout = 0		
 	        sche.timer:Change(co)
 	        sche.timer:PopMin()
 	end
+end
+
+local function Sleep(ms)
+	local stat
+	if ms and ms > 0 then
+		stat = stat_sleep
+	else
+		stat = stat_yield
+	end
+	_block(ms,stat)
+end
+
+local function Yield()
+    Sleep(0)
+end
+
+local function Block(ms)
+	_block(ms,stat_block)
 end
 
 local function WakeUp(co)

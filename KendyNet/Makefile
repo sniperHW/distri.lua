@@ -1,4 +1,4 @@
-CFLAGS = -g -Wall -fno-strict-aliasing
+CFLAGS = -O2 -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 SHARED = -fPIC -shared
 CC = gcc
@@ -105,5 +105,11 @@ ssl_server:$(SAMPLE)/ssl_server.c libkendynet.a
 	$(CC) $(CFLAGS) -o ssl_server $(SAMPLE)/ssl_server.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
 
 ssl_client:$(SAMPLE)/ssl_client.c libkendynet.a
-	$(CC) $(CFLAGS) -o ssl_client $(SAMPLE)/ssl_client.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)											
+	$(CC) $(CFLAGS) -o ssl_client $(SAMPLE)/ssl_client.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+
+testlist:$(SAMPLE)/testlist.c libkendynet.a
+	$(CC) $(CFLAGS) -o testlist $(SAMPLE)/testlist.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+
+quicksort:$(SAMPLE)/quicksort.c libkendynet.a
+	$(CC) $(CFLAGS) -o quicksort $(SAMPLE)/quicksort.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)												
 					
