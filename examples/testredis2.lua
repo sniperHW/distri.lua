@@ -46,5 +46,5 @@ end
 --	val = val + 2
 --end
 
-local err,result = toredis:Command("hmget test nickname")-- avatarid chainfo bag skills everydaysign everydaytask achievement")
+local err,result = toredis:CommandSync("hmget test nickname")-- avatarid chainfo bag skills everydaysign everydaytask achievement")
 print(err,result[1])

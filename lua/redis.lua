@@ -15,7 +15,7 @@ function redisconn:new(coObj,ip,port)
 end
 
 
-function redisconn:Command(cmd)	
+function redisconn:CommandSync(cmd)	
 	if self.isclose then
 		return "redis connection is close",nil
 	end
@@ -27,7 +27,7 @@ function redisconn:Command(cmd)
 			Sche.WakeUp(self.co)			
 		end
 	}	
-	if CRedis.redisCommand(self.conn,cmd,cbObj) then
+	if CRedis.redisCommandSync(self.conn,cmd,cbObj) then
 		Sche.Block()
 		return cbObj.err,cbObj.result		
 	else
@@ -35,9 +35,24 @@ function redisconn:Command(cmd)
 	end
 end
 
+function redisconn:CommandAsync(cmd,callback)
+	if self.isclose then
+		return "redis connection is close"
+	end
+	local cbObj
+	if callback then
+		cbObj = { __callback = callback }
+	end	
+	if CRedis.redisCommandAsync(self.conn,cmd,cbObj) then
+		return nil		
+	else
+		return "redis command error"
+	end
+end
+
 function redisconn:Close()	
     self.activeclose = true
-	CRedis.close(self.conn)
+    CRedis.close(self.conn)
 end
 
 local function connect(ip,port,on_disconnected)

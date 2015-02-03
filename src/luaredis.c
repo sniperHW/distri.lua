@@ -103,7 +103,7 @@ void redis_command_cb(redisconn_t conn,struct redisReply* reply,void *pridata)
 	free(cbObj);
 }
 
-int lua_redisCommand(lua_State *L){
+int lua_redisCommandSync(lua_State *L){
 	redisconn_t conn = lua_touserdata(L,1);
 	const char *cmd = lua_tostring(L,2);		
 	do{
@@ -116,6 +116,37 @@ int lua_redisCommand(lua_State *L){
 		if(REDIS_OK!= kn_redisCommand(conn,cmd,redis_command_cb,cbObj)){
 			release_luaRef(cbObj);
 			free(cbObj);			
+			lua_pushboolean(L,0);
+		}else
+			lua_pushboolean(L,1);
+	}while(0);	
+	return 1;
+}
+
+void redis_command_cb_async(redisconn_t conn,struct redisReply* reply,void *pridata)
+{
+	luaRef_t *cbObj = (luaRef_t*)pridata;
+	if(cbObj) redis_command_cb(conn,reply,pridata);
+}
+
+int lua_redisCommandAsync(lua_State *L){
+	redisconn_t conn = lua_touserdata(L,1);
+	const char *cmd = lua_tostring(L,2);		
+	do{
+		if(!cmd || strcmp(cmd,"") == 0){
+			lua_pushboolean(L,0);
+			break;
+		}
+		luaRef_t   *cbObj = NULL;
+		if(lua_istable(L,3)){		
+			luaRef_t   *cbObj = calloc(1,sizeof(*cbObj)); 	
+			*cbObj = toluaRef(L,3);
+		}			
+		if(REDIS_OK!= kn_redisCommand(conn,cmd,redis_command_cb_async,cbObj)){
+			if(cbObj){
+				release_luaRef(cbObj);
+				free(cbObj);
+			}			
 			lua_pushboolean(L,0);
 		}else
 			lua_pushboolean(L,1);
@@ -140,7 +171,8 @@ void reg_luaredis(lua_State *L){
 	lua_newtable(L);		
 	REGISTER_FUNCTION("close",lua_redisClose);
 	REGISTER_FUNCTION("redis_connect",lua_redis_connect);	
-	REGISTER_FUNCTION("redisCommand",lua_redisCommand);		
+	REGISTER_FUNCTION("redisCommandSync",lua_redisCommandSync);
+	REGISTER_FUNCTION("redisCommandAsync",lua_redisCommandAsync);		
 	lua_setglobal(L,"CRedis");		
 }
 

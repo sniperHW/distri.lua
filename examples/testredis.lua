@@ -35,7 +35,7 @@ for j=1,1000 do
 	Sche.Spawn(function ()
 		while true do
 			if toredis then
-				local err,result = toredis:Command("get robot1")
+				local err,result = toredis:CommandSync("get robot1")
 				if result then
 					count = count + 1
 				else

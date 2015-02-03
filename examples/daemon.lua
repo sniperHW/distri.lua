@@ -230,7 +230,7 @@ if not err then
 	end
 
 	Sche.Spawn(RunDaemonServer)
-	toredis:Command("set deployment " .. Cjson.encode(deployment))
+	toredis:CommandAsync("set deployment " .. Cjson.encode(deployment))
 	C.AddTopFilter("distrilua")
 	C.AddTopFilter("ssdb-server")
 	while true do
@@ -261,7 +261,7 @@ if not err then
 			i = i + 1	
 		end
 		local str = string.format("hmset MachineStatus 192.168.0.87 %s",CBase64.encode(Cjson.encode({machine,process})))
-		toredis:Command(str)
+		toredis:CommandAsync(str)
 		collectgarbage("collect")			
 		Sche.Sleep(1000)
 	end
