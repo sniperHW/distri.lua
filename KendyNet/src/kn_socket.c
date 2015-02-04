@@ -300,7 +300,7 @@ int kn_sock_associate(handle_t h,
 #ifdef _LINUX
 	kn_event_add(s->e,h,EPOLLRDHUP);
 #elif   _FREEBSD
-	kn_event_add(s->e,h,0);
+	kn_event_add(s->e,h,EVFILT_READ | EV_DISABLE);
 #endif
 	return 0;
 }
