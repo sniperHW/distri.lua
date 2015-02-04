@@ -96,6 +96,7 @@ static int curl_conn_add_read(engine_t e,curl_conn_t conn){
 		ret = kn_event_enable(e,(handle_t)conn,EVFILT_READ);
 		
 	if(ret == 0) conn->events |= EVFILT_READ | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);	
+	return ret;
 #else
 
 #error "un support platform!"				
@@ -123,9 +124,11 @@ static int curl_conn_add_write(engine_t e,curl_conn_t conn){
 		ret = kn_event_enable(e,(handle_t)conn,EVFILT_WRITE);
 		
 	if(ret == 0) conn->events |= EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);		
+	return ret;
 #else
 
 #error "un support platform!"				
+	
 
 #endif	
 	
@@ -216,7 +219,7 @@ CURLM* kn_CURLM_get(kn_CURLM_t cm){
 
 CURLMcode kn_CURLM_add(kn_CURLM_t cm,kn_CURL_t curl,void (*cb)(kn_CURL_t,CURLMsg *message,void*),void*ud){
 	if(0 != kn_dlist_push(&cm->curls,(kn_dlist_node*)curl))
-		return CURL_LAST;
+		return CURLM_ADDED_ALREADY;
 	curl->cb = cb;
 	curl->ud = ud;
 	curl->c_handle = cm;
