@@ -4,7 +4,8 @@ SHARED = -fPIC
 CC = cc
 DEPDIR = ../deps
 INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.2.3/src -I$(DEPDIR)/curl-7.38.0/include
-DEFINE = -D_DEBUG -D_LINUX 
+DEFINE = -D_DEBUG -D_LINUX
+LIB = -L deps/jemalloc/lib -L KendyNet -L deps/hiredis/ -L deps/lua-5.2.3/src 
 SAMPLE = ./sample
 
 source =  src/kn_engine.c \
@@ -62,19 +63,19 @@ testclient:$(SAMPLE)/testclient.c libkendynet.a
 testredis:$(SAMPLE)/testredis.c libkendynet.a						
 	$(CC) $(CFLAGS) -o testredis $(SAMPLE)/testredis.c libkendynet.a ../../deps/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 testtimer:libkendynet.a $(SAMPLE)/testtimer.c
-	$(CC) $(CFLAGS) -o testtimer $(SAMPLE)/testtimer.c libkendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl							
+	$(CC) $(CFLAGS) -o testtimer $(SAMPLE)/testtimer.c libkendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE)  -ldl							
 testmailbox:libkendynet.a $(SAMPLE)/testmailbox.c
-	$(CC) $(CFLAGS) -o testmailbox $(SAMPLE)/testmailbox.c libkendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl
+	$(CC) $(CFLAGS) -o testmailbox $(SAMPLE)/testmailbox.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)  -ldl
 log:$(SAMPLE)/testlog.c libkendynet.a						
 	$(CC) $(CFLAGS) -o log $(SAMPLE)/testlog.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 testlua:libkendynet.a $(SAMPLE)/testlua.c	
-	$(CC) $(CFLAGS) -o testlua $(SAMPLE)/testlua.c libkendynet.a  $(INCLUDE) $(LDFLAGS) -llua -ldl -lm $(DEFINE) -L $(DEPDIR)/lua-5.2.3/src
+	$(CC) $(CFLAGS) -o testlua $(SAMPLE)/testlua.c libkendynet.a  $(INCLUDE) $(LDFLAGS) $(DEPDIR)/lua-5.2.3/src/liblua.a -lm -ldl $(DEFINE)
 	
 testmsgque:libkendynet.a $(SAMPLE)/testmsgque.c
-	$(CC) $(CFLAGS) -o testmsgque $(SAMPLE)/testmsgque.c libkendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl
+	$(CC) $(CFLAGS) -o testmsgque $(SAMPLE)/testmsgque.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)  -ldl
 	
 mysql_proxy:libkendynet.a $(SAMPLE)/mysql_proxy.c
-	$(CC) $(CFLAGS) -o mysql_proxy $(SAMPLE)/mysql_proxy.c libkendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lmysqlclient -I/usr/include/mysql	
+	$(CC) $(CFLAGS) -o mysql_proxy $(SAMPLE)/mysql_proxy.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)  -ldl -lmysqlclient -I/usr/include/mysql	
 	
 daemonserver:$(SAMPLE)/daemonserver.c libkendynet.a
 	$(CC) $(CFLAGS) -o daemonserver $(SAMPLE)/daemonserver.c libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE)

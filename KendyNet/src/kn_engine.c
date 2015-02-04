@@ -2,7 +2,7 @@
 
 #include "kn_epoll.h"
 
-#elif _FREEBSD
+#elif _BSD
 
 #include "kn_kqueue.h"
 

@@ -22,8 +22,8 @@ struct kn_CURL{
 
 typedef struct curl_conn{
 	handle                comm_head;
-	kn_CURLM_t            c_handle;          
-	int                   events;
+	kn_CURLM_t      c_handle;          
+	int                        flag;
 }curl_conn,*curl_conn_t;
 
 static void curl_on_active(handle_t s,int event){
@@ -32,22 +32,10 @@ static void curl_on_active(handle_t s,int event){
   curl_conn_t conn;
   CURLMsg *message;
   int pending;
-
-#ifdef _LINUX
-  if ((event & (EPOLLERR | EPOLLHUP)) || (event & (EPOLLRDHUP | EPOLLIN)))
-    flags |= CURL_CSELECT_IN;
-  if (event & EPOLLOUT)
-    flags |= CURL_CSELECT_OUT;
-#elif _FREEBSD
-  if (event & EVFILT_READ)
-    flags |= CURL_CSELECT_IN;
-  if (event & EVFILT_WRITE)
-    flags |= CURL_CSELECT_OUT;
-#else
-
-#error "un support platform!"				
-
-#endif
+  if(event & EVENT_READ)
+  	flags |= CURL_CSELECT_IN;
+  if(event & EVENT_WRITE)
+  	flags |= CURL_CSELECT_OUT;
   conn = (curl_conn_t)s;
   if(conn->c_handle->timer){
 	  kn_del_timer(conn->c_handle->timer);
@@ -55,17 +43,17 @@ static void curl_on_active(handle_t s,int event){
   }
   curl_multi_socket_action(kn_CURLM_get(conn->c_handle), ((handle_t)conn)->fd, flags,&running_handles);
   while ((message = curl_multi_info_read(kn_CURLM_get(conn->c_handle), &pending))) {
-		kn_CURL_t curl;
-		curl_easy_getinfo(message->easy_handle, CURLINFO_PRIVATE, &curl);
-		if(message->msg == CURLMSG_DONE){
-			if(curl->cb)
-				curl->cb(curl,message,curl->ud);
-			else
-				kn_curl_easy_cleanup(curl);
-		}else{
-		    fprintf(stderr, "CURLMSG default\n");
-			abort();
-		}
+	kn_CURL_t curl;
+	curl_easy_getinfo(message->easy_handle, CURLINFO_PRIVATE, &curl);
+	if(message->msg == CURLMSG_DONE){
+		if(curl->cb)
+			curl->cb(curl,message,curl->ud);
+		else
+			kn_curl_easy_cleanup(curl);
+	}else{
+	    fprintf(stderr, "CURLMSG default\n");
+		abort();
+	}
    }
 }
 
@@ -78,60 +66,25 @@ static curl_conn_t create_curl_conn(curl_socket_t s,kn_CURLM_t cm){
 }
 
 static int curl_conn_add_read(engine_t e,curl_conn_t conn){
-#ifdef _LINUX	
-	int events = conn->events | EPOLLIN | EPOLLRDHUP;
 	int ret;
-	if(conn->events == 0)
-		ret = kn_event_add(e,(handle_t)conn,events);
+	if(!conn->flag)
+		ret = kn_event_add(e,(handle_t)conn,EVENT_READ);
 	else
-		ret = kn_event_mod(e,(handle_t)conn,events);
-		
-	if(ret == 0) conn->events = events;
-	return ret;	
-#elif _FREEBSD
-	int ret;
-	if(conn->events == 0)
-		ret = kn_event_add(e,(handle_t)conn,EVFILT_READ);
-	else
-		ret = kn_event_enable(e,(handle_t)conn,EVFILT_READ);
-		
-	if(ret == 0) conn->events |= EVFILT_READ;
-	return ret;
-#else
-
-#error "un support platform!"				
-
-#endif
-	
+		ret = kn_enable_read(e,(handle_t)conn);
+	if(0 == ret && !conn->flag)
+		conn->flag = 1;
+	return ret;		
 }
 
 static int curl_conn_add_write(engine_t e,curl_conn_t conn){
-#ifdef _LINUX	
-	int events = conn->events | EPOLLOUT | EPOLLRDHUP;
 	int ret;
-	if(conn->events == 0)
-		ret = kn_event_add(e,(handle_t)conn,events);
+	if(!conn->flag)
+		ret = kn_event_add(e,(handle_t)conn,EVENT_WRITE);
 	else
-		ret = kn_event_mod(e,(handle_t)conn,events);
-		
-	if(ret == 0) conn->events = events;
-	return ret;		
-#elif _FREEBSD
-	int ret;
-	if(conn->events == 0)
-		ret = kn_event_add(e,(handle_t)conn,EVFILT_WRITE);
-	else
-		ret = kn_event_enable(e,(handle_t)conn,EVFILT_WRITE);
-		
-	if(ret == 0) conn->events |= EVFILT_WRITE;	
+		ret = kn_enable_write(e,(handle_t)conn);
+	if(0 == ret && !conn->flag)
+		conn->flag = 1;
 	return ret;
-#else
-
-#error "un support platform!"				
-	
-
-#endif	
-	
 }
 
 static int handle_socket(CURL *easy, curl_socket_t s, int action, void *userp,void *socketp)
@@ -155,16 +108,16 @@ static int handle_socket(CURL *easy, curl_socket_t s, int action, void *userp,vo
 	   curl_conn_add_read(curlm->e,conn);
     break;
   case CURL_POLL_OUT:
-		curl_conn_add_write(curlm->e,conn);
+	   curl_conn_add_write(curlm->e,conn);
     break;
   case CURL_POLL_REMOVE:
-    if (socketp) {
-		conn = (curl_conn_t) socketp;
-		kn_event_del(curlm->e,(handle_t)conn);
-		free(conn); 
-		curl_multi_assign(curlm->c_handle,s,NULL);
-    }
-    break;
+	    if (socketp) {
+			conn = (curl_conn_t) socketp;
+			kn_event_del(curlm->e,(handle_t)conn);
+			free(conn); 
+			curl_multi_assign(curlm->c_handle,s,NULL);
+	    }
+	    break;
   default:
     abort();
   }
@@ -208,7 +161,7 @@ kn_CURLM_t kn_CURLM_init(engine_t e){
 	cm->e = e;
 	kn_dlist_init(&cm->curls);
 	curl_multi_setopt(c, CURLMOPT_SOCKETFUNCTION, handle_socket);
-    //curl_multi_setopt(c, CURLMOPT_TIMERDATA, cm);	
+    	//curl_multi_setopt(c, CURLMOPT_TIMERDATA, cm);	
 	//curl_multi_setopt(c, CURLMOPT_TIMERFUNCTION, start_timeout);	
 	return cm;
 }
@@ -249,8 +202,8 @@ CURL* kn_curl_easy_get(kn_CURL_t curl){
 void kn_curl_easy_cleanup(kn_CURL_t curl){
 	//printf("kn_curl_easy_cleanup\n");
 	kn_dlist_remove((kn_dlist_node*)curl);
-    curl_multi_remove_handle(kn_CURLM_get(curl->c_handle), curl->curl);
-    curl_easy_cleanup(curl->curl);	
+    	curl_multi_remove_handle(kn_CURLM_get(curl->c_handle), curl->curl);
+    	curl_easy_cleanup(curl->curl);	
 	free(curl);
 }
 

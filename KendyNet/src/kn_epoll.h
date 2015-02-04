@@ -30,6 +30,7 @@ int kn_event_add(engine_t e,handle_t h,int events){
 	ev.events = events;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_ADD,h->fd,&ev));
 	if(ret != 0) return errno;
+	h->events = events;
 	return 0;
 }
 
@@ -41,6 +42,7 @@ int kn_event_mod(engine_t e,handle_t h,int events){
 	ev.data.ptr = h;
 	ev.events = events;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_MOD,h->fd,&ev));
+	if(0 == ret) h->events = events;		
 	return ret;	
 }
 
@@ -50,6 +52,7 @@ int kn_event_del(engine_t e,handle_t h){
 	int ret;
 	errno = 0;
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_DEL,h->fd,&ev));
+	if(0 == ret) h->events = 0;
 	return ret;	
 }
 

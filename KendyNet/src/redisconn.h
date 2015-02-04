@@ -10,9 +10,8 @@
 
 typedef struct redisconn{
 	handle                comm_head;
-	engine_t              e;
-	int                   events;
-	int                   closing;
+	engine_t             e;
+	int                        closing;
 	redisAsyncContext*    context;
 	void (*cb_connect)(struct redisconn*,int err,void *);
 	void (*cb_disconnected)(struct redisconn*,void *);

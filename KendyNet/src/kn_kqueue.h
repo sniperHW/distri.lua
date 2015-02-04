@@ -26,6 +26,8 @@ int kn_event_add(engine_t e,handle_t h,int events){
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, events, EV_ADD, 0, 0, h);
 	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
+	if(0 == ret)
+		h->events = events & (~EV_DISABLE) & (~EV_ENABLE);
 	return ret;	
 }
 
@@ -40,18 +42,22 @@ int kn_event_del(engine_t e,handle_t h){
 	return 0;	
 }
 
-int kn_event_enable(engine_t e,handle_t h,int event){
+int kn_event_enable(engine_t e,handle_t h,int events){
 	struct kevent ke;
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, event,EV_ENABLE, 0, 0, h);
-	return kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
+	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
+	if(0 == ret) h->events |= events;
+	return ret;
 }
 
-int kn_event_disable(engine_t e,handle_t h,int event){
+int kn_event_disable(engine_t e,handle_t h,int events){
 	struct kevent ke;
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, event,EV_DISABLE, 0, 0, h);
-	return kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
+	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
+	if(0 == ret) h->events &= ~events;
+	return ret;
 }
 
 engine_t kn_new_engine(){

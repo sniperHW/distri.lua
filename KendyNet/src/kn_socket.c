@@ -118,10 +118,9 @@ static void process_read(kn_socket *s){
 				return;			
 		}
 	}	
-	if(kn_list_size(&s->pending_recv) == 0){
+	if(!kn_list_size(&s->pending_recv)){
 		//没有接收请求了,取消EPOLLIN
-		if(0 == kn_disable_read(s->e,(handle_t)s))
-			((handle_t)s)->events &= (~EVENT_READ);
+		kn_disable_read(s->e,(handle_t)s);
 	}	
 }
 
@@ -149,10 +148,9 @@ static void process_write(kn_socket *s){
 				return;
 		}
 	}
-	if(kn_list_size(&s->pending_send) == 0){
+	if(!kn_list_size(&s->pending_send)){
 		//没有接收请求了,取消EPOLLOUT
-		if(0 == kn_disable_write(s->e,(handle_t)s))
-			((handle_t)s)->events &= (~EVENT_WRITE);
+		kn_disable_write(s->e,(handle_t)s);
 	}		
 }
 
@@ -299,7 +297,7 @@ int kn_sock_associate(handle_t h,
 	s->e = e;
 #ifdef _LINUX
 	kn_event_add(s->e,h,EPOLLRDHUP);
-#elif   _FREEBSD
+#elif   _BSD
 	kn_event_add(s->e,h,EVFILT_READ | EV_DISABLE);
 #endif
 	return 0;
@@ -370,7 +368,13 @@ int kn_sock_post_send(handle_t h,st_io *req){
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
 		return -1;
 	 }
-	 if(!(((handle_t)s)->events & EVENT_WRITE)){
+#ifdef _LINUX	 
+	 if(!(((handle_t)s)->events & EPOLLOUT)){
+#elif _BSD
+	if(!(((handle_t)s)->events & EVFILT_WRITE)){	 	
+#else
+              #error "un support platform!"		
+#endif	 
 	 	if(0 != kn_enable_write(s->e,(handle_t)s))
 	 		return -1;
 	 }
@@ -386,7 +390,13 @@ int kn_sock_post_recv(handle_t h,st_io *req){
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
 		return -1;
 	}
-	 if(!(((handle_t)s)->events & EVENT_READ)){
+#ifdef _LINUX	 
+	 if(!(((handle_t)s)->events & EPOLLIN)){
+#elif _BSD
+	if(!(((handle_t)s)->events & EVFILT_READ)){	 	
+#else
+              #error "un support platform!"		
+#endif	
 	 	if(0 != kn_enable_read(s->e,(handle_t)s))
 	 		return -1;
 	 }	
@@ -427,7 +437,7 @@ static int stream_listen(engine_t e,
 	s->addr_local = *local;
 #ifdef _LINUX	
 	int events = EPOLLIN;
-#elif _FREEBSD
+#elif _BSD
 	int events = EVFILT_READ;
 #else
 
@@ -520,7 +530,7 @@ static int stream_connect(engine_t e,
 	}else{
 #ifdef _LINUX			
 		int events = EPOLLIN | EPOLLOUT;
-#elif _FREEBSD
+#elif _BSD
 		int events = EVFILT_READ | EVFILT_WRITE;
 #else
 

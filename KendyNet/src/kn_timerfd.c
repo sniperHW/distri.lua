@@ -51,7 +51,7 @@ handle_t kn_new_timerfd(uint32_t timeout){
 	return (handle_t)fd;
 }
 
-#elif _FREEBSD
+#elif _BSD
 
 void kn_timerfd_on_active(handle_t s,int event){
 	kn_timerfd_t t = (kn_timerfd_t)s;

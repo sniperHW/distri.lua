@@ -9,10 +9,10 @@ int      kn_event_del(engine_t,handle_t);
 
 int      kn_event_mod(engine_t,handle_t,int events);
 
-#elif _FREEBSD
+#elif _BSD
 
-int kn_event_enable(engine_t,handle_t,int event);
-int kn_event_disable(engine_t,handle_t,int event);
+int kn_event_enable(engine_t,handle_t,int events);
+int kn_event_disable(engine_t,handle_t,int events);
 
 #else
 
