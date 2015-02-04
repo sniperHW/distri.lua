@@ -3,7 +3,7 @@
 #include "kn_timerfd.h"
 #include "kn_event.h"
 
-#ifdef _LINIX
+#ifdef _LINUX
 #include <sys/timerfd.h> 
 
 void kn_timerfd_on_active(handle_t s,int event){
@@ -60,7 +60,7 @@ void kn_timerfd_on_active(handle_t s,int event){
 }
 
 void kn_timerfd_destroy(void *ptr){
-	free(t);
+	free(ptr);
 }
 
 handle_t kn_new_timerfd(uint32_t timeout){
