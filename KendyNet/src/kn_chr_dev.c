@@ -39,11 +39,8 @@ static void process_read(kn_chr_dev *r){
 	}	
 	if(kn_list_size(&r->pending_read) == 0){
 		//没有接收请求了,取消EPOLLIN
-		//int events = r->events ^ EPOLLIN;
-		//if(0 == kn_event_mod(r->e,(handle_t)r,events))
-		//	r->events = events;
 		if(0 == kn_disable_read(r->e,(handle_t)r))
-			((handle_t)r)->events ^= EVENT_READ;		
+			((handle_t)r)->events &= (~EVENT_READ);		
 	}
 }
 
@@ -65,11 +62,8 @@ static void process_write(kn_chr_dev *r){
 	}
 	if(kn_list_size(&r->pending_write) == 0){
 		//没有接收请求了,取消EPOLLOUT
-		//int events = r->events ^ EPOLLOUT;
-		//if(0 == kn_event_mod(r->e,(handle_t)r,events))
-		//	r->events = events;
 		if(0 == kn_disable_write(r->e,(handle_t)r))
-			((handle_t)r)->events ^= EVENT_WRITE;		
+			((handle_t)r)->events &= (~EVENT_WRITE);		
 	}		
 }
 

@@ -121,7 +121,7 @@ static void process_read(kn_socket *s){
 	if(kn_list_size(&s->pending_recv) == 0){
 		//没有接收请求了,取消EPOLLIN
 		if(0 == kn_disable_read(s->e,(handle_t)s))
-			((handle_t)s)->events ^= EVENT_READ;
+			((handle_t)s)->events &= (~EVENT_READ);
 	}	
 }
 
@@ -152,7 +152,7 @@ static void process_write(kn_socket *s){
 	if(kn_list_size(&s->pending_send) == 0){
 		//没有接收请求了,取消EPOLLOUT
 		if(0 == kn_disable_write(s->e,(handle_t)s))
-			((handle_t)s)->events ^= EVENT_WRITE;
+			((handle_t)s)->events &= (~EVENT_WRITE);
 	}		
 }
 

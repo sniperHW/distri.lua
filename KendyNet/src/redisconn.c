@@ -121,7 +121,7 @@ static void redisDelRead(void *privdata) {
 		con->events = events;	
 #elif _FREEBSD
 	if(0 == kn_event_disable(con->e,(handle_t)con,EVFILT_READ))
-		con->events ^= EVFILT_READ;
+		con->events &= (~EVFILT_READ);
 #else
 
 #error "un support platform!"				
@@ -162,7 +162,7 @@ static void redisDelWrite(void *privdata) {
 		con->events = events;	
 #elif _FREEBSD
 	if(0 == kn_event_disable(con->e,(handle_t)con,EVFILT_WRITE))
-		con->events ^= EVFILT_WRITE;
+		con->events &= (~EVFILT_WRITE);
 #else
 
 #error "un support platform!"				
@@ -207,7 +207,7 @@ int kn_redisAsynConnect(engine_t p,
     con->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
 #elif _FREEBSD
     kn_event_add(con->e,(handle_t)con,EVFILT_READ | EVFILT_WRITE);
-    con->events = EVFILT_READ | EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);;    
+    con->events = EVFILT_READ | EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);    
 #else
 
 #error "un support platform!"				
