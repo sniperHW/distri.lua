@@ -18,7 +18,7 @@
 #define _KN_COMMON_INCLUDE_H
 
 #include    <unistd.h>
-#include    <sys/epoll.h>
+//#include    <sys/epoll.h>
 #include    <sys/select.h>
 #include	<sys/types.h>	/* basic system data types */
 #include	<sys/socket.h>	/* basic socket definitions */

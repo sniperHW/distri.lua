@@ -3,6 +3,7 @@
 #include "kn_dlist.h"
 #include "kn_timer.h"
 #include "kn_curl.h"
+#include "kn_event.h"
 
 struct kn_CURLM{
 	kn_dlist curls;
@@ -32,11 +33,18 @@ static void curl_on_active(handle_t s,int event){
   CURLMsg *message;
   int pending;
 
+#ifdef _LINUX
   if ((event & (EPOLLERR | EPOLLHUP)) || (event & (EPOLLRDHUP | EPOLLIN)))
     flags |= CURL_CSELECT_IN;
   if (event & EPOLLOUT)
     flags |= CURL_CSELECT_OUT;
+#elif _FREEBSD
 
+#else
+
+#error "un support platform!"				
+
+#endif
   conn = (curl_conn_t)s;
   if(conn->c_handle->timer){
 	  kn_del_timer(conn->c_handle->timer);
@@ -67,7 +75,15 @@ static curl_conn_t create_curl_conn(curl_socket_t s,kn_CURLM_t cm){
 }
 
 static int curl_conn_add_read(engine_t e,curl_conn_t conn){
+#ifdef _LINUX	
 	int events = conn->events | EPOLLIN | EPOLLRDHUP;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
 	int ret;
 	if(conn->events == 0)
 		ret = kn_event_add(e,(handle_t)conn,events);
@@ -79,7 +95,15 @@ static int curl_conn_add_read(engine_t e,curl_conn_t conn){
 }
 
 static int curl_conn_add_write(engine_t e,curl_conn_t conn){
+#ifdef _LINUX	
 	int events = conn->events | EPOLLOUT;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif	
 	int ret;
 	if(conn->events == 0)
 		ret = kn_event_add(e,(handle_t)conn,events);

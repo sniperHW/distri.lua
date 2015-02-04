@@ -1,5 +1,6 @@
 #include "kendynet_private.h"
 #include "redisconn.h"
+#include "kn_event.h"
 
 enum{
 	REDIS_CONNECTING = 1,
@@ -60,12 +61,20 @@ static void redis_on_active(handle_t s,int event){
 			rc->comm_head.status = REDIS_ESTABLISH;
 			rc->cb_connect(rc,0,rc->comm_head.ud);			
 		}else{
+#ifdef _LINUX			
 			if((event & (EPOLLERR | EPOLLHUP)) || (event & (EPOLLRDHUP | EPOLLIN))){
 				redisLibevRead(rc);
 			}
 			if(event & EPOLLOUT){
 				redisLibevWrite(rc);
 			}
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
 		}
 	}while(0);
 	
@@ -76,7 +85,15 @@ static void redis_on_active(handle_t s,int event){
 
 static void redisAddRead(void *privdata){
 	redisconn_t con = (redisconn_t)privdata;
+#ifdef _LINUX	
 	int events = con->events | EPOLLIN | EPOLLRDHUP;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
 	int ret;
 	if(con->events == 0)
 		ret = kn_event_add(con->e,(handle_t)con,events);
@@ -87,14 +104,30 @@ static void redisAddRead(void *privdata){
 
 static void redisDelRead(void *privdata) {
 	redisconn_t con = (redisconn_t)privdata;
+#ifdef _LINUX	
 	int events = con->events & (~EPOLLIN);
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif	
 	if(0 == kn_event_mod(con->e,(handle_t)con,events))
 		con->events = events;
 }
 
 static void redisAddWrite(void *privdata) {
 	redisconn_t con = (redisconn_t)privdata;
+#ifdef _LINUX	
 	int events = con->events | EPOLLOUT;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
 	int ret;
 	if(con->events == 0){
 		ret = kn_event_add(con->e,(handle_t)con,events);
@@ -105,7 +138,15 @@ static void redisAddWrite(void *privdata) {
 
 static void redisDelWrite(void *privdata) {
 	redisconn_t con = (redisconn_t)privdata;
+#ifdef _LINUX	
 	int events = con->events & (~EPOLLOUT);
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
 	if(0 == kn_event_mod(con->e,(handle_t)con,events))
 		con->events = events;
 }
@@ -121,29 +162,37 @@ static void redisCleanup(void *privdata) {
 }
 
 int kn_redisAsynConnect(engine_t p,
-						const char *ip,unsigned short port,
-						void (*cb_connect)(struct redisconn*,int err,void *ud),
-						void (*cb_disconnected)(struct redisconn*,void *ud),
-						void *ud)
+			const char *ip,unsigned short port,
+			void (*cb_connect)(struct redisconn*,int err,void *ud),
+			void (*cb_disconnected)(struct redisconn*,void *ud),
+			void *ud)
 {
-	redisAsyncContext *c = redisAsyncConnect(ip, port);
+    redisAsyncContext *c = redisAsyncConnect(ip, port);
     if(c->err) {
         printf("Error: %s\n", c->errstr);
         return -1;
     }
     redisconn_t con = calloc(1,sizeof(*con));
     con->context = c;
-	con->comm_head.fd =  ((redisContext*)c)->fd;
-	con->comm_head.on_events = redis_on_active;
-	con->comm_head.type = KN_REDISCONN;
-	con->comm_head.status = REDIS_CONNECTING; 
-	con->cb_connect = cb_connect; 
-	con->cb_disconnected = cb_disconnected;
-	con->comm_head.ud = ud;
-	con->e = p;
-	kn_event_add(p,(handle_t)con,EPOLLIN | EPOLLOUT);
-	con->events = EPOLLIN | EPOLLOUT;
-	kn_dlist_init(&con->pending_command);	
+    con->comm_head.fd =  ((redisContext*)c)->fd;
+    con->comm_head.on_events = redis_on_active;
+    con->comm_head.type = KN_REDISCONN;
+    con->comm_head.status = REDIS_CONNECTING; 
+    con->cb_connect = cb_connect; 
+    con->cb_disconnected = cb_disconnected;
+    con->comm_head.ud = ud;
+    con->e = p;
+#ifdef _LINUX    
+    kn_event_add(p,(handle_t)con,EPOLLIN | EPOLLOUT);
+    con->events = EPOLLIN | EPOLLOUT;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
+    kn_dlist_init(&con->pending_command);	
     c->ev.addRead =  redisAddRead;
     c->ev.delRead =  redisDelRead;
     c->ev.addWrite = redisAddWrite;

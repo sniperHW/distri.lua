@@ -7,6 +7,7 @@ typedef struct handle{
 	int status;
 	int fd;
 	void *ud;
+	int    events;	
 	void (*on_events)(handle_t,int events);
 }handle;
 

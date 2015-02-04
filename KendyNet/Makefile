@@ -1,4 +1,4 @@
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing
+CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 SHARED = -fPIC -shared
 CC = gcc
@@ -7,7 +7,7 @@ INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.2.3/src
 DEFINE = -D_DEBUG -D_LINUX 
 SAMPLE = ./sample
 
-source =  src/kn_epoll.c \
+source =  src/kn_engine.c \
 	   src/kn_timerfd.c \
 	   src/kn_timer.c \
 	   src/kn_time.c \

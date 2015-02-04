@@ -5,13 +5,13 @@
 #include <arpa/inet.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include "kn_event.h"
 
 typedef struct{
 	handle comm_head;
 	int    domain;
 	int    type;
 	int    protocal;
-	int    events;
 	int    processing;
 	engine_t e;
 	kn_list pending_send;//尚未处理的发请求
@@ -92,6 +92,8 @@ static void destroy_socket(kn_socket *s){
 	free(s);
 }
 
+
+
 static void process_read(kn_socket *s){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
@@ -118,9 +120,8 @@ static void process_read(kn_socket *s){
 	}	
 	if(kn_list_size(&s->pending_recv) == 0){
 		//没有接收请求了,取消EPOLLIN
-		int events = s->events ^ EPOLLIN;
-		if(0 == kn_event_mod(s->e,(handle_t)s,events))
-			s->events = events;
+		if(0 == kn_disable_read(s->e,(handle_t)s))
+			((handle_t)s)->events ^= EVENT_READ;
 	}	
 }
 
@@ -150,9 +151,8 @@ static void process_write(kn_socket *s){
 	}
 	if(kn_list_size(&s->pending_send) == 0){
 		//没有接收请求了,取消EPOLLOUT
-		int events = s->events ^ EPOLLOUT;
-		if(0 == kn_event_mod(s->e,(handle_t)s,events))
-			s->events = events;
+		if(0 == kn_disable_write(s->e,(handle_t)s))
+			((handle_t)s)->events ^= EVENT_WRITE;
 	}		
 }
 
@@ -232,7 +232,7 @@ static void process_connect(kn_socket *s,int events){
 	int err = 0;
 	socklen_t len = sizeof(err);    
 	kn_event_del(s->e,(handle_t)s);
-	s->events = 0;
+	((handle_t)s)->events = 0;
 	if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
 	    s->cb_connect((handle_t)s,err,s->comm_head.ud,&s->addr_remote);
 	    return;
@@ -256,22 +256,17 @@ static void on_events(handle_t h,int events){
 		}else if(s->comm_head.status == SOCKET_CONNECTING){
 			process_connect(s,events);
 		}else if(s->comm_head.status == SOCKET_ESTABLISH){
-			if(events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)){			
+			if(events & EVENT_READ){
 				if(kn_list_size(&s->pending_recv) == 0){
-					char buf[1];
-					errno = 0;
-					(void)(read(s->comm_head.fd,buf,1));//触发errno变更
-					s->cb_ontranfnish((handle_t)s,NULL,-1,errno);
-				}else
-					process_read(s);
-				break;
-			}
-			if(events & EPOLLIN){
-				process_read(s);
-				if(s->comm_head.status == SOCKET_CLOSE) 
+					s->cb_ontranfnish((handle_t)s,NULL,-1,0);
 					break;
+				}else{
+					process_read(s);	
+					if(s->comm_head.status == SOCKET_CLOSE) 
+						break;								
+				}
 			}		
-			if(events & EPOLLOUT)
+			if(events & EVENT_WRITE)
 				process_write(s);			
 		}
 	}while(0);
@@ -376,22 +371,10 @@ int kn_sock_post_send(handle_t h,st_io *req){
 		errno = EBADFD;
 		return -1;
 	 }
-	if(!(s->events & EPOLLOUT)){
-		int events = s->events | EPOLLOUT;
-		int ret = 0;
-		if(s->events == 0){
-			events |= EPOLLRDHUP;
-			ret = kn_event_add(s->e,(handle_t)s,events);
-		}else
-			ret = kn_event_mod(s->e,(handle_t)s,events);
-			
-		if(ret == 0)
-			s->events = events;
-		else{
-			assert(0);
-			return -1;
-		}
-	}
+	 if(!(((handle_t)s)->events & EVENT_WRITE)){
+	 	if(0 != kn_enable_write(s->e,(handle_t)s))
+	 		return -1;
+	 }
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);	 	
 	return 0;
 }
@@ -406,22 +389,10 @@ int kn_sock_post_recv(handle_t h,st_io *req){
 		errno = EBADFD;
 		return -1;
 	}
-	if(!(s->events & EPOLLIN)){
-		int events = s->events | EPOLLIN;
-		int ret = 0;
-		if(s->events == 0){
-			events |= EPOLLRDHUP;
-			ret = kn_event_add(s->e,(handle_t)s,events);
-		}else
-			ret = kn_event_mod(s->e,(handle_t)s,events);
-			
-		if(ret == 0)
-			s->events = events;
-		else{
-			assert(0);
-			return -1;
-		}
-	} 
+	 if(!(((handle_t)s)->events & EVENT_READ)){
+	 	if(0 != kn_enable_read(s->e,(handle_t)s))
+	 		return -1;
+	 }	
 	kn_list_pushback(&s->pending_recv,(kn_list_node*)req);		
 	return 0;	
 }
@@ -457,9 +428,17 @@ static int stream_listen(engine_t e,
 	}
 
 	s->addr_local = *local;
-	int events = s->events | EPOLLIN;
+#ifdef _LINUX	
+	int events = ((handle_t)s)->events | EPOLLIN;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif
 	if(0 == kn_event_add(e,(handle_t)s,events)){
-		s->events = events;
+		((handle_t)s)->events = events;
 	}
 	else
 		return -1;		
@@ -542,9 +521,17 @@ static int stream_connect(engine_t e,
     	}
 		return 1;
 	}else{
-		int events = s->events | EPOLLIN | EPOLLOUT;
+#ifdef _LINUX			
+		int events = ((handle_t)s)->events | EPOLLIN | EPOLLOUT;
+#elif _FREEBSD
+
+#else
+
+#error "un support platform!"				
+
+#endif		
 		if(0 == kn_event_add(e,(handle_t)s,events)){
-			s->events = events;
+			((handle_t)s)->events = events;
 		}else
 			return -1;
 	}

@@ -3,14 +3,15 @@
 #include "kn_type.h"
 #include "kn_chr_dev.h"
 #include "kendynet_private.h"
+#include "kn_event.h"
 
 typedef struct{
 	handle comm_head;
-	int    events;
+	//int    events;
 	int    processing;
 	engine_t e;
 	kn_list pending_write;//尚未处理的发请求
-    kn_list pending_read;//尚未处理的读请求
+    	kn_list pending_read;//尚未处理的读请求
 	void   (*cb_ontranfnish)(handle_t,st_io*,int,int);
 	void   (*destry_stio)(st_io*);
 }kn_chr_dev;
@@ -38,9 +39,11 @@ static void process_read(kn_chr_dev *r){
 	}	
 	if(kn_list_size(&r->pending_read) == 0){
 		//没有接收请求了,取消EPOLLIN
-		int events = r->events ^ EPOLLIN;
-		if(0 == kn_event_mod(r->e,(handle_t)r,events))
-			r->events = events;
+		//int events = r->events ^ EPOLLIN;
+		//if(0 == kn_event_mod(r->e,(handle_t)r,events))
+		//	r->events = events;
+		if(0 == kn_disable_read(r->e,(handle_t)r))
+			((handle_t)r)->events ^= EVENT_READ;		
 	}
 }
 
@@ -62,9 +65,11 @@ static void process_write(kn_chr_dev *r){
 	}
 	if(kn_list_size(&r->pending_write) == 0){
 		//没有接收请求了,取消EPOLLOUT
-		int events = r->events ^ EPOLLOUT;
-		if(0 == kn_event_mod(r->e,(handle_t)r,events))
-			r->events = events;
+		//int events = r->events ^ EPOLLOUT;
+		//if(0 == kn_event_mod(r->e,(handle_t)r,events))
+		//	r->events = events;
+		if(0 == kn_disable_write(r->e,(handle_t)r))
+			((handle_t)r)->events ^= EVENT_WRITE;		
 	}		
 }
 
@@ -88,12 +93,12 @@ static void on_events(handle_t h,int events){
 	r->processing = 1;
 	do{
 		
-		if(events & EPOLLIN){
+		if(events & EVENT_READ){
 			process_read(r);
 			if(r->comm_head.status == KN_CHRDEV_RELEASE)
 				break;
 		}		
-		if(events & EPOLLOUT){
+		if(events & EVENT_WRITE){
 			process_write(r);
 		}
 	}while(0);
@@ -155,7 +160,7 @@ int kn_chr_dev_write(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
-	if(!(r->events & EPOLLOUT)){
+	/*if(!(r->events & EPOLLOUT)){
 		int ret = 0;
 		if(r->events == 0){
 			ret = kn_event_add(r->e,(handle_t)r,EPOLLOUT);
@@ -166,7 +171,11 @@ int kn_chr_dev_write(handle_t h,st_io *req){
 			r->events = EPOLLOUT;
 		else
 			return -1;
-	}
+	}*/
+	 if(!(((handle_t)r)->events & EVENT_WRITE)){
+	 	if(0 != kn_enable_write(r->e,(handle_t)r))
+	 		return -1;
+	 }		
 	kn_list_pushback(&r->pending_write,(kn_list_node*)req);			
 	return 0;
 }
@@ -175,7 +184,11 @@ int kn_chrdev_read(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
-	if(!(r->events & EPOLLIN)){
+	 if(!(((handle_t)r)->events & EVENT_READ)){
+	 	if(0 != kn_enable_write(r->e,(handle_t)r))
+	 		return -1;
+	 }	
+	/*if(!(r->events & EPOLLIN)){
 		int ret = 0;
 		if(r->events == 0){
 			ret = kn_event_add(r->e,(handle_t)r,EPOLLIN);
@@ -186,7 +199,7 @@ int kn_chrdev_read(handle_t h,st_io *req){
 			r->events = EPOLLIN;
 		else
 			return -1;
-	}
+	}*/
 	kn_list_pushback(&r->pending_read,(kn_list_node*)req);			
 	return 0;
 }

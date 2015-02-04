@@ -5,6 +5,7 @@
 #include "kn_timer.h"
 #include "kn_timer_private.h"
 #include "kn_timerfd.h"
+#include "kn_event.h"
 #include <assert.h>
 
 struct st_notify{
