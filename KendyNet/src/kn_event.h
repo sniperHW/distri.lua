@@ -53,14 +53,8 @@ enum{
 	EVENT_WRITE =  EVFILT_WRITE,	
 };
 
-static inline int      kn_enable_read(engine_t e,handle *h){
-	int ret;
-	if(h->events == 0){
-		ret = kn_event_add(e,h,EVFILT_READ);
-	}else
-		ret = kn_event_enable(e,h,EVFILT_READ);
-		
-	if(ret == 0)
+static inline int      kn_enable_read(engine_t e,handle *h){		
+	if(kn_event_enable(e,h,EVFILT_READ) == 0)
 		h->events |= EVFILT_READ;
 	else{
 		assert(0);
@@ -78,14 +72,8 @@ static inline int      kn_disable_read(engine_t e,handle *h){
           return -1;
 }
 
-static inline int      kn_enable_write(engine_t e,handle *h){
-	int ret;
-	if(h->events == 0){
-		ret = kn_event_add(e,h,EVFILT_WRITE);
-	}else
-		ret = kn_event_enable(e,h,EVFILT_WRITE);
-		
-	if(ret == 0)
+static inline int      kn_enable_write(engine_t e,handle *h){		
+	if(kn_event_enable(e,h,EVFILT_WRITE) == 0)
 		h->events |= EVFILT_WRITE;
 	else{
 		assert(0);
