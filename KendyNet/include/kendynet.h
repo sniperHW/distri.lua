@@ -92,7 +92,11 @@ kn_sockaddr* kn_sock_addrlocal(handle_t);
 kn_sockaddr* kn_sock_addrpeer(handle_t);
 
 #include <arpa/inet.h>
+#ifdef _LINUX
 #include <endian.h>
+#elif _FREEBSD
+#include <machine/endian.h>
+#endif
 
 #ifdef _ENDIAN_CHANGE_
 

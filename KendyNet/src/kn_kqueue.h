@@ -23,30 +23,34 @@ typedef struct{
 
 int kn_event_add(engine_t e,handle_t h,int events){
 	struct kevent ke;
+	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, EVFILT_READ, EV_ADD, 0, 0, h);
-	return kevent(e->kfd, &ke, 1, NULL, 0, NULL);	
+	return kevent(kq->kfd, &ke, 1, NULL, 0, NULL);	
 }
 
 int kn_event_del(engine_t e,handle_t h){
 	struct kevent ke;
+	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-	kevent(e->kfd, &ke, 1, NULL, 0, NULL);
+	kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
 	EV_SET(&ke, h->fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	kevent(e->kfd, &ke, 1, NULL, 0, NULL);
+	kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
 	h->events = 0;	
 	return 0;	
 }
 
 int kn_event_enable(engine_t e,handle_t h,int event){
 	struct kevent ke;
-	EV_SET(&ke, h->fd, event,EV_ENABLE, 0, 0, ud);
-	return kevent(e->kfd, &ke, 1, NULL, 0, NULL);
+	kn_kqueue *kq = (kn_kqueue*)e;
+	EV_SET(&ke, h->fd, event,EV_ENABLE, 0, 0, h);
+	return kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
 }
 
 int kn_event_disable(engine_t e,handle_t h,int event){
 	struct kevent ke;
-	EV_SET(&ke, h->fd, event,EV_DISABLE, 0, 0, ud);
-	return kevent(e->kfd, &ke, 1, NULL, 0, NULL);
+	kn_kqueue *kq = (kn_kqueue*)e;
+	EV_SET(&ke, h->fd, event,EV_DISABLE, 0, 0, h);
+	return kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
 }
 
 engine_t kn_new_engine(){
@@ -60,11 +64,11 @@ engine_t kn_new_engine(){
 	kn_kqueue *kq = calloc(1,sizeof(*kq));
 	kq->kfd = kfd;
 	kq->maxevents = 64;
-	kq->events = calloc(1,(sizeof(*kq->events)*ep->maxevents));
+	kq->events = calloc(1,(sizeof(*kq->events)*kq->maxevents));
 	kq->notify_stop.comm_head.fd = tmp[0];
 	kq->notify_stop.fd_write = tmp[1];
-	kn_event_add(ep,(handle_t)&ep->notify_stop,EVFILT_READ);
-	return (engine_t)ep;
+	kn_event_add(kq,(handle_t)&kq->notify_stop,EVFILT_READ);
+	return (engine_t)kq;
 }
 
 void kn_release_engine(engine_t e){
@@ -93,9 +97,9 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 						int ret = TEMP_FAILURE_RETRY(read(h->fd,buf,4096));
 						if(ret <= 0) break;
 					}
-					return 0;
+					return;
 				}else
-					h->on_events(h,kq->events[i].events);
+					h->on_events(h,kq->events[i].filter);
 			}
 		}
 		if(nfds == kq->maxevents){
@@ -127,7 +131,7 @@ int kn_engine_run(engine_t e){
 						}
 						return 0;
 					}else
-						h->on_events(h,kq->events[i].events);
+						h->on_events(h,kq->events[i].filter);
 				}
 			}
 			if(nfds == kq->maxevents){

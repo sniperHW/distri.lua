@@ -49,7 +49,11 @@ static inline kn_mutex_t kn_mutex_create()
 {
 	kn_mutex_t m = malloc(sizeof(*m));
 	pthread_mutexattr_init(&m->m_attr);
+#ifdef _LINUX
 	pthread_mutexattr_settype(&m->m_attr,PTHREAD_MUTEX_RECURSIVE_NP);
+#elif _FREEBSD
+	pthread_mutexattr_settype(&m->m_attr,PTHREAD_MUTEX_RECURSIVE);
+#endif
 	pthread_mutex_init(&m->m_mutex,&m->m_attr);
 	return m;
 }
@@ -79,7 +83,11 @@ static inline int32_t imp_condition_timedwait(kn_condition_t c,kn_mutex_t m,int3
 	struct timespec ts;
 	uint64_t msec;
 	
+#ifdef _LINUX
 	clock_gettime(CLOCK_BOOTTIME, &ts);
+#elif _FREEBSD
+	clock_gettime(CLOCK_UPTIME, &ts);
+#endif
 	msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);
@@ -97,14 +105,22 @@ static inline int32_t kn_condition_timedwait(kn_condition_t c,kn_mutex_t m,int32
 	uint64_t timeout;
 	int32_t ret;
 	
-	clock_gettime(CLOCK_BOOTTIME, &ts);
+#ifdef _LINUX
+        clock_gettime(CLOCK_BOOTTIME, &ts);
+#elif _FREEBSD
+        clock_gettime(CLOCK_UPTIME, &ts);  
+#endif
 	cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
 	timeout = cur_tick + (uint32_t)ms;
 	for(;;){
 		ret = imp_condition_timedwait(c,m,ms);
 		if(ret == 0 || errno != EINTR)
 			return ret;
-		clock_gettime(CLOCK_BOOTTIME, &ts);
+#ifdef _LINUX
+        	clock_gettime(CLOCK_BOOTTIME, &ts);
+#elif _FREEBSD
+        	clock_gettime(CLOCK_UPTIME, &ts);  
+#endif
 		cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000; 
 		if(timeout > cur_tick)
 			ms = timeout - cur_tick;

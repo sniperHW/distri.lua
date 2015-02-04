@@ -1,7 +1,7 @@
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <fcntl.h>              /* Obtain O_* constant definitions */
 #include <unistd.h>
-#include <sys/eventfd.h>
+//#include <sys/eventfd.h>
 #include "kn_thread_mailbox.h"
 #include "kn_thread_sync.h"
 #include "spinlock.h"
@@ -164,6 +164,8 @@ static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){
 	refobj_init(&mailbox->refobj,mailbox_destroctor);
 #ifdef _LINUX	
 	if(kn_event_add(e,(handle_t)mailbox,EPOLLIN) != 0){
+#elif _FREEBSD
+	if(kn_event_add(e,(handle_t)mailbox,EVFILT_READ) != 0){
 #endif
 		close(tmp[0]);
 		close(tmp[1]);

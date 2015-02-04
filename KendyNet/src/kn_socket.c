@@ -302,12 +302,10 @@ int kn_sock_associate(handle_t h,
 
 int kn_sock_send(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_SOCKET){ 
-		errno =  EBADF;
 		return -1;
 	}	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
-		errno = EBADFD;
 		return -1;
 	 }
 	
@@ -332,12 +330,10 @@ int kn_sock_send(handle_t h,st_io *req){
 
 int kn_sock_recv(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_SOCKET){ 
-		errno =  EBADF;
 		return -1;
 	}	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
-		errno = EBADFD;
 		return -1;
 	 }
 	errno = 0;	
@@ -363,12 +359,10 @@ int kn_sock_recv(handle_t h,st_io *req){
 
 int kn_sock_post_send(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_SOCKET){ 
-		errno =  EBADF;
 		return -1;
 	}	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
-		errno = EBADFD;
 		return -1;
 	 }
 	 if(!(((handle_t)s)->events & EVENT_WRITE)){
@@ -381,12 +375,10 @@ int kn_sock_post_send(handle_t h,st_io *req){
 
 int kn_sock_post_recv(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_SOCKET){ 
-		errno =  EBADF;
 		return -1;
 	}	
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
-		errno = EBADFD;
 		return -1;
 	}
 	 if(!(((handle_t)s)->events & EVENT_READ)){

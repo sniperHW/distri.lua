@@ -77,7 +77,7 @@ static inline int      kn_enable_read(engine_t e,handle *h){
 		ret = kn_event_enable(e,h,EVFILT_READ);
 		
 	if(ret == 0)
-		h->events |= EVFILT_READ | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE); ;
+		h->events |= EVFILT_READ | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);
 	else{
 		assert(0);
 		return -1;
@@ -102,7 +102,7 @@ static inline int      kn_enable_write(engine_t e,handle *h){
 		ret = kn_event_enable(e,h,EVFILT_WRITE);
 		
 	if(ret == 0)
-		h->events |= EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE); ;
+		h->events |= EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE); 
 	else{
 		assert(0);
 		return -1;

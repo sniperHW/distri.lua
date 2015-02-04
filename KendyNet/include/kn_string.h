@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef _KN_STRING_H
-#define _KN_TRING_H
+#define _KN_STRING_H
 #include <stdint.h>
 
 typedef struct kn_string* kn_string_t;

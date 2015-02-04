@@ -14,19 +14,19 @@ typedef struct kn_msgque{
 	volatile int       closing;
 }kn_msgque;
 
-typedef struct kn_msgque_writer{
+struct kn_msgque_writer{
 	kn_msgque*  msgque;
 	kn_list     writebuff;
 	int         buffsize;
-}*kn_msgque_writer_t;
+};
 
 
-typedef struct kn_msgque_reader{
+struct kn_msgque_reader{
 	kn_dlist_node  waitnode;
 	kn_msgque*     msgque;
 	kn_list        readbuff;
 	kn_condition_t cond;	
-}*kn_msgque_reader_t;
+};
 
 struct msg{
 	kn_list_node      node;
