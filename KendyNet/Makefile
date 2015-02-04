@@ -1,9 +1,9 @@
 CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
-SHARED = -fPIC -shared
-CC = gcc
+SHARED = -fPIC
+CC = cc
 DEPDIR = ../deps
-INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.2.3/src 
+INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.2.3/src -I$(DEPDIR)/curl-7.38.0/include
 DEFINE = -D_DEBUG -D_LINUX 
 SAMPLE = ./sample
 
