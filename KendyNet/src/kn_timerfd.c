@@ -1,6 +1,9 @@
 #include "kn_timer.h"
 #include "kn_timer_private.h"
 #include "kn_timerfd.h"
+#include "kn_event.h"
+
+#ifdef _LINIX
 #include <sys/timerfd.h> 
 
 void kn_timerfd_on_active(handle_t s,int event){
@@ -47,3 +50,26 @@ handle_t kn_new_timerfd(uint32_t timeout){
 	fd->comm_head.on_events = kn_timerfd_on_active;
 	return (handle_t)fd;
 }
+
+#elif _FREEBSD
+
+void kn_timerfd_on_active(handle_t s,int event){
+	kn_timerfd_t t = (kn_timerfd_t)s;
+	kn_timermgr_t mgr = (kn_timermgr_t)t->comm_head.ud;
+	kn_timermgr_tick(mgr);		
+}
+
+void kn_timerfd_destroy(void *ptr){
+	free(t);
+}
+
+handle_t kn_new_timerfd(uint32_t timeout){
+	kn_timerfd_t fd = calloc(1,sizeof(*fd));
+	fd->comm_head.fd = 1;
+	fd->comm_head.on_events = kn_timerfd_on_active;
+	return (handle_t)fd;	
+}
+
+#else
+#error "un support platform!"	
+#endif
