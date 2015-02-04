@@ -297,6 +297,11 @@ int kn_sock_associate(handle_t h,
 	s->destry_stio = destry_stio;
 	s->cb_ontranfnish = cb_ontranfnish;
 	s->e = e;
+#ifdef _LINUX
+	kn_event_add(s->e,h,EPOLLRDHUP);
+#elif   _FREEBSD
+	kn_event_add(s->e,h,0);
+#endif
 	return 0;
 }
 

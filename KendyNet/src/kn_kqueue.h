@@ -24,8 +24,9 @@ typedef struct{
 int kn_event_add(engine_t e,handle_t h,int events){
 	struct kevent ke;
 	kn_kqueue *kq = (kn_kqueue*)e;
-	EV_SET(&ke, h->fd, EVFILT_READ, EV_ADD, 0, 0, h);
-	return kevent(kq->kfd, &ke, 1, NULL, 0, NULL);	
+	EV_SET(&ke, h->fd, events, EV_ADD, 0, 0, h);
+	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
+	return ret;	
 }
 
 int kn_event_del(engine_t e,handle_t h){

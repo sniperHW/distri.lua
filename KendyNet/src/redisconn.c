@@ -92,20 +92,16 @@ static void redis_on_active(handle_t s,int event){
 static void redisAddRead(void *privdata){
 	redisconn_t con = (redisconn_t)privdata;
 #ifdef _LINUX	
-	int events = con->events | EPOLLIN | EPOLLRDHUP;
-	int ret;
-	if(con->events == 0)
-		ret = kn_event_add(con->e,(handle_t)con,events);
-	else
-		ret = kn_event_mod(con->e,(handle_t)con,events);
-	if(ret == 0)con->events = events;	
+	int events = con->events | EPOLLIN;
+	if(kn_event_mod(con->e,(handle_t)con,events) == 0)
+		con->events = events;	
 #elif _FREEBSD
 	int ret;
 	if(con->events == 0)
 		ret = kn_event_add(con->e,(handle_t)con,EVFILT_READ);
 	else
 		ret = kn_event_enable(con->e,(handle_t)con,EVFILT_READ);
-	if(ret == 0) con->events |= EVFILT_READ  | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);		
+	if(ret == 0) con->events |= EVFILT_READ;		
 #else
 
 #error "un support platform!"				
@@ -134,19 +130,15 @@ static void redisAddWrite(void *privdata) {
 	redisconn_t con = (redisconn_t)privdata;
 #ifdef _LINUX	
 	int events = con->events | EPOLLOUT;
-	int ret;
-	if(con->events == 0)
-		ret = kn_event_add(con->e,(handle_t)con,events);
-	else
-		ret = kn_event_mod(con->e,(handle_t)con,events);
-	if(ret == 0)con->events = events;	
+	if(kn_event_mod(con->e,(handle_t)con,events) == 0)
+		con->events = events;	
 #elif _FREEBSD
 	int ret;
 	if(con->events == 0)
 		ret = kn_event_add(con->e,(handle_t)con,EVFILT_WRITE);
 	else
 		ret = kn_event_enable(con->e,(handle_t)con,EVFILT_WRITE);
-	if(ret == 0) con->events |= EVFILT_WRITE  | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);			
+	if(ret == 0) con->events |= EVFILT_WRITE;			
 #else
 
 #error "un support platform!"				
@@ -207,7 +199,7 @@ int kn_redisAsynConnect(engine_t p,
     con->events = EPOLLIN | EPOLLOUT | EPOLLRDHUP;
 #elif _FREEBSD
     kn_event_add(con->e,(handle_t)con,EVFILT_READ | EVFILT_WRITE);
-    con->events = EVFILT_READ | EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);    
+    con->events = EVFILT_READ | EVFILT_WRITE;    
 #else
 
 #error "un support platform!"				

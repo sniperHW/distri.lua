@@ -95,7 +95,7 @@ static int curl_conn_add_read(engine_t e,curl_conn_t conn){
 	else
 		ret = kn_event_enable(e,(handle_t)conn,EVFILT_READ);
 		
-	if(ret == 0) conn->events |= EVFILT_READ | 0x80000000;
+	if(ret == 0) conn->events |= EVFILT_READ;
 	return ret;
 #else
 
@@ -107,7 +107,7 @@ static int curl_conn_add_read(engine_t e,curl_conn_t conn){
 
 static int curl_conn_add_write(engine_t e,curl_conn_t conn){
 #ifdef _LINUX	
-	int events = conn->events | EPOLLOUT;
+	int events = conn->events | EPOLLOUT | EPOLLRDHUP;
 	int ret;
 	if(conn->events == 0)
 		ret = kn_event_add(e,(handle_t)conn,events);
@@ -123,7 +123,7 @@ static int curl_conn_add_write(engine_t e,curl_conn_t conn){
 	else
 		ret = kn_event_enable(e,(handle_t)conn,EVFILT_WRITE);
 		
-	if(ret == 0) conn->events |= EVFILT_WRITE | 0x80000000;	
+	if(ret == 0) conn->events |= EVFILT_WRITE;	
 	return ret;
 #else
 
