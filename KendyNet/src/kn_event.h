@@ -11,8 +11,7 @@
 
 enum{
 	EVENT_READ  =  (EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLRDHUP),
-	EVENT_WRITE =  EPOLLOUT,
-	//EVENT_ERROR = (EPOLLERR | EPOLLHUP | EPOLLRDHUP),	
+	EVENT_WRITE =  EPOLLOUT,	
 };
 
 static inline int      kn_enable_read(engine_t e,handle *h){
@@ -67,9 +66,58 @@ static inline int      kn_disable_write(engine_t e,handle *h){
 
 enum{
 	EVENT_READ  =  EVFILT_READ,
-	EVENT_WRITE =  EVFILT_WRITE,
-	//EVENT_ERROR =  0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE,	
+	EVENT_WRITE =  EVFILT_WRITE,	
 };
+
+static inline int      kn_enable_read(engine_t e,handle *h){
+	int ret;
+	if(h->events == 0){
+		ret = kn_event_add(e,h,EVFILT_READ);
+	}else
+		ret = kn_event_enable(e,h,EVFILT_READ);
+		
+	if(ret == 0)
+		h->events |= EVFILT_READ | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE); ;
+	else{
+		assert(0);
+		return -1;
+	}
+	return 0;	
+}
+
+static inline int      kn_disable_read(engine_t e,handle *h){
+          if(0 == kn_event_disable(e,h,EVFILT_READ))
+          {
+          	h->events ^= EVFILT_READ;
+          	return 0;
+          }
+          return -1;
+}
+
+static inline int      kn_enable_write(engine_t e,handle *h){
+	int ret;
+	if(h->events == 0){
+		ret = kn_event_add(e,h,EVFILT_WRITE);
+	}else
+		ret = kn_event_enable(e,h,EVFILT_WRITE);
+		
+	if(ret == 0)
+		h->events |= EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE); ;
+	else{
+		assert(0);
+		return -1;
+	}
+	return 0;
+}
+
+static inline int      kn_disable_write(engine_t e,handle *h){
+          if(0 == kn_event_disable(e,h,EVFILT_WRITE))
+          {
+          	h->events ^= EVFILT_WRITE;
+          	return 0;
+          }
+          return -1;
+}
 
 #else
 

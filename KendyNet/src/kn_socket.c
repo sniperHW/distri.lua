@@ -429,9 +429,9 @@ static int stream_listen(engine_t e,
 
 	s->addr_local = *local;
 #ifdef _LINUX	
-	int events = ((handle_t)s)->events | EPOLLIN;
+	int events = EPOLLIN;
 #elif _FREEBSD
-
+	int events = EVFILT_READ;
 #else
 
 #error "un support platform!"				
@@ -522,9 +522,9 @@ static int stream_connect(engine_t e,
 		return 1;
 	}else{
 #ifdef _LINUX			
-		int events = ((handle_t)s)->events | EPOLLIN | EPOLLOUT;
+		int events = EPOLLIN | EPOLLOUT;
 #elif _FREEBSD
-
+		int events = EVFILT_READ | EVFILT_WRITE;
 #else
 
 #error "un support platform!"				
@@ -539,10 +539,10 @@ static int stream_connect(engine_t e,
 }
 
 static int dgram_connect(engine_t e,
-						 kn_socket *s,
-						 int fd,
-						 kn_sockaddr *local,
-						 kn_sockaddr *remote)
+			 kn_socket *s,
+			 int fd,
+			 kn_sockaddr *local,
+			 kn_sockaddr *remote)
 {
 	return -1;
 }

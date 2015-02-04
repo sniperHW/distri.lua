@@ -97,7 +97,7 @@ static void mailbox_destroctor(void *ptr){
 	kn_event_del(mailbox->e,(handle_t)mailbox);
 	LOCK_DESTROY(mailbox->mtx);	
 	close(mailbox->comm_head.fd);
-	//close(mailbox->notifyfd);
+	close(mailbox->notifyfd);
 
 	kn_mutex_lock(g_mtx);
 	hash_map_remove(h,(void*)mailbox->tid);
@@ -145,29 +145,29 @@ static void on_events(handle_t h,int events){
 }
 
 static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){	
-	/*int tmp[2];
+	int tmp[2];
 	if(pipe2(tmp,O_NONBLOCK|O_CLOEXEC) != 0){
 		NULL;
 	}		
 	kn_thread_mailbox *mailbox = calloc(1,sizeof(*mailbox));
 	mailbox->comm_head.fd = tmp[0];
 	mailbox->notifyfd = tmp[1];
-	kn_set_noblock(tmp[0],0);
-	kn_set_noblock(tmp[1],0);*/
+	/*kn_set_noblock(tmp[0],0);
+	kn_set_noblock(tmp[1],0);
 	int evfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 	if (evfd < 0) {
 		return NULL;
 	}
 	kn_thread_mailbox *mailbox = calloc(1,sizeof(*mailbox));
 	mailbox->comm_head.fd = evfd;
-	mailbox->notifyfd = evfd;		
+	mailbox->notifyfd = evfd;*/		
 	refobj_init(&mailbox->refobj,mailbox_destroctor);
 #ifdef _LINUX	
 	if(kn_event_add(e,(handle_t)mailbox,EPOLLIN) != 0){
 #endif
-		//close(tmp[0]);
-		//close(tmp[1]);
-		close(evfd);
+		close(tmp[0]);
+		close(tmp[1]);
+		//close(evfd);
 		free(mailbox);
 		return NULL;	
 	}

@@ -39,7 +39,10 @@ static void curl_on_active(handle_t s,int event){
   if (event & EPOLLOUT)
     flags |= CURL_CSELECT_OUT;
 #elif _FREEBSD
-
+  if (event & EVFILT_READ)
+    flags |= CURL_CSELECT_IN;
+  if (event & EVFILT_WRITE)
+    flags |= CURL_CSELECT_OUT;
 #else
 
 #error "un support platform!"				
@@ -77,13 +80,6 @@ static curl_conn_t create_curl_conn(curl_socket_t s,kn_CURLM_t cm){
 static int curl_conn_add_read(engine_t e,curl_conn_t conn){
 #ifdef _LINUX	
 	int events = conn->events | EPOLLIN | EPOLLRDHUP;
-#elif _FREEBSD
-
-#else
-
-#error "un support platform!"				
-
-#endif
 	int ret;
 	if(conn->events == 0)
 		ret = kn_event_add(e,(handle_t)conn,events);
@@ -92,18 +88,25 @@ static int curl_conn_add_read(engine_t e,curl_conn_t conn){
 		
 	if(ret == 0) conn->events = events;
 	return ret;	
+#elif _FREEBSD
+	int ret;
+	if(conn->events == 0)
+		ret = kn_event_add(e,(handle_t)conn,EVFILT_READ);
+	else
+		ret = kn_event_enable(e,(handle_t)conn,EVFILT_READ);
+		
+	if(ret == 0) conn->events |= EVFILT_READ | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);	
+#else
+
+#error "un support platform!"				
+
+#endif
+	
 }
 
 static int curl_conn_add_write(engine_t e,curl_conn_t conn){
 #ifdef _LINUX	
 	int events = conn->events | EPOLLOUT;
-#elif _FREEBSD
-
-#else
-
-#error "un support platform!"				
-
-#endif	
 	int ret;
 	if(conn->events == 0)
 		ret = kn_event_add(e,(handle_t)conn,events);
@@ -112,6 +115,20 @@ static int curl_conn_add_write(engine_t e,curl_conn_t conn){
 		
 	if(ret == 0) conn->events = events;
 	return ret;		
+#elif _FREEBSD
+	int ret;
+	if(conn->events == 0)
+		ret = kn_event_add(e,(handle_t)conn,EVFILT_WRITE);
+	else
+		ret = kn_event_enable(e,(handle_t)conn,EVFILT_WRITE);
+		
+	if(ret == 0) conn->events |= EVFILT_WRITE | (0xFFFFFFFF ^ EVFILT_READ ^ EVFILT_WRITE);		
+#else
+
+#error "un support platform!"				
+
+#endif	
+	
 }
 
 static int handle_socket(CURL *easy, curl_socket_t s, int action, void *userp,void *socketp)
