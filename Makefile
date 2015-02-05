@@ -4,7 +4,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.2.3/src 
 
-source = src/luasocket.c\
+source-linux = src/luasocket.c\
 	  src/luapacket.c\
 	  src/luaredis.c\
 	  src/luahttp.c\
@@ -16,6 +16,17 @@ source = src/luasocket.c\
 	  src/timeutil.c\
 	  src/listener.c\
 	  src/distri.c
+
+source-bsd = src/luasocket.c\
+	  src/luapacket.c\
+	  src/luaredis.c\
+	  src/luahttp.c\
+	  src/lualog.c\
+	  src/base64/base64.c\
+	  src/base64/lua_base64.c\
+	  src/timeutil.c\
+	  src/listener.c\
+	  src/distri.c	  
 
 KendyNet/libkendynet.a:
 		cd KendyNet;make linux
@@ -31,7 +42,7 @@ deps/lua-5.2.3/src/liblua.a:
 		cd deps/lua-5.2.3/;make linux
 
 deps/myprocps/libproc.a:
-		cd deps/myprocps/;make linux							
+		cd deps/myprocps/;make							
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./
@@ -43,8 +54,8 @@ linux:KendyNet/libkendynet.a\
         deps/lua-5.2.3/src/liblua.a\
         deps/myprocps/libproc.a\
         cjson.so\
-        $(source)	
-	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) KendyNet/libkendynet.a \
+        $(source-linux)	
+	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source-linux) KendyNet/libkendynet.a \
 	deps/hiredis/libhiredis.a \
 	deps/jemalloc/lib/libjemalloc.a \
 	deps/myprocps/libproc.a \
@@ -57,12 +68,12 @@ bsd:KendyNet/libkendynet.a\
         deps/http-parser/libhttp_parser.a\
         deps/lua-5.2.3/src/liblua.a\
         cjson.so\
-        $(source)
-	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source) KendyNet/libkendynet.a \
+        $(source-bsd)
+	$(CC) $(CFLAGS) $(LIB) -o distrilua $(source-bsd) KendyNet/libkendynet.a \
 	deps/hiredis/libhiredis.a \
 	deps/http-parser/libhttp_parser.a \
 	deps/lua-5.2.3/src/liblua.a \
-	$(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB) -rdynamic -lexecinfo
+	$(INCLUDE) $(LDFLAGS) $(DEFINE) $(LIB) -rdynamic -lexecinfo -D_BSD
 
 none:
 	@echo "Please do 'make PLATFORM' where PLATFORM is one of these:"

@@ -5,8 +5,10 @@
 #include "lualog.h"
 #include "kn_timer.h"
 #include "kn_time.h"
+#ifdef _LINUX
 #include "debug.h"
 #include "myprocps/mytop.h"
+#endif
 #include "kn_daemonize.h"
 #include "wpacket.h"
 #include "rpacket.h"
@@ -173,11 +175,16 @@ static int lua_Break(lua_State *L){
 }
 
 static int lua_Top(lua_State *L){
+#ifdef _LINUX	
 	lua_pushstring(L,top());
+#else
+	lua_pushnil(L);
+#endif	
 	return 1;
 }
 
 static int lua_AddTopFilter(lua_State *L){
+#ifdef _LINUX	
 	if(lua_gettop(L) < 1)
 		return luaL_error(L,"need a least one param");		
 	int i;
@@ -187,6 +194,7 @@ static int lua_AddTopFilter(lua_State *L){
 			return luaL_error(L,"param should be string");
 		addfilter(lua_tostring(L,i));
 	}
+#endif		
 	return 0;
 }
 

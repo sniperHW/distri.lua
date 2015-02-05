@@ -9,12 +9,8 @@ EXTERN_C_BEGIN
 // used in pwcache and in readproc to set size of username or groupname
 #define P_G_SZ 20
 
-#ifdef _LINUX
-
 extern char *user_from_uid(uid_t uid);
 extern char *group_from_gid(gid_t gid);
-
-#endif
 
 EXTERN_C_END
 
