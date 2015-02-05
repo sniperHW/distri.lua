@@ -8,7 +8,7 @@
 #include <string.h>
 #include <assert.h>
 
-#pragma pack(4)
+#pragma pack(1)
 typedef struct{
 	uint32_t next:10;
 	uint32_t chunkidx:22;
