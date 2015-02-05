@@ -118,14 +118,9 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 	handle_t h;
 	struct timespec ts;
 	uint64_t msec;
-        	_clock_gettime_boot(&ts);
 	msec = ms%1000;
-	ts.tv_nsec += (msec*1000*1000);
-	ts.tv_sec  += (ms/1000);
-	if(ts.tv_nsec >= 1000*1000*1000){
-		ts.tv_sec += 1;
-		ts.tv_nsec %= (1000*1000*1000);
-	}
+	ts.tv_nsec = (msec*1000*1000);
+	ts.tv_sec   = (ms/1000);
 	int nfds;
 	if(kq->timerfd)	
 		nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, 1, kq->events,kq->maxevents, &ts));

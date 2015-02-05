@@ -40,7 +40,9 @@ static inline void _clock_gettime_boot(struct timespec *ts){
 #ifdef _LINUX
         clock_gettime(CLOCK_BOOTTIME, ts);
 #elif _BSD
-        clock_gettime(CLOCK_UPTIME, ts);  
+        clock_gettime(CLOCK_UPTIME, ts); 
+#else
+        #error "un support platform!"         
 #endif 
 }
 

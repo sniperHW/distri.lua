@@ -83,7 +83,7 @@ static inline int32_t imp_condition_timedwait(kn_condition_t c,kn_mutex_t m,int3
 {
 	struct timespec ts;
 	uint64_t msec;
-	_clock_gettime_boot(&ts);
+             clock_gettime(CLOCK_REALTIME, &ts);
 	msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);
@@ -96,19 +96,15 @@ static inline int32_t imp_condition_timedwait(kn_condition_t c,kn_mutex_t m,int3
 
 static inline int32_t kn_condition_timedwait(kn_condition_t c,kn_mutex_t m,int32_t ms)
 {
-	struct timespec ts;
 	uint64_t cur_tick;
 	uint64_t timeout;
 	int32_t ret;
-        	_clock_gettime_boot( &ts);
-	cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
-	timeout = cur_tick + (uint32_t)ms;
+	timeout = kn_systemms64() + (uint32_t)ms;
 	for(;;){
 		ret = imp_condition_timedwait(c,m,ms);
 		if(ret == 0 || errno != EINTR)
 			return ret;
-        		_clock_gettime_boot( &ts);
-		cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000; 
+		cur_tick = kn_systemms64();
 		if(timeout > cur_tick)
 			ms = timeout - cur_tick;
 		else{
