@@ -24,14 +24,22 @@ typedef struct{
    	//struct kevent event;	
 }kn_kqueue;
 
-int kn_event_add(engine_t e,handle_t h,int events){
-printf("%d,%d\n",EVFILT_WRITE,EVFILT_READ);	
+#define SET_READ(X) do{int flag = (EVFILT_READ << 16) & 0xFFFF0000; X |= flag;}while(0)
+#define SET_WRITE(X) do{int flag = EVFILT_WRITE & 0x0000FFFF; X |= flag;}while(0)
+#define CLEAR_READ(X) do{ X &= 0x0000FFFF;}while(0)
+#define CLDAR_WRITE(x) do{ X &= 0xFFFF0000;}while(0)
+
+int kn_event_add(engine_t e,handle_t h,int events){	
 	struct kevent ke;
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, events, EV_ADD, 0, 0, h);
 	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
-	if(0 == ret)
-		h->events = events;// & (~EV_DISABLE) & (~EV_ENABLE);
+	if(0 == ret){
+		if(events == EVFILT_READ)
+			SET_READ(h->events);
+		else if(events) == EVFILT_WRITE)
+			SET_WRITE(h->events);
+	}
 	return ret;	
 }
 
@@ -51,7 +59,12 @@ int kn_event_enable(engine_t e,handle_t h,int events){
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, events,EV_ENABLE, 0, 0, h);
 	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
-	if(0 == ret) h->events |= events;
+	if(0 == ret){
+		if(events == EVFILT_READ)
+			SET_READ(h->events);
+		else if(events) == EVFILT_WRITE)
+			SET_WRITE(h->events);
+	}
 	return ret;
 }
 
@@ -60,7 +73,12 @@ int kn_event_disable(engine_t e,handle_t h,int events){
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, events,EV_DISABLE, 0, 0, h);
 	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
-	if(0 == ret) h->events &= ~events;
+	if(0 == ret){
+		if(events == EVFILT_READ)
+			CLEAR_READ(h->events);
+		else if(events) == EVFILT_WRITE)
+			CLDAR_WRITE(h->events);
+	}
 	return ret;
 }
 
@@ -190,4 +208,13 @@ kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 		EV_SET(&kq->change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 1, kq->timerfd);		
 	}
 	return reg_timer_imp(((handle_t)kq->timerfd)->ud,timeout,cb,ud);
+}
+
+
+int is_set_read(handle *h){
+	return h->events | ((EVFILT_READ << 16) & 0xFFFF0000);
+}
+
+int is_set_write(handle *h){
+	return (h->events & 0x0000FFFF) == EVFILT_WRITE;
 }

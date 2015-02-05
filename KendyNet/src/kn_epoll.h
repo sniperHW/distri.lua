@@ -168,3 +168,11 @@ kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 	}
 	return reg_timer_imp(((handle_t)ep->timerfd)->ud,timeout,cb,ud);
 }
+
+int is_set_read(handle *h){
+	return h->events & EPOLLIN;
+}
+
+int is_set_write(handle *h){
+	return h->events & EPOLLOUT;
+}

@@ -17,12 +17,12 @@ void kn_timerfd_on_active(handle_t s,int event){
 	}
 }
 
-void kn_timerfd_destroy(kn_timerfd_t t){
-	kn_timermgr_t mgr = (kn_timermgr_t)t->comm_head.ud;
+void kn_timerfd_destroy(handle_t t){
+	kn_timermgr_t mgr = (kn_timermgr_t)t->ud;
 	if(mgr){
 		kn_del_timermgr(mgr);
 	}
-	close(t->comm_head.fd);
+	close(t->fd);
 	free(t);
 }
 
@@ -62,8 +62,8 @@ void kn_timerfd_on_active(handle_t s,int event){
 	kn_timermgr_tick(mgr);		
 }
 
-void kn_timerfd_destroy(kn_timerfd_t t){
-	kn_timermgr_t mgr = (kn_timermgr_t)t->comm_head.ud;
+void kn_timerfd_destroy(handle_t t){
+	kn_timermgr_t mgr = (kn_timermgr_t)t->ud;
 	if(mgr){
 		kn_del_timermgr(mgr);
 	}	

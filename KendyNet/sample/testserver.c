@@ -21,7 +21,16 @@ int timer_callback(kn_timer_t timer){
 }
 
 int main(int argc,char **argv){
-	signal(SIGPIPE,SIG_IGN);
+	int flag1 = (-1 << 16) & 0xFFFF0000;
+	int flag2 = -2 & 0x0000FFFF;
+	int flag3 = flag1 | flag2;
+
+
+
+
+
+	printf("%d\n",flag3);
+	/*signal(SIGPIPE,SIG_IGN);
 	engine_t p = kn_new_engine();
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
@@ -30,5 +39,5 @@ int main(int argc,char **argv){
 	kn_sock_listen(p,l,&local,on_accept,p);
 	kn_reg_timer(p,1000,timer_callback,NULL);		
 	kn_engine_run(p);
-	return 0;
+	return 0;*/
 }

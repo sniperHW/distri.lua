@@ -95,7 +95,7 @@ static void destroy_socket(kn_socket *s){
 
 
 static void process_read(kn_socket *s){
-	printf("process_read\n");
+	//printf("process_read\n");
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
@@ -126,7 +126,7 @@ static void process_read(kn_socket *s){
 }
 
 static void process_write(kn_socket *s){
-	printf("process_write\n");
+	//printf("process_write\n");
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
@@ -371,13 +371,7 @@ int kn_sock_post_send(handle_t h,st_io *req){
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
 		return -1;
 	 }
-#ifdef _LINUX	 
-	 if(!(((handle_t)s)->events & EPOLLOUT)){
-#elif _BSD
-	if(!(((handle_t)s)->events & EVFILT_WRITE)){	 	
-#else
-              #error "un support platform!"		
-#endif	 
+	 if(!is_set_write((handle_t)s)){
 	 	if(0 != kn_enable_write(s->e,(handle_t)s))
 	 		return -1;
 	 }
@@ -393,13 +387,7 @@ int kn_sock_post_recv(handle_t h,st_io *req){
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
 		return -1;
 	}
-#ifdef _LINUX	 
-	 if(!(((handle_t)s)->events & EPOLLIN)){
-#elif _BSD
-	if(!(((handle_t)s)->events & EVFILT_READ)){	 	
-#else
-              #error "un support platform!"		
-#endif	
+	 if(!is_set_read((handle_t)s)){
 	 	if(0 != kn_enable_read(s->e,(handle_t)s))
 	 		return -1;
 	 }	

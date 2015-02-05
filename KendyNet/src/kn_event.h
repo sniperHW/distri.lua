@@ -5,6 +5,9 @@
 #include "kn_type.h"
 
 
+int is_set_read(handle*h);
+int is_set_write(handle*h);
+
 #ifdef _LINUX
 
 #include    <sys/epoll.h>
