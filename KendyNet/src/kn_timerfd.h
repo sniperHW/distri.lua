@@ -10,5 +10,5 @@ typedef struct kn_timerfd{
 
 handle_t kn_new_timerfd(uint32_t timeout);
 void     kn_timermgr_tick(kn_timermgr_t t);
-
+void     kn_timerfd_destroy(kn_timerfd_t t);
 #endif

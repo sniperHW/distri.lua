@@ -28,18 +28,18 @@ STLIBNAME=$(LIBNAME).$(STLIBSUFFIX)
 STLIB_MAKE_CMD=ar rcs $(STLIBNAME)
 
 # Platform-specific overrides
-uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
-ifeq ($(uname_S),SunOS)
-  REAL_LDFLAGS+= -ldl -lnsl -lsocket
-  DYLIB_MAKE_CMD=$(CC) -G -o $(DYLIBNAME) -h $(DYLIB_MINOR_NAME) $(LDFLAGS)
-  INSTALL= cp -r
-endif
-ifeq ($(uname_S),Darwin)
-  DYLIBSUFFIX=dylib
-  DYLIB_MINOR_NAME=$(LIBNAME).$(HIREDIS_MAJOR).$(HIREDIS_MINOR).$(DYLIBSUFFIX)
-  DYLIB_MAJOR_NAME=$(LIBNAME).$(HIREDIS_MAJOR).$(DYLIBSUFFIX)
-  DYLIB_MAKE_CMD=$(CC) -shared -Wl,-install_name,$(DYLIB_MINOR_NAME) -o $(DYLIBNAME) $(LDFLAGS)
-endif
+#uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
+#ifeq ($(uname_S),SunOS)
+#  REAL_LDFLAGS+= -ldl -lnsl -lsocket
+#  DYLIB_MAKE_CMD=$(CC) -G -o $(DYLIBNAME) -h $(DYLIB_MINOR_NAME) $(LDFLAGS)
+#  INSTALL= cp -r
+#endif
+#ifeq ($(uname_S),Darwin)
+#  DYLIBSUFFIX=dylib
+#  DYLIB_MINOR_NAME=$(LIBNAME).$(HIREDIS_MAJOR).$(HIREDIS_MINOR).$(DYLIBSUFFIX)
+#  DYLIB_MAJOR_NAME=$(LIBNAME).$(HIREDIS_MAJOR).$(DYLIBSUFFIX)
+#  DYLIB_MAKE_CMD=$(CC) -shared -Wl,-install_name,$(DYLIB_MINOR_NAME) -o $(DYLIBNAME) $(LDFLAGS)
+#endif
 
 all: $(DYLIBNAME) $(BINS)
 
@@ -67,14 +67,14 @@ hiredis-example-libevent: example-libevent.c adapters/libevent.h $(STLIBNAME)
 hiredis-example-libev: example-libev.c adapters/libev.h $(STLIBNAME)
 	$(CC) -o $@ $(REAL_CFLAGS) $(REAL_LDFLAGS) -lev example-libev.c $(STLIBNAME)
 
-ifndef AE_DIR
-hiredis-example-ae:
-	@echo "Please specify AE_DIR (e.g. <redis repository>/src)"
-	@false
-else
-hiredis-example-ae: example-ae.c adapters/ae.h $(STLIBNAME)
-	$(CC) -o $@ $(REAL_CFLAGS) $(REAL_LDFLAGS) -I$(AE_DIR) $(AE_DIR)/ae.o $(AE_DIR)/zmalloc.o example-ae.c $(STLIBNAME)
-endif
+#ifndef AE_DIR
+#hiredis-example-ae:
+#	@echo "Please specify AE_DIR (e.g. <redis repository>/src)"
+#	@false
+#else
+#hiredis-example-ae: example-ae.c adapters/ae.h $(STLIBNAME)
+#	$(CC) -o $@ $(REAL_CFLAGS) $(REAL_LDFLAGS) -I$(AE_DIR) $(AE_DIR)/ae.o $(AE_DIR)/zmalloc.o example-ae.c $(STLIBNAME)
+#endif
 
 hiredis-%: %.o $(STLIBNAME)
 	$(CC) -o $@ $(REAL_LDFLAGS) $< $(STLIBNAME)
@@ -110,9 +110,9 @@ LIBRARY_PATH?=lib
 INSTALL_INCLUDE_PATH= $(PREFIX)/$(INCLUDE_PATH)
 INSTALL_LIBRARY_PATH= $(PREFIX)/$(LIBRARY_PATH)
 
-ifeq ($(uname_S),SunOS)
-  INSTALL?= cp -r
-endif
+#ifeq ($(uname_S),SunOS)
+#  INSTALL?= cp -r
+#endif
 
 INSTALL?= cp -a
 
@@ -146,3 +146,10 @@ noopt:
 	$(MAKE) OPTIMIZATION=""
 
 .PHONY: all test check clean dep install 32bit gprof gcov noopt
+
+bsd:
+	cc -pedantic -c  -O2 -fPIC -O2 -pipe   -Wall -W -Wstrict-prototypes -Wwrite-strings -g -ggdb  net.c
+	cc -pedantic -c  -O2 -fPIC -O2 -pipe   -Wall -W -Wstrict-prototypes -Wwrite-strings -g -ggdb  hiredis.c
+	cc -pedantic -c  -O2 -fPIC -O2 -pipe   -Wall -W -Wstrict-prototypes -Wwrite-strings -g -ggdb  sds.c
+	cc -pedantic -c  -O2 -fPIC -O2 -pipe   -Wall -W -Wstrict-prototypes -Wwrite-strings -g -ggdb  async.c
+	ar rcs libhiredis.a net.o hiredis.o sds.o async.o

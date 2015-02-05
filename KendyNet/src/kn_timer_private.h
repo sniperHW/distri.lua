@@ -9,4 +9,6 @@ kn_timer_t reg_timer_imp(kn_timermgr_t t,uint64_t timeout,kn_cb_timer cb,void *u
 
 void kn_timermgr_tick(kn_timermgr_t t);
 
+void kn_del_timermgr(kn_timermgr_t t);
+
 #endif

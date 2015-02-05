@@ -78,6 +78,8 @@ engine_t kn_new_engine(){
 
 void kn_release_engine(engine_t e){
 	kn_epoll *ep = (kn_epoll*)e;
+	if(ep->timerfd)
+		kn_timerfd_destroy(ep->timerfd);
 	close(ep->epfd);
 	close(ep->notify_stop.comm_head.fd);
 	close(ep->notify_stop.fd_write);

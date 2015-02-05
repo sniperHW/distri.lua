@@ -19,6 +19,9 @@ typedef struct{
 	int    maxevents;
 	handle_t timerfd;	
 	struct st_notify notify_stop;
+   	//for timer
+   	struct kevent change;
+   	//struct kevent event;	
 }kn_kqueue;
 
 int kn_event_add(engine_t e,handle_t h,int events){
@@ -80,6 +83,8 @@ engine_t kn_new_engine(){
 
 void kn_release_engine(engine_t e){
 	kn_kqueue *kq = (kn_kqueue*)e;
+	if(kq->timerfd)
+		kn_timerfd_destroy(kq->timerfd);	
 	close(kq->kfd);
 	close(kq->notify_stop.comm_head.fd);
 	close(kq->notify_stop.fd_write);
@@ -101,8 +106,12 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 	if(ts.tv_nsec >= 1000*1000*1000){
 		ts.tv_sec += 1;
 		ts.tv_nsec %= (1000*1000*1000);
-	}	
-	int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, &ts));
+	}
+	int nfds;
+	if(kq->timerfd)	
+		nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, 1, kq->events,kq->maxevents, &ts));
+	else
+		nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, &ts));	
 	if(nfds > 0){
 		for(i=0; i < nfds ; ++i)
 		{
@@ -134,7 +143,12 @@ int kn_engine_run(engine_t e){
 		errno = 0;
 		int i;
 		handle_t h;
-		int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, NULL));
+		int nfds;
+		if(kq->timerfd)	
+			nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, 1, kq->events,kq->maxevents, NULL));
+		else
+			nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, NULL));		
+		//int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, NULL));
 		if(nfds > 0){
 			for(i=0; i < nfds ; ++i)
 			{
@@ -169,15 +183,11 @@ void kn_stop_engine(engine_t e){
 
 
 kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
-	/*kn_kqueue *kq = (kn_kqueue*)e;
+	kn_kqueue *kq = (kn_kqueue*)e;
 	if(!kq->timerfd){
 		kq->timerfd = kn_new_timerfd(1);
 		((handle_t)kq->timerfd)->ud = kn_new_timermgr();
-		struct kevent change;
-  		struct kevent event;
-   		EV_SET(&change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 1, 0);		
+   		EV_SET(&kq->change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 1, kq->timerfd);		
 	}
 	return reg_timer_imp(((handle_t)kq->timerfd)->ud,timeout,cb,ud);
-	*/
-	return NULL;
 }
