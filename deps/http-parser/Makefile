@@ -37,10 +37,10 @@ CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
 
 LDFLAGS_LIB = $(LDFLAGS) -shared
 
-ifneq (darwin,$(PLATFORM))
+#ifneq (darwin,$(PLATFORM))
 # TODO(bnoordhuis) The native SunOS linker expects -h rather than -soname...
-LDFLAGS_LIB += -Wl,-soname=$(SONAME)
-endif
+#LDFLAGS_LIB += -Wl,-soname=$(SONAME)
+#endif
 
 test: test_g test_fast
 	./test_g
