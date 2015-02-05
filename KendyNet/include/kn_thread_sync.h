@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <errno.h>
+#include "kn_time.h"
 /*Mutex*/
 typedef struct kn_mutex
 {
@@ -82,12 +83,7 @@ static inline int32_t imp_condition_timedwait(kn_condition_t c,kn_mutex_t m,int3
 {
 	struct timespec ts;
 	uint64_t msec;
-	
-#ifdef _LINUX
-	clock_gettime(CLOCK_BOOTTIME, &ts);
-#elif _FREEBSD
-	clock_gettime(CLOCK_UPTIME, &ts);
-#endif
+	_clock_gettime_boot(&ts);
 	msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);
@@ -104,23 +100,14 @@ static inline int32_t kn_condition_timedwait(kn_condition_t c,kn_mutex_t m,int32
 	uint64_t cur_tick;
 	uint64_t timeout;
 	int32_t ret;
-	
-#ifdef _LINUX
-        clock_gettime(CLOCK_BOOTTIME, &ts);
-#elif _FREEBSD
-        clock_gettime(CLOCK_UPTIME, &ts);  
-#endif
+        	_clock_gettime_boot( &ts);
 	cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000;
 	timeout = cur_tick + (uint32_t)ms;
 	for(;;){
 		ret = imp_condition_timedwait(c,m,ms);
 		if(ret == 0 || errno != EINTR)
 			return ret;
-#ifdef _LINUX
-        	clock_gettime(CLOCK_BOOTTIME, &ts);
-#elif _FREEBSD
-        	clock_gettime(CLOCK_UPTIME, &ts);  
-#endif
+        		_clock_gettime_boot( &ts);
 		cur_tick =ts.tv_sec * 1000 + ts.tv_nsec/1000000; 
 		if(timeout > cur_tick)
 			ms = timeout - cur_tick;

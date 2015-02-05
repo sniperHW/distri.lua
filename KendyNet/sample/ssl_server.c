@@ -16,7 +16,7 @@ void on_accept(handle_t s,void *ud){
 }
 
 int timer_callback(kn_timer_t timer){
-	printf("client_count:%d,totalbytes:%d MB/s\n",client_count,totalbytes/1024/1024);
+	printf("client_count:%d,totalbytes:%ld MB/s\n",client_count,totalbytes/1024/1024);
 	totalbytes = 0;
 	return 1;
 }

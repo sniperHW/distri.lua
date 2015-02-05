@@ -15,12 +15,12 @@ static void redisget_cb(redisconn_t rc,redisReply *reply,void *pridata){
 	if(reply->type != REDIS_REPLY_NIL){
 		++count;
 	}else{
-		printf("error:%d,%d\n",reply->type,(int)pridata);
+		printf("error:%d,%d\n",reply->type,(int)(uint64_t)pridata);
 	}
 	char buf[512];
 	int key = rand()%10000;
 	snprintf(buf,512,"get key%d",key+1);
-	kn_redisCommand(rc,buf,redisget_cb,(void*)key);
+	kn_redisCommand(rc,buf,redisget_cb,(void*)((uint64_t)key));
 	//kn_redisDisconnect(rc);
 }
 
@@ -62,7 +62,7 @@ static void cb_redis_connect(redisconn_t rc,int err,void *_){
 			char buf[512];
 			int key = rand()%10000;
 			snprintf(buf,512,"get key%d",key+1);
-			kn_redisCommand(rc,buf,redisget_cb,(void*)key);
+			kn_redisCommand(rc,buf,redisget_cb,(void*)((uint64_t)key));
 		}
 		//kn_reg_timer(p,2000,timer_callback2,rc);	
 	}else{

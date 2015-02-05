@@ -30,7 +30,7 @@ void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err
 		sock = NULL;         
 		if(!io) return;
 	}
-	if((int)io->ud == 2){
+	if((uint64_t)io->ud == 2){
 		printf("%s",(char*)io->iovec->iov_base);
 	}
 	release_stio(io);

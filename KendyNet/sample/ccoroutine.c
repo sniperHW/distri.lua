@@ -5,9 +5,9 @@ int utcount = 0;
 
 void uthread_fun(void *arg){
 	int i = 0;
-	ut_dic_set(ut_getcurrent(),"key",(void*)rand(),NULL);
+	ut_dic_set(ut_getcurrent(),"key",(void*)((uint64_t)rand()),NULL);
 	while(i++ < 10){
-		printf("%lld,%d,%d\n",ut_getcurrent().identity,(int)arg,(int)ut_dic_get(ut_getcurrent(),"key"));
+		printf("%ld,%d,%d\n",ut_getcurrent().identity,(int)((uint64_t)arg),(int)((uint64_t)ut_dic_get(ut_getcurrent(),"key")));
 		ut_sleep(1000);
 	}
 	--utcount;
@@ -18,7 +18,7 @@ int main(){
 	int i = 0;
 	for(; i < 10; ++i){
 		utcount++;
-		ut_spawn(uthread_fun,(void*)i);
+		ut_spawn(uthread_fun,(void*)((uint64_t)i));
 	}
 	while(utcount > 0)
 		uschedule();

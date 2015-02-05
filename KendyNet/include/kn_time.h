@@ -35,6 +35,15 @@ struct _clock
     uint64_t last_time;
 };
 
+static inline void _clock_gettime_boot(struct timespec *ts){
+        if(unlikely(!ts)) return;
+#ifdef _LINUX
+        clock_gettime(CLOCK_BOOTTIME, ts);
+#elif _BSD
+        clock_gettime(CLOCK_UPTIME, ts);  
+#endif 
+}
+
 #define NN_CLOCK_PRECISION 1000000
 
 static inline uint64_t _clock_rdtsc ()
@@ -63,11 +72,7 @@ static inline uint64_t _clock_rdtsc ()
 static inline uint64_t _clock_time()
 {
     struct timespec tv;
-#ifdef _LINUX
-        clock_gettime(CLOCK_BOOTTIME, &tv);
-#elif _BSD
-        clock_gettime(CLOCK_UPTIME, &tv);  
-#endif
+    _clock_gettime_boot(&tv);
     return tv.tv_sec * (uint64_t) 1000 + tv.tv_nsec / 1000000;
 }
 

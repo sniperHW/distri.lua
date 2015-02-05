@@ -118,7 +118,7 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 	handle_t h;
 	struct timespec ts;
 	uint64_t msec;
-	clock_gettime(CLOCK_UPTIME, &ts);
+        	_clock_gettime_boot(&ts);
 	msec = ms%1000;
 	ts.tv_nsec += (msec*1000*1000);
 	ts.tv_sec  += (ms/1000);

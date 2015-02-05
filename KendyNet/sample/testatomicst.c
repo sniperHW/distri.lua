@@ -49,7 +49,7 @@ void *GetRoutine(void *arg)
 		if(++c >= 10000000){
 			uint32_t now = kn_systemms();
             			uint32_t elapse = (uint32_t)(now-tick);
-			printf("%d get %d/ms\n",(int)arg,c/elapse*1000);
+			printf("%d get %d/ms\n",(int)((uint64_t)arg),c/elapse*1000);
 			tick = now;			
 			c = 0;
 		}						
