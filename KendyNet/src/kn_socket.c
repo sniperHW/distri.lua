@@ -301,7 +301,9 @@ int kn_sock_associate(handle_t h,
 	kn_event_add(s->e,h,EPOLLRDHUP);
 #elif   _BSD
 	kn_event_add(s->e,h,EVFILT_READ);
+	kn_event_add(s->e,h,EVFILT_WRITE);
 	kn_disable_read(s->e,h);
+	kn_disable_write(s->e,h);
 #endif
 	return 0;
 }

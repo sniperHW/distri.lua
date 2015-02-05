@@ -27,7 +27,7 @@ typedef struct{
 #define SET_READ(X) do{int flag = (EVFILT_READ << 16) & 0xFFFF0000; X |= flag;}while(0)
 #define SET_WRITE(X) do{int flag = EVFILT_WRITE & 0x0000FFFF; X |= flag;}while(0)
 #define CLEAR_READ(X) do{ X &= 0x0000FFFF;}while(0)
-#define CLDAR_WRITE(x) do{ X &= 0xFFFF0000;}while(0)
+#define CLEAR_WRITE(X) do{ X &= 0xFFFF0000;}while(0)
 
 int kn_event_add(engine_t e,handle_t h,int events){	
 	struct kevent ke;
@@ -37,7 +37,7 @@ int kn_event_add(engine_t e,handle_t h,int events){
 	if(0 == ret){
 		if(events == EVFILT_READ)
 			SET_READ(h->events);
-		else if(events) == EVFILT_WRITE)
+		else if(events == EVFILT_WRITE)
 			SET_WRITE(h->events);
 	}
 	return ret;	
@@ -62,7 +62,7 @@ int kn_event_enable(engine_t e,handle_t h,int events){
 	if(0 == ret){
 		if(events == EVFILT_READ)
 			SET_READ(h->events);
-		else if(events) == EVFILT_WRITE)
+		else if(events == EVFILT_WRITE)
 			SET_WRITE(h->events);
 	}
 	return ret;
@@ -76,8 +76,8 @@ int kn_event_disable(engine_t e,handle_t h,int events){
 	if(0 == ret){
 		if(events == EVFILT_READ)
 			CLEAR_READ(h->events);
-		else if(events) == EVFILT_WRITE)
-			CLDAR_WRITE(h->events);
+		else if(events == EVFILT_WRITE)
+			CLEAR_WRITE(h->events);
 	}
 	return ret;
 }
@@ -212,7 +212,7 @@ kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 
 
 int is_set_read(handle *h){
-	return h->events | ((EVFILT_READ << 16) & 0xFFFF0000);
+	return h->events & ((EVFILT_READ << 16) & 0xFFFF0000);
 }
 
 int is_set_write(handle *h){
