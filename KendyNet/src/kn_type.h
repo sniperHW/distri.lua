@@ -7,7 +7,13 @@ typedef struct handle{
 	int status;
 	int fd;
 	void *ud;
-	int    events;	
+	union{
+		int    events;
+		struct{
+			short set_read;
+			short set_write;
+		};
+	};	
 	void (*on_events)(handle_t,int events);
 }handle;
 

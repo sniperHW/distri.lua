@@ -21,6 +21,8 @@
 #define	HASHSIZE	64		/* power of 2 */
 #define	HASH(x)		((x) & (HASHSIZE - 1))
 
+#ifdef _LINUX
+
 static struct pwbuf {
     struct pwbuf *next;
     uid_t uid;
@@ -75,3 +77,5 @@ char *group_from_gid(gid_t gid) {
     (*g)->next = NULL;
     return((*g)->name);
 }
+
+#endif

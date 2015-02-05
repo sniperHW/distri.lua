@@ -31,7 +31,7 @@ deps/lua-5.2.3/src/liblua.a:
 		cd deps/lua-5.2.3/;make linux
 
 deps/myprocps/libproc.a:
-		cd deps/myprocps/;make							
+		cd deps/myprocps/;make linux							
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./

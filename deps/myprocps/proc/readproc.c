@@ -26,6 +26,9 @@
 #include <sys/dir.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _BSD
+ #include <pwd.h>
+#endif
 
 // sometimes it's easier to do this manually, w/o gcc helping
 #ifdef PROF
@@ -604,22 +607,44 @@ static proc_t* simple_readproc(PROCTAB *restrict const PT, proc_t *restrict cons
 
     /* some number->text resolving which is time consuming and kind of insane */
     if (flags & PROC_FILLUSR){
+#ifdef _LINUX      
 	memcpy(p->euser,   user_from_uid(p->euid), sizeof p->euser);
         if(flags & PROC_FILLSTATUS) {
             memcpy(p->ruser,   user_from_uid(p->ruid), sizeof p->ruser);
             memcpy(p->suser,   user_from_uid(p->suid), sizeof p->suser);
             memcpy(p->fuser,   user_from_uid(p->fuid), sizeof p->fuser);
         }
+#elif _BSD
+        memcpy(p->euser,   user_from_uid(p->euid,0), sizeof p->euser);
+        if(flags & PROC_FILLSTATUS) {
+            memcpy(p->ruser,   user_from_uid(p->ruid,0), sizeof p->ruser);
+            memcpy(p->suser,   user_from_uid(p->suid,0), sizeof p->suser);
+            memcpy(p->fuser,   user_from_uid(p->fuid,0), sizeof p->fuser);
+        }        
+#else
+        #error "un support platform!"
+#endif        
     }
 
     /* some number->text resolving which is time consuming and kind of insane */
     if (flags & PROC_FILLGRP){
+#ifdef _LINUX        
         memcpy(p->egroup, group_from_gid(p->egid), sizeof p->egroup);
         if(flags & PROC_FILLSTATUS) {
             memcpy(p->rgroup, group_from_gid(p->rgid), sizeof p->rgroup);
             memcpy(p->sgroup, group_from_gid(p->sgid), sizeof p->sgroup);
             memcpy(p->fgroup, group_from_gid(p->fgid), sizeof p->fgroup);
         }
+#elif _BSD
+        memcpy(p->egroup, group_from_gid(p->egid,0), sizeof p->egroup);
+        if(flags & PROC_FILLSTATUS) {
+            memcpy(p->rgroup, group_from_gid(p->rgid,0), sizeof p->rgroup);
+            memcpy(p->sgroup, group_from_gid(p->sgid,0), sizeof p->sgroup);
+            memcpy(p->fgroup, group_from_gid(p->fgid,0), sizeof p->fgroup);
+        }        
+#else
+        #error "un support platform!"
+#endif                
     }
 
     if ((flags & PROC_FILLCOM) || (flags & PROC_FILLARG))	/* read+parse /proc/#/cmdline */
@@ -687,22 +712,44 @@ static proc_t* simple_readtask(PROCTAB *restrict const PT, const proc_t *restric
 
     /* some number->text resolving which is time consuming */
     if (flags & PROC_FILLUSR){
-	memcpy(t->euser,   user_from_uid(t->euid), sizeof t->euser);
+#ifdef _LINUX      
+	 memcpy(t->euser,   user_from_uid(t->euid), sizeof t->euser);
         if(flags & PROC_FILLSTATUS) {
             memcpy(t->ruser,   user_from_uid(t->ruid), sizeof t->ruser);
             memcpy(t->suser,   user_from_uid(t->suid), sizeof t->suser);
             memcpy(t->fuser,   user_from_uid(t->fuid), sizeof t->fuser);
         }
+#elif _BSD
+        memcpy(t->euser,   user_from_uid(t->euid,0), sizeof t->euser);
+        if(flags & PROC_FILLSTATUS) {
+            memcpy(t->ruser,   user_from_uid(t->ruid,0), sizeof t->ruser);
+            memcpy(t->suser,   user_from_uid(t->suid,0), sizeof t->suser);
+            memcpy(t->fuser,   user_from_uid(t->fuid,0), sizeof t->fuser);
+        }        
+#else
+        #error "un support platform!"
+#endif            
     }
 
     /* some number->text resolving which is time consuming */
     if (flags & PROC_FILLGRP){
+#ifdef _LINUX       
         memcpy(t->egroup, group_from_gid(t->egid), sizeof t->egroup);
         if(flags & PROC_FILLSTATUS) {
             memcpy(t->rgroup, group_from_gid(t->rgid), sizeof t->rgroup);
             memcpy(t->sgroup, group_from_gid(t->sgid), sizeof t->sgroup);
             memcpy(t->fgroup, group_from_gid(t->fgid), sizeof t->fgroup);
         }
+#elif _BSD
+        memcpy(t->egroup, group_from_gid(t->egid,0), sizeof t->egroup);
+        if(flags & PROC_FILLSTATUS) {
+            memcpy(t->rgroup, group_from_gid(t->rgid,0), sizeof t->rgroup);
+            memcpy(t->sgroup, group_from_gid(t->sgid,0), sizeof t->sgroup);
+            memcpy(t->fgroup, group_from_gid(t->fgid,0), sizeof t->fgroup);
+        }        
+#else
+        #error "un support platform!"
+#endif         
     }
 
 #if 0
