@@ -88,7 +88,16 @@ int main(int argc,char **argv){
 	kn_sockaddr remote;
 	kn_addr_init_in(&remote,argv[1],atoi(argv[2]));
 	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-	kn_sock_connect(p,c,&remote,NULL,on_connect,p);
+	//kn_sock_connect(p,c,&remote,on_connect,p);
+	int ret = kn_sock_connect(p,c,&remote,NULL);
+	if(ret > 0){
+		on_connect(c,0,p,&remote);
+	}else if(ret == 0){
+		kn_sock_set_connect_cb(c,on_connect,p);
+	}else{
+		kn_close_sock(c);
+		printf("connect failed\n");
+	}	
 	kn_engine_run(p);	
 	return 0;
 }

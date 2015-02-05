@@ -39,8 +39,7 @@ static void process_read(kn_chr_dev *r){
 	}	
 	if(kn_list_size(&r->pending_read) == 0){
 		//没有接收请求了,取消EPOLLIN
-		if(0 == kn_disable_read(r->e,(handle_t)r))
-			((handle_t)r)->events &= (~EVENT_READ);		
+		kn_disable_read(r->e,(handle_t)r);
 	}
 }
 
@@ -62,8 +61,7 @@ static void process_write(kn_chr_dev *r){
 	}
 	if(kn_list_size(&r->pending_write) == 0){
 		//没有接收请求了,取消EPOLLOUT
-		if(0 == kn_disable_write(r->e,(handle_t)r))
-			((handle_t)r)->events &= (~EVENT_WRITE);		
+		kn_disable_write(r->e,(handle_t)r);		
 	}		
 }
 
@@ -134,9 +132,9 @@ int kn_chrdev_fd(handle_t h){
 }
 
 int kn_chrdev_associate(handle_t h,
-						 engine_t e,
-						 void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-						 void (*destry_stio)(st_io*))
+		            engine_t e,
+		            void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+		            void (*destry_stio)(st_io*))
 {
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
@@ -145,7 +143,12 @@ int kn_chrdev_associate(handle_t h,
 	if(r->e) kn_event_del(r->e,h);
 	r->destry_stio = destry_stio;
 	r->cb_ontranfnish = cb_ontranfnish;
-	r->e = e;		
+	r->e = e;
+#ifdef _LINUX
+	kn_event_add(r->e,h,EPOLLERR);
+#elif   _BSD
+	kn_event_add(r->e,h,EVFILT_READ | EV_DISABLE);
+#endif			
 	return 0;
 }
 						   
@@ -154,19 +157,7 @@ int kn_chr_dev_write(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
-	/*if(!(r->events & EPOLLOUT)){
-		int ret = 0;
-		if(r->events == 0){
-			ret = kn_event_add(r->e,(handle_t)r,EPOLLOUT);
-		}else
-			ret = kn_event_mod(r->e,(handle_t)r,EPOLLOUT);
-			
-		if(ret == 0)
-			r->events = EPOLLOUT;
-		else
-			return -1;
-	}*/
-	 if(!(((handle_t)r)->events & EVENT_WRITE)){
+	 if(!(((handle_t)r)->events & EPOLLOUT)){
 	 	if(0 != kn_enable_write(r->e,(handle_t)r))
 	 		return -1;
 	 }		
@@ -178,22 +169,10 @@ int kn_chrdev_read(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
-	 if(!(((handle_t)r)->events & EVENT_READ)){
-	 	if(0 != kn_enable_write(r->e,(handle_t)r))
+	 if(!(((handle_t)r)->events & EPOLLIN)){
+	 	if(0 != kn_enable_read(r->e,(handle_t)r))
 	 		return -1;
 	 }	
-	/*if(!(r->events & EPOLLIN)){
-		int ret = 0;
-		if(r->events == 0){
-			ret = kn_event_add(r->e,(handle_t)r,EPOLLIN);
-		}else
-			ret = kn_event_mod(r->e,(handle_t)r,EPOLLIN);
-			
-		if(ret == 0)
-			r->events = EPOLLIN;
-		else
-			return -1;
-	}*/
 	kn_list_pushback(&r->pending_read,(kn_list_node*)req);			
 	return 0;
 }
