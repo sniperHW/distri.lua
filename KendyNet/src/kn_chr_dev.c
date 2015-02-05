@@ -157,7 +157,11 @@ int kn_chr_dev_write(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
+#ifdef _LINUX
 	 if(!(((handle_t)r)->events & EPOLLOUT)){
+#elif _BSD
+	 if(!(((handle_t)r)->events & EVFILT_WRITE)){
+#endif
 	 	if(0 != kn_enable_write(r->e,(handle_t)r))
 	 		return -1;
 	 }		
@@ -169,7 +173,11 @@ int kn_chrdev_read(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
+#ifdef _LINUX
 	 if(!(((handle_t)r)->events & EPOLLIN)){
+#elif _BSD
+	 if(!(((handle_t)r)->events & EVFILT_READ)){
+#endif
 	 	if(0 != kn_enable_read(r->e,(handle_t)r))
 	 		return -1;
 	 }	

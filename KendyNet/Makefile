@@ -93,28 +93,28 @@ linux-sample:linux $(sample-source)
 
 bsd-sample:bsd $(sample-source)
 	$(CC) $(CFLAGS) -c $(sample-source) $(INCLUDE) $(DEFINE) -D_BSD
-	$(CC) $(CFLAGS) -o broadcast_svr broadcast_svr.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o broadcast_cli broadcast_cli.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o tcpserver tcpserver.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o pingpong pingpong.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testserver testserver.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testclient testclient.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testredis testredis.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a $(DEPDIR)/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE)   	 			
-	$(CC) $(CFLAGS) -o testtimer testtimer.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testmailbox testmailbox.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testlog testlog.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testlua testlua.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(DEPDIR)/lua-5.2.3/src/liblua.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testmsgque testmsgque.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o daemonserver daemonserver.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testcurl testcurl.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl
-	$(CC) $(CFLAGS) -o testlfstack testlfstack.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testminheap testminheap.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o ccoroutine ccoroutine.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o objpool objpool.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testchrdev testchrdev.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testatomicst testatomicst.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o ssl_server ssl_server.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o ssl_client ssl_client.o libkendynet.a $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)	
+	$(CC) $(CFLAGS) -o broadcast_svr broadcast_svr.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o broadcast_cli broadcast_cli.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o tcpserver tcpserver.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o pingpong pingpong.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testserver testserver.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testclient testclient.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testredis testredis.o libkendynet.a $(DEPDIR)/hiredis/libhiredis.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testtimer testtimer.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testmailbox testmailbox.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testlog testlog.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testlua testlua.o libkendynet.a $(DEPDIR)/lua-5.2.3/src/liblua.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testmsgque testmsgque.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o daemonserver daemonserver.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testcurl testcurl.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl -lexecinfo
+	$(CC) $(CFLAGS) -o testlfstack testlfstack.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testminheap testminheap.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o ccoroutine ccoroutine.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o objpool objpool.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testchrdev testchrdev.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o testatomicst testatomicst.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o ssl_server ssl_server.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+	$(CC) $(CFLAGS) -o ssl_client ssl_client.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 
 
 bsd:$(source)

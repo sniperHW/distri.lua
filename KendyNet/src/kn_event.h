@@ -43,7 +43,7 @@ static inline int      kn_enable_read(engine_t e,handle *h){
 }
 
 static inline int      kn_disable_read(engine_t e,handle *h){
-          return kn_event_disable(e,h,EVFILT_READ));
+          return kn_event_disable(e,h,EVFILT_READ);
 }
 
 static inline int      kn_enable_write(engine_t e,handle *h){		
@@ -51,7 +51,7 @@ static inline int      kn_enable_write(engine_t e,handle *h){
 }
 
 static inline int      kn_disable_write(engine_t e,handle *h){
-          return kn_event_disable(e,h,EVFILT_WRITE));
+          return kn_event_disable(e,h,EVFILT_WRITE);
 }
 
 #else
