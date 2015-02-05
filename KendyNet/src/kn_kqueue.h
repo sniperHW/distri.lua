@@ -25,12 +25,13 @@ typedef struct{
 }kn_kqueue;
 
 int kn_event_add(engine_t e,handle_t h,int events){
+printf("%d,%d\n",EVFILT_WRITE,EVFILT_READ);	
 	struct kevent ke;
 	kn_kqueue *kq = (kn_kqueue*)e;
 	EV_SET(&ke, h->fd, events, EV_ADD, 0, 0, h);
 	int ret = kevent(kq->kfd, &ke, 1, NULL, 0, NULL);
 	if(0 == ret)
-		h->events = events & (~EV_DISABLE) & (~EV_ENABLE);
+		h->events = events;// & (~EV_DISABLE) & (~EV_ENABLE);
 	return ret;	
 }
 
@@ -148,7 +149,6 @@ int kn_engine_run(engine_t e){
 			nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, 1, kq->events,kq->maxevents, NULL));
 		else
 			nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, NULL));		
-		//int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, NULL));
 		if(nfds > 0){
 			for(i=0; i < nfds ; ++i)
 			{
@@ -187,7 +187,7 @@ kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
 	if(!kq->timerfd){
 		kq->timerfd = kn_new_timerfd(1);
 		((handle_t)kq->timerfd)->ud = kn_new_timermgr();
-   		EV_SET(&kq->change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 1, kq->timerfd);		
+		EV_SET(&kq->change, 1, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 1, kq->timerfd);		
 	}
 	return reg_timer_imp(((handle_t)kq->timerfd)->ud,timeout,cb,ud);
 }

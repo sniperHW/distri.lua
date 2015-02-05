@@ -106,15 +106,15 @@ bsd-sample:bsd $(sample-source)
 	$(CC) $(CFLAGS) -o testlua testlua.o libkendynet.a $(DEPDIR)/lua-5.2.3/src/liblua.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o testmsgque testmsgque.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o daemonserver daemonserver.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
-	$(CC) $(CFLAGS) -o testcurl testcurl.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl -lexecinfo
+#	$(CC) $(CFLAGS) -o testcurl testcurl.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl -lexecinfo
 	$(CC) $(CFLAGS) -o testlfstack testlfstack.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o testminheap testminheap.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o ccoroutine ccoroutine.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o objpool objpool.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o testchrdev testchrdev.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 	$(CC) $(CFLAGS) -o testatomicst testatomicst.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
-	$(CC) $(CFLAGS) -o ssl_server ssl_server.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
-	$(CC) $(CFLAGS) -o ssl_client ssl_client.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+#	$(CC) $(CFLAGS) -o ssl_server ssl_server.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
+#	$(CC) $(CFLAGS) -o ssl_client ssl_client.o libkendynet.a $(INCLUDE) $(LDFLAGS) $(DEFINE) -lexecinfo
 
 
 bsd:$(source)

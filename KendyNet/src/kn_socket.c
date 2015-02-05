@@ -95,6 +95,7 @@ static void destroy_socket(kn_socket *s){
 
 
 static void process_read(kn_socket *s){
+	printf("process_read\n");
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
@@ -125,6 +126,7 @@ static void process_read(kn_socket *s){
 }
 
 static void process_write(kn_socket *s){
+	printf("process_write\n");
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
@@ -298,7 +300,8 @@ int kn_sock_associate(handle_t h,
 #ifdef _LINUX
 	kn_event_add(s->e,h,EPOLLRDHUP);
 #elif   _BSD
-	kn_event_add(s->e,h,EVFILT_READ | EV_DISABLE);
+	kn_event_add(s->e,h,EVFILT_READ);
+	kn_disable_read(s->e,h);
 #endif
 	return 0;
 }
@@ -569,8 +572,9 @@ int kn_sock_connect(engine_t e,
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_NONE) return -1;
 	if(s->e) return -1;	
-
+#ifdef _LINUX
 	kn_set_noblock(s->comm_head.fd,0);
+#endif
 	int ret;
 	s->addr_remote = *remote;
 	if(s->protocal == IPPROTO_UDP)
@@ -583,6 +587,9 @@ int kn_sock_connect(engine_t e,
 		s->e = e;
 	}else if(ret == 1){
 		s->comm_head.status = SOCKET_ESTABLISH;
+#ifdef _BSD
+	kn_set_noblock(s->comm_head.fd,0);
+#endif
 		//cb_connect(h,0,ud,&s->addr_remote);
 		//ret = 0;
 	}	

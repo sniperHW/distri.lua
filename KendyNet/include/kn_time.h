@@ -65,7 +65,7 @@ static inline uint64_t _clock_time()
     struct timespec tv;
 #ifdef _LINUX
         clock_gettime(CLOCK_BOOTTIME, &tv);
-#elif _FREEBSD
+#elif _BSD
         clock_gettime(CLOCK_UPTIME, &tv);  
 #endif
     return tv.tv_sec * (uint64_t) 1000 + tv.tv_nsec / 1000000;
