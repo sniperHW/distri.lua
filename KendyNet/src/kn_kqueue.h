@@ -79,6 +79,7 @@ int kn_event_disable(engine_t e,handle_t h,int events){
 engine_t kn_new_engine(){
 	int kfd = kqueue();
 	if(kfd < 0) return NULL;
+	fcntl (kfd, F_SETFD, FD_CLOEXEC);
 	int tmp[2];
 	if(pipe2(tmp,O_NONBLOCK|O_CLOEXEC) != 0){
 		close(kfd);
@@ -115,11 +116,7 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 	msec = ms%1000;
 	ts.tv_nsec = (msec*1000*1000);
 	ts.tv_sec   = (ms/1000);
-	int nfds;
-	if(kq->timerfd)	
-		nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, 1, kq->events,kq->maxevents, &ts));
-	else
-		nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, &ts));	
+	int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, kq->timerfd ? 1:0 , kq->events,kq->maxevents, &ts));	
 	if(nfds > 0){
 		for(i=0; i < nfds ; ++i)
 		{
@@ -152,11 +149,7 @@ int kn_engine_run(engine_t e){
 		errno = 0;
 		int i;
 		handle_t h;
-		int nfds;
-		if(kq->timerfd)	
-			nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, 1, kq->events,kq->maxevents, NULL));
-		else
-			nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, NULL, 0, kq->events,kq->maxevents, NULL));		
+		int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, kq->timerfd? 1 : 0, kq->events,kq->maxevents, NULL));	
 		if(nfds > 0){
 			for(i=0; i < nfds ; ++i)
 			{
