@@ -75,9 +75,14 @@ sample-source = sample/broadcast_svr.c\
 		 sample/ssl_server.c\
 		 sample/ssl_client.c
 	   
-all:$(source)
-	$(CC) $(SHARED) $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE)
+release:$(source)
+	$(CC) $(SHARED) -O2 $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE)
 	ar -rc $(LIBNAME) *.o
+
+debug:$(source)
+	$(CC) $(SHARED) $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE) -D_DEBUG
+	ar -rc $(LIBNAME) *.o
+
 
 sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -c $(sample-source) $(INCLUDE) $(DEFINE)

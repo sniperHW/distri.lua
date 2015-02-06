@@ -43,7 +43,7 @@ all: $(DEPENDENCY) $(source)
 
 
 KendyNet/libkendynet.a:
-		cd KendyNet;$(MAKE)
+		cd KendyNet;$(MAKE) release
 deps/jemalloc/lib/libjemalloc.a:
 		cd deps/jemalloc;./configure;make
 deps/hiredis/libhiredis.a:
