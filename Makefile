@@ -4,19 +4,8 @@ LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.2.3/src 
 DEFINE =
 BIN = distrilua
-
-#source-linux = src/luasocket.c\
-#	  src/luapacket.c\
-#	  src/luaredis.c\
-#	  src/luahttp.c\
-#	  src/lualog.c\
-#	  src/Hook.c \
-#	  src/debug.c \
-#	  src/base64/base64.c\
-#	  src/base64/lua_base64.c\
-#	  src/timeutil.c\
-#	  src/listener.c\
-#	  src/distri.c
+LIB = KendyNet/libkendynet.a deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.2.3/src/liblua.a
+DEPENDENCY = KendyNet/libkendynet.a  deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.2.3/src/liblua.a  cjson.so
 
 source = src/luasocket.c\
 	  src/luapacket.c\
@@ -36,6 +25,8 @@ ifeq ($(uname_S),Linux)
 	DEFINE += -D_LINUX
 	PLAT += linux
 	source += src/Hook.c src/debug.c  
+	LIB += deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a
+	DEPENDENCY += deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a
 endif
 
 ifeq ($(uname_S),FreeBSD)
@@ -44,21 +35,8 @@ ifeq ($(uname_S),FreeBSD)
 	PLAT += bsd
 endif
 
-all:    KendyNet/libkendynet.a\
-        deps/jemalloc/lib/libjemalloc.a\
-        deps/hiredis/libhiredis.a\
-        deps/http-parser/libhttp_parser.a\
-        deps/lua-5.2.3/src/liblua.a\
-        deps/myprocps/libproc.a\
-        cjson.so\
-        $(source)	
-	$(CC) $(CFLAGS)  -o $(BIN) $(source) KendyNet/libkendynet.a \
-	deps/hiredis/libhiredis.a \
-	deps/jemalloc/lib/libjemalloc.a \
-	deps/myprocps/libproc.a \
-	deps/http-parser/libhttp_parser.a \
-	deps/lua-5.2.3/src/liblua.a \
-	$(INCLUDE) $(LDFLAGS) $(DEFINE) -rdynamic
+all: $(DEPENDENCY) $(source)	
+	$(CC) $(CFLAGS)  -o $(BIN) $(source) $(LIB) $(INCLUDE) $(LDFLAGS) $(DEFINE) -rdynamic
 
 
 KendyNet/libkendynet.a:
