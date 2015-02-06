@@ -20,8 +20,7 @@ typedef struct{
 	handle_t timerfd;	
 	struct st_notify notify_stop;
    	//for timer
-   	struct kevent change;
-   	//struct kevent event;	
+   	struct kevent change;	
 }kn_kqueue;
 
 int kn_event_add(engine_t e,handle_t h,int events){	
@@ -138,12 +137,13 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 			}
 		}
 		if(nfds == kq->maxevents){
-			printf("kqueue expand\n");
 			free(kq->events);
 			kq->maxevents <<= 2;
 			kq->events = calloc(1,sizeof(*kq->events)*kq->maxevents);
 		}				
-	}	
+	}else if(nfds < 0){
+		abort();
+	}
 }
 
 int kn_engine_run(engine_t e){
@@ -174,11 +174,12 @@ int kn_engine_run(engine_t e){
 				}
 			}
 			if(nfds == kq->maxevents){
-				printf("kqueue expand\n");
 				free(kq->events);
 				kq->maxevents <<= 2;
 				kq->events = calloc(1,sizeof(*kq->events)*kq->maxevents);
 			}				
+		}else if(nfds < 0){
+			abort();
 		}	
 	}
 }

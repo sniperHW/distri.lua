@@ -18,7 +18,7 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 			}
 			case MSG_CLOSED:{
 				if(t_logic->on_disconnected)
-					t_logic->on_disconnected(*from,_msg->_stream_conn,(int)_msg->data);
+					t_logic->on_disconnected(*from,_msg->_stream_conn,(int)((uint64_t)_msg->data));
 				break;
 			}
 			default:

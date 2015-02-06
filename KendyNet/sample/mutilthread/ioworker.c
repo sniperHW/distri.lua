@@ -18,7 +18,7 @@ static void  on_packet(stream_conn_t c,packet_t _p){
 
 static void on_disconnected(stream_conn_t c,int err){
 	//notify logic disconnected
-	msg_t _msg = new_msg(MSG_CLOSED,make_ident((refobj*)c),NULL,(void*)err);
+	msg_t _msg = new_msg(MSG_CLOSED,make_ident((refobj*)c),NULL,(void*)((uint64_t)err));
 	sendmsg2logic(_msg);
 }
 

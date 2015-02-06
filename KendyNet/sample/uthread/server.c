@@ -31,7 +31,7 @@ void uthread_accept(void *arg){
 	ut_socket_t *client = calloc(1,sizeof(*client));
 	while(1){
 		*client = ut_accept(server,4096,new_rpk_decoder(4096));
-		if(!is_empty_ident(*client))){
+		if(!is_empty_ident(*client)){
 			printf("new client\n");
 			ut_spawn(uthread_worker,(void*)client);
 			client = calloc(1,sizeof(*client));

@@ -67,7 +67,6 @@ static void process_write(kn_chr_dev *r){
 
 
 static void destroy_chrdev(kn_chr_dev *r){
-	printf("destroy_chrdev\n");
 	st_io *io_req;
 	if(r->destry_stio){
         		while((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL)

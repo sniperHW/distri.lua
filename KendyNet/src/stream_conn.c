@@ -180,7 +180,6 @@ static inline void update_send_list(stream_conn_t c,int32_t _bytestransfer)
 
 static void stream_conn_destroy(void *ptr)
 {
-	printf("stream_conn_destroy\n");
 	stream_conn_t c = (stream_conn_t)ptr;
 	packet_t w;
 	while((w = (packet_t)kn_list_pop(&c->send_list))!=NULL)
@@ -228,7 +227,6 @@ static void _force_close(stream_conn_t c,int err){
 }
 
 int cb_lastsend(kn_timer_t t){
-	printf("cb_lastsend\n");
 	stream_conn_t c = (stream_conn_t)kn_timer_getud(t);
 	_force_close(c,0);
 	return 0;
@@ -241,7 +239,6 @@ void stream_conn_close(stream_conn_t c){
 		_force_close(c,0);
 	}else{
 		//添加定时器确保待发送数据发送完毕或发送超时才调用调用refobj_dec
-		//c->send_timeout = 5*1000;
 		engine_t e = kn_sock_engine(c->handle);
 		if(e){
 			if(c->sendtimer){
@@ -361,8 +358,7 @@ void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 				_force_close(c,errno);
 				return;
 			}			
-		}
-		//kn_sock_post_send(c->handle,io);		
+		}		
 	}
 }
 

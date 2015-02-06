@@ -106,7 +106,7 @@ static void   _free(allocator_t _,void *ptr){
 	assert(_obj->_allocator == (allocator_t)a);
 #endif
 	chunk *_chunk = a->chunks[_obj->chunkidx];
-	uint32_t index = _obj->idx;//((char*)_obj - _chunk->data)/a->objsize;
+	uint32_t index = _obj->idx;
 	assert(index >=1 && index <= CHUNK_OBJSIZE);
 	_obj->next = _chunk->head;
 	if(unlikely(!_chunk->head))

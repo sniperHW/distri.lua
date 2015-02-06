@@ -70,8 +70,6 @@ engine_t kn_new_engine(){
 	ep->events = calloc(1,(sizeof(*ep->events)*ep->maxevents));
 	ep->notify_stop.comm_head.fd = tmp[0];
 	ep->notify_stop.fd_write = tmp[1];
-	//kn_set_noblock(tmp[0],0); 
-	//kn_set_noblock(tmp[1],0); 
 	kn_event_add(ep,(handle_t)&ep->notify_stop,EPOLLIN);
 	return (engine_t)ep;
 }
@@ -110,11 +108,12 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 			}
 		}
 		if(nfds == ep->maxevents){
-			printf("epoll expand\n");
 			free(ep->events);
 			ep->maxevents <<= 2;
 			ep->events = calloc(1,sizeof(*ep->events)*ep->maxevents);
 		}			
+	}else if(nfds < 0){
+		abort();
 	}
 		
 }
@@ -143,11 +142,12 @@ int kn_engine_run(engine_t e){
 				}
 			}
 			if(nfds == ep->maxevents){
-				printf("epoll expand\n");
 				free(ep->events);
 				ep->maxevents <<= 2;
 				ep->events = calloc(1,sizeof(*ep->events)*ep->maxevents);
 			}				
+		}else if(nfds < 0){
+			abort();
 		}	
 	}
 }
