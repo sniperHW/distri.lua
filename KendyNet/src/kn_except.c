@@ -116,7 +116,7 @@ static int addr2line(const char *addr,char *output,int size){
 		output[i++] = ch;
 		ch = fgetc(pipe);
 	}		
-	fclose(pipe);
+	pclose(pipe);
 	output[i] = '\n';	
 	return 0;
 }
