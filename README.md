@@ -8,7 +8,7 @@ Features include:
 * Fast event loop
 * Cooperative socket library
 * Rpc support used json
-* Supported only Linux
+* Supported Linux and FreeBSD
 * Cooperative dns query
 * Lighted HttpServer
 * SSL Connection
@@ -33,7 +33,13 @@ Post feedback and issues on the [bug tracker](https://github.com/sniperHW/distri
 build
 ------
 ```
-make distrilua
+in Linux
+
+make
+
+in FreeBSD
+
+gmake
 ```
 
 running tests

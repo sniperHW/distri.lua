@@ -6,6 +6,7 @@ DEFINE =
 BIN = distrilua
 LIB = KendyNet/libkendynet.a deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.2.3/src/liblua.a
 DEPENDENCY = KendyNet/libkendynet.a  deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.2.3/src/liblua.a  cjson.so
+MAKE = 
 
 source = src/luasocket.c\
 	  src/luapacket.c\
@@ -27,12 +28,14 @@ ifeq ($(uname_S),Linux)
 	source += src/Hook.c src/debug.c  
 	LIB += deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a
 	DEPENDENCY += deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a
+	MAKE += make
 endif
 
 ifeq ($(uname_S),FreeBSD)
 	LDFLAGS += -lexecinfo
 	DEFINE += -D_BSD
 	PLAT += bsd
+	MAKE += gmake
 endif
 
 all: $(DEPENDENCY) $(source)	
@@ -40,7 +43,7 @@ all: $(DEPENDENCY) $(source)
 
 
 KendyNet/libkendynet.a:
-		cd KendyNet;make
+		cd KendyNet;$(MAKE)
 deps/jemalloc/lib/libjemalloc.a:
 		cd deps/jemalloc;./configure;make
 deps/hiredis/libhiredis.a:
