@@ -59,4 +59,6 @@ deps/myprocps/libproc.a:
 		cd deps/myprocps/;make							
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
-		mv deps/lua-cjson-2.1.0/cjson.so ./	
+		mv deps/lua-cjson-2.1.0/cjson.so ./
+top:src/testtop.c src/top.c
+	$(CC) $(CFLAGS)  -o top src/testtop.c src/top.c $(LIB) $(INCLUDE) $(LDFLAGS) $(DEFINE) -rdynamic	

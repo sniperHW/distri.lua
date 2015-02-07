@@ -1,5 +1,7 @@
 #include "top.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct top{
 	char **filter;
@@ -7,16 +9,16 @@ struct top{
 };
 
 struct top* new_top(){
-	return calloc(struct top);
+	return calloc(1,sizeof(struct top));
 }
 
 void destroy_top(struct top *t){
-	if(filter){
+	if(t->filter){
 		int i = 0;
 		for(; i < t->filtercap; ++i){
 			if(t->filter) free(t->filter[i]);
 		}
-		free(filter);
+		free(t->filter);
 	}
 	free(t);
 }
@@ -60,8 +62,74 @@ int top_match(struct top *t,const char *line){
 //need field 1,2,9,10,12
 
 void top_format(char *line,int len){
-//format to below
-//pid:12608,usr:sniper,cpu:0.98,mem:1.27MB,cmd:./testtop
+	//format to below
+	//pid:12608,usr:sniper,cpu:0.98,mem:1.27MB,cmd:./testtop
+#ifdef _LINUX
+	//in linux fetch 1,2,9,10,12	
+	static const char *field_name[] = {
+		NULL,
+		"pid:",
+		"usr:",
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		"mem:",
+		NULL,
+		NULL,
+		NULL,
+		"cpu:",		
+		"cmd:"
+	};
+#elif _BSD
+#else
+	#error "un support platform!"
+#endif	
+
+	char *tmp = calloc(len,sizeof(*tmp));
+	memcpy(tmp,line,len);
+	int idx = 0;
+	int field_begin = 0;
+	int i = 0;
+	int match = 0;
+	char *ptr = line;
+	for(; i < len; ++i){
+		if(tmp[i] == ' ' && idx != 12){
+			if(!field_begin) 
+				continue;
+			else{
+				field_begin = 0;
+				if(match){
+#ifdef _LINUX					
+					if(0 == strcmp(field_name[idx],"cpu:") ||
+					    0 == strcmp(field_name[idx],"mem:")){
+						*ptr++ = '%';
+					 }
+#endif					 					
+					*ptr++ = ',';
+					match = 0;
+				}
+			}
+		}else if(tmp[i] == '\n'){
+			break;
+		}
+		else{
+			if(!field_begin){ 
+				field_begin = 1;
+				++idx;
+				if(field_name[idx]){
+					match = 1;
+					int _len = strlen(field_name[idx]);
+					memcpy(ptr,field_name[idx],_len);
+					ptr += _len;	
+				}
+			}
+			if(match) *ptr++ = tmp[i];
+		}
+	}
+	*ptr++ = '\n';
+	*ptr = 0;
+	free(tmp);
 }
 
 kn_string_t get_top(struct top *t){
@@ -75,20 +143,22 @@ kn_string_t get_top(struct top *t){
 	while(ch != EOF){
 		line[i++] = ch;
 		if(ch == '\n'){
+			line[i] = 0;
 			if(flag){
-				line[i] = 0;
-				if(top_match(line)){
+				if(top_match(t,line)){
 					top_format(line,65536);
 					kn_string_append(ret,line);
 				}
 			}else if(i == 1){
 				flag = 1;
 				kn_string_append(ret,"process_info\n");
+			}else{
+				kn_string_append(ret,line);
 			}
 			i = 0;
 		}
 		ch = fgetc(pipe);
-		putchar(ch);
+		//putchar(ch);
 	}
 	pclose(pipe);
 	return ret;
