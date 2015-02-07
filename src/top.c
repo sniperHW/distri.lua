@@ -148,13 +148,20 @@ void top_format(char *line,int len){
 }
 
 kn_string_t get_top(struct top *t){
+#ifdef _LINUX	
 	FILE *pipe = popen("top -b -n 1 -c", "r");
+#elif _BSD	
+	FILE *pipe = popen("top -b -n 1000 -C", "r");
+#endif	
 	if(!pipe) return NULL;
 	char ch = fgetc(pipe);
-	int i;
+	int i=0;
 	kn_string_t ret = kn_new_string("");
 	char line[65536];
 	int flag = 0;
+#ifdef _BSD
+	int c = 0;
+#endif
 	while(ch != EOF){
 		line[i++] = ch;
 		if(ch == '\n'){
@@ -165,15 +172,21 @@ kn_string_t get_top(struct top *t){
 					kn_string_append(ret,line);
 				}
 			}else if(i == 1){
+#ifdef _BSD
+				if(++c == 3){
+					flag = 1;
+					kn_string_append(ret,"process_info\n");
+				}
+#else
 				flag = 1;
 				kn_string_append(ret,"process_info\n");
+#endif
 			}else{
 				kn_string_append(ret,line);
 			}
 			i = 0;
 		}
 		ch = fgetc(pipe);
-		//putchar(ch);
 	}
 	pclose(pipe);
 	return ret;
