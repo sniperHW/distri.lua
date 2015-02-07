@@ -74,14 +74,29 @@ void top_format(char *line,int len){
 		NULL,
 		NULL,
 		NULL,
+		NULL,
+		NULL,
+		"cpu:",
+		"mem:",
+		NULL,
+		"cmd:"
+	};
+#elif _BSD
+	static const char *field_name[] = {
+		NULL,
+		"pid:",
+		"usr:",
+		NULL,
+		NULL,
+		NULL,
+		NULL,
 		"mem:",
 		NULL,
 		NULL,
 		NULL,
 		"cpu:",		
 		"cmd:"
-	};
-#elif _BSD
+	};	
 #else
 	#error "un support platform!"
 #endif	
