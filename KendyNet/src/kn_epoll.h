@@ -98,8 +98,8 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 			if(h){ 
 				if(h == (handle_t)&ep->notify_stop){
 					for(;;){
-						char buf[4096];
-						int ret = TEMP_FAILURE_RETRY(read(h->fd,buf,4096));
+						char buf[32];
+						int ret = TEMP_FAILURE_RETRY(read(h->fd,buf,32));
 						if(ret <= 0) break;
 					}
 					return;
@@ -132,8 +132,8 @@ int kn_engine_run(engine_t e){
 				if(h){ 
 					if(h == (handle_t)&ep->notify_stop){
 						for(;;){
-							char buf[4096];
-							int ret = TEMP_FAILURE_RETRY(read(h->fd,buf,4096));
+							char buf[32];
+							int ret = TEMP_FAILURE_RETRY(read(h->fd,buf,32));
 							if(ret <= 0) break;
 						}
 						return 0;
