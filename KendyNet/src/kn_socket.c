@@ -12,7 +12,6 @@ typedef struct{
 	int    domain;
 	int    type;
 	int    protocal;
-	int    processing;
 	engine_t e;
 	kn_list pending_send;//尚未处理的发请求
     	kn_list pending_recv;//尚未处理的读请求
@@ -55,21 +54,9 @@ void ShowCerts(SSL * ssl)
 }
 
 static void on_events(handle_t h,int events);
-static handle_t new_sock(int fd,int domain,int type,int protocal){
-	kn_socket *s = calloc(1,sizeof(*s));
-	if(!s){
-		return NULL;
-	}	
-	s->comm_head.fd = fd;
-	s->comm_head.type = KN_SOCKET;
-	s->domain = domain;
-	s->type = type;
-	s->protocal = protocal;
-	s->comm_head.on_events = on_events;
-	return (handle_t)s; 
-}
 
-static void destroy_socket(kn_socket *s){
+static void on_destroy(void *_){
+	kn_socket *s = (kn_socket*)_;
 	st_io *io_req;
 	if(s->destry_stio){
         		while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL)
@@ -92,7 +79,20 @@ static void destroy_socket(kn_socket *s){
 	free(s);
 }
 
-
+static handle_t new_sock(int fd,int domain,int type,int protocal){
+	kn_socket *s = calloc(1,sizeof(*s));
+	if(!s){
+		return NULL;
+	}	
+	s->comm_head.fd = fd;
+	s->comm_head.type = KN_SOCKET;
+	s->domain = domain;
+	s->type = type;
+	s->protocal = protocal;
+	s->comm_head.on_events = on_events;
+	s->comm_head.on_destroy = on_destroy;
+	return (handle_t)s; 
+}
 
 static void process_read(kn_socket *s){
 	//printf("process_read\n");
@@ -232,7 +232,7 @@ static void process_connect(kn_socket *s,int events){
 	int err = 0;
 	socklen_t len = sizeof(err);    
 	kn_event_del(s->e,(handle_t)s);
-	((handle_t)s)->events = 0;
+	s->e = NULL;
 	if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
 	    s->cb_connect((handle_t)s,err,s->comm_head.ud,&s->addr_remote);
 	    return;
@@ -249,7 +249,6 @@ static void process_connect(kn_socket *s,int events){
 
 static void on_events(handle_t h,int events){	
 	kn_socket *s = (kn_socket*)h;
-	s->processing = 1;
 	do{
 		if(s->comm_head.status == SOCKET_LISTENING){
 			process_accept(s);
@@ -270,10 +269,6 @@ static void on_events(handle_t h,int events){
 				process_write(s);			
 		}
 	}while(0);
-	s->processing = 0;
-	if(s->comm_head.status == SOCKET_CLOSE){
-		destroy_socket(s);
-	}	
 }
 
 handle_t kn_new_sock(int domain,int type,int protocal){	
@@ -531,6 +526,7 @@ static int stream_connect(engine_t e,
 
 #endif		
 		if(0 == kn_event_add(e,(handle_t)s,events)){
+			s->e = e;
 			((handle_t)s)->events = events;
 		}else
 			return -1;
@@ -554,9 +550,9 @@ void   kn_sock_set_connect_cb(handle_t h,void (*cb_connect)(handle_t,int,void*,k
 }
 
 int kn_sock_connect(engine_t e,
-					handle_t h,
-					kn_sockaddr *remote,
-					kn_sockaddr *local)
+		        handle_t h,
+		        kn_sockaddr *remote,
+		        kn_sockaddr *local)
 {
 	if(((handle_t)h)->type != KN_SOCKET) return -1;
 	kn_socket *s = (kn_socket*)h;
@@ -692,12 +688,11 @@ int kn_close_sock(handle_t h){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_CLOSE){
-		if(s->processing){
+		if(s->e){
 			s->comm_head.status = SOCKET_CLOSE;
-		}else{
-			//可以安全释放
-			destroy_socket(s);
-		}
+			kn_push_destroy(s->e,(handle_t)s);
+		}else
+			on_destroy(s);				
 		return 0;
 	}
 	return -1;	

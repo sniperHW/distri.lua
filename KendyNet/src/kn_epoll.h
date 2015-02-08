@@ -7,6 +7,7 @@
 #include "kn_timerfd.h"
 #include "kn_event.h"
 #include <assert.h>
+#include "kn_list.h"
 
 struct st_notify{
 	handle comm_head;
@@ -19,6 +20,7 @@ typedef struct{
 	int    maxevents;
 	handle_t timerfd;	
 	struct st_notify notify_stop;
+	kn_list wait_destroy;
 }kn_epoll;
 
 int kn_event_add(engine_t e,handle_t h,int events){
@@ -54,6 +56,19 @@ int kn_event_del(engine_t e,handle_t h){
 	TEMP_FAILURE_RETRY(ret = epoll_ctl(ep->epfd,EPOLL_CTL_DEL,h->fd,&ev));
 	if(0 == ret) h->events = 0;
 	return ret;	
+}
+
+void   kn_push_destroy(engine_t e,handle_t h){
+	kn_epoll *ep = (kn_epoll*)e;
+	kn_list_pushback(&ep->wait_destroy,(kn_list_node*)h);
+}
+
+static inline void kn_process_destroy(engine_t e){
+	kn_epoll *ep = (kn_epoll*)e;
+	kn_list_node *n;
+	while((n = kn_list_pop(&ep->wait_destroy))){
+		((handle_t)n)->on_destroy(n);
+	}
 }
 
 engine_t kn_new_engine(){
@@ -107,6 +122,7 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 					h->on_events(h,ep->events[i].events);
 			}
 		}
+		kn_process_destroy(e);
 		if(nfds == ep->maxevents){
 			free(ep->events);
 			ep->maxevents <<= 2;
@@ -141,6 +157,7 @@ int kn_engine_run(engine_t e){
 						h->on_events(h,ep->events[i].events);
 				}
 			}
+			kn_process_destroy(e);
 			if(nfds == ep->maxevents){
 				free(ep->events);
 				ep->maxevents <<= 2;

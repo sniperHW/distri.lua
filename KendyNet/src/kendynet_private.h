@@ -4,6 +4,7 @@
 
 int      kn_event_add(engine_t,handle_t,int events);
 int      kn_event_del(engine_t,handle_t);
+void   kn_push_destroy(engine_t,handle_t);
 
 #ifdef _LINUX
 

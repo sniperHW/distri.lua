@@ -8,7 +8,7 @@
 typedef struct{
 	handle comm_head;
 	//int    events;
-	int    processing;
+	//int    processing;
 	engine_t e;
 	kn_list pending_write;//尚未处理的发请求
     	kn_list pending_read;//尚未处理的读请求
@@ -66,7 +66,8 @@ static void process_write(kn_chr_dev *r){
 }
 
 
-static void destroy_chrdev(kn_chr_dev *r){
+static void on_destroy(void *_){
+	kn_chr_dev *r = (kn_chr_dev*)_;
 	st_io *io_req;
 	if(r->destry_stio){
         		while((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL)
@@ -75,15 +76,12 @@ static void destroy_chrdev(kn_chr_dev *r){
             			r->destry_stio(io_req);
 	}
 	kn_event_del(r->e,(handle_t)r);
-	free(r);
+	free(r);	
 }
-
 
 static void on_events(handle_t h,int events){
 	kn_chr_dev *r = (kn_chr_dev*)h;
-	r->processing = 1;
 	do{
-		
 		if(events & EVENT_READ){
 			process_read(r);
 			if(r->comm_head.status == KN_CHRDEV_RELEASE)
@@ -92,11 +90,7 @@ static void on_events(handle_t h,int events){
 		if(events & EVENT_WRITE){
 			process_write(r);
 		}
-	}while(0);
-	r->processing = 0;
-	if(r->comm_head.status == KN_CHRDEV_RELEASE){
-		destroy_chrdev(r);
-	}	
+	}while(0);	
 }
 
 handle_t kn_new_chrdev(int fd){
@@ -108,6 +102,7 @@ handle_t kn_new_chrdev(int fd){
 	kn_set_noblock(fd,0);
 	((handle_t)r)->type = KN_CHRDEV;
 	((handle_t)r)->on_events = on_events;
+	((handle_t)r)->on_destroy = on_destroy;
 	return (handle_t)r;
 }
 
@@ -117,12 +112,11 @@ int kn_release_chrdev(handle_t h,int beclose){
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;
 	if(beclose) close(r->comm_head.fd);
-	if(r->processing){
+	if(r->e){
 		r->comm_head.status = KN_CHRDEV_RELEASE;
-	}else{
-			//可以安全释放
-		destroy_chrdev(r);
-	}	
+		kn_push_destroy(r->e,(handle_t)r);
+	}else
+		on_destroy(r);
 	return 0;	
 }
 
