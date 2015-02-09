@@ -249,6 +249,8 @@ static void process_connect(kn_socket *s,int events){
 
 static void on_events(handle_t h,int events){	
 	kn_socket *s = (kn_socket*)h;
+	if(s->comm_head.status == SOCKET_CLOSE)
+		return;
 	do{
 		if(s->comm_head.status == SOCKET_LISTENING){
 			process_accept(s);
@@ -690,6 +692,7 @@ int kn_close_sock(handle_t h){
 	if(s->comm_head.status != SOCKET_CLOSE){
 		if(s->e){
 			s->comm_head.status = SOCKET_CLOSE;
+			shutdown(s->comm_head.fd,SHUT_WR);
 			kn_push_destroy(s->e,(handle_t)s);
 		}else
 			on_destroy(s);				

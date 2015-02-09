@@ -17,6 +17,7 @@ source = src/luasocket.c\
 	  src/base64/lua_base64.c\
 	  src/timeutil.c\
 	  src/listener.c\
+	  src/top.c \
 	  src/distri.c
 
 # Platform-specific overrides
@@ -26,8 +27,8 @@ ifeq ($(uname_S),Linux)
 	DEFINE += -D_LINUX
 	PLAT += linux
 	source += src/Hook.c src/debug.c  
-	LIB += deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a
-	DEPENDENCY += deps/jemalloc/lib/libjemalloc.a deps/myprocps/libproc.a
+	LIB += deps/jemalloc/lib/libjemalloc.a
+	DEPENDENCY += deps/jemalloc/lib/libjemalloc.a
 	MAKE += make
 endif
 
@@ -53,10 +54,7 @@ deps/http-parser/libhttp_parser.a:
 		cd deps/http-parser/;make package
 		
 deps/lua-5.2.3/src/liblua.a:		
-		cd deps/lua-5.2.3/;make $(PLAT)
-
-deps/myprocps/libproc.a:
-		cd deps/myprocps/;make							
+		cd deps/lua-5.2.3/;make $(PLAT)							
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./

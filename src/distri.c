@@ -7,7 +7,7 @@
 #include "kn_time.h"
 #ifdef _LINUX
 #include "debug.h"
-#include "myprocps/mytop.h"
+//#include "myprocps/mytop.h"
 #endif
 #include "kn_daemonize.h"
 #include "wpacket.h"
@@ -15,9 +15,10 @@
 #include "rawpacket.h"
 #include "kn_objpool.h"
 #include "listener.h"
+#include "top.h"
 
-
-engine_t      g_engine = NULL;
+engine_t       g_engine = NULL;
+struct top    *g_top = NULL;
 volatile int  g_status = 1;
 
 static void sig_int(int sig){
@@ -175,16 +176,20 @@ static int lua_Break(lua_State *L){
 }
 
 static int lua_Top(lua_State *L){
-#ifdef _LINUX	
+	if(!g_top) g_top = new_top();
+	kn_string_t str = get_top(g_top);
+	lua_pushstring(L,kn_to_cstr(str));
+	return 1;
+/*#ifdef _LINUX	
 	lua_pushstring(L,top());
 #else
 	lua_pushnil(L);
 #endif	
-	return 1;
+	return 1;*/
 }
 
 static int lua_AddTopFilter(lua_State *L){
-#ifdef _LINUX	
+	if(!g_top) g_top = new_top();
 	if(lua_gettop(L) < 1)
 		return luaL_error(L,"need a least one param");		
 	int i;
@@ -192,9 +197,8 @@ static int lua_AddTopFilter(lua_State *L){
 	for(i = 1; i <= size; ++i){
 		if(!lua_isstring(L,i)) 
 			return luaL_error(L,"param should be string");
-		addfilter(lua_tostring(L,i));
-	}
-#endif		
+		add_filter(g_top,lua_tostring(L,i));
+	}		
 	return 0;
 }
 
