@@ -18,6 +18,8 @@ static kn_mutex_t     g_mtx_log_file_list;
 
 static kn_timer_t       g_log_flush_timer = NULL;
 
+static pid_t                g_pid = -1;
+
 
 const char *log_lev_str[] = {
 	"INFO",
@@ -94,6 +96,7 @@ static int flush_timer_callback(kn_timer_t _){
 static void* log_routine(void *arg){
 	kn_setup_mailbox(g_log_engine,on_mail);
 	g_logthd_mailbox = kn_self_mailbox();
+	g_pid = getpid();
 	kn_engine_run(g_log_engine);
 	//向所有打开的日志文件写入"log close success"
 	struct logfile *l = NULL;
@@ -115,9 +118,11 @@ static void* log_routine(void *arg){
 
 static void on_process_end()
 {
-	kn_stop_engine(g_log_engine);
-	if(g_log_thd) kn_thread_join(g_log_thd);
-	kn_release_engine(g_log_engine);
+	if(g_pid == getpid()){
+		kn_stop_engine(g_log_engine);
+		if(g_log_thd) kn_thread_join(g_log_thd);
+		kn_release_engine(g_log_engine);
+	}
 }
 
 void _write_log(logfile_t logfile,const char *content)

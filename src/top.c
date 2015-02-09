@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "log.h"
 
 struct top{
 	char **filter;
@@ -149,9 +150,9 @@ void top_format(char *line,int len){
 
 kn_string_t get_top(struct top *t){
 #ifdef _LINUX	
-	FILE *pipe = popen("top -b -n 1 -c", "r");
+	FILE *pipe = popen("top -b -n 1 -c -w 512", "r");
 #elif _BSD	
-	FILE *pipe = popen("top -b -n 1000 -C", "r");
+	FILE *pipe = popen("top -b -n 1000 -C -w 512", "r");
 #endif	
 	if(!pipe) return NULL;
 	char ch = fgetc(pipe);
