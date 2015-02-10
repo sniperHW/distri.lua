@@ -1,27 +1,26 @@
-local cjson = require "cjson"
 
---[[a=1
-b=2
-c=3
-d=4
 
-local t = {[a]=1,[b]=2,[c]=3,[d]=4}
---t[a] = 1
---t[b] = 2
---t[c] = 3
---t[d] = 4
---for i=1,10 do
---	t[i] = i	
-	--table.insert(t,i)
---end
+local t = {
+	1,
+	"hello",
+	{3,4},
+	fuck = "you"
+}
 
-local str = cjson.encode(t)
-t = cjson.decode(str)
+local wpk = CPacket.NewWPacket(512)
 
-for i=1,4 do
-	print(t[i])
-end]]--
+wpk:Write_table(t)
 
+local tt = CPacket.NewRPacket(wpk):Read_table()
+
+print(tt[1])
+print(tt[2])
+print(tt[3][1])
+print(tt[3][2])
+print(tt.fuck)
+
+
+--[[
 local ab = {
     person = {
         {
@@ -56,7 +55,8 @@ local ab = {
 t = os.clock()
 
 for i = 1,1000000 do
-	cjson.encode(ab)
+	local wpk = CPacket.PackTable(ab)
 end
 
 print(os.clock() - t)
+]]--

@@ -1,5 +1,77 @@
 #include "luapacket.h"
 
+#define L_NUNBER 1
+#define L_TABLE     2
+#define L_STRING   3
+#define L_BOOL      4
+
+static int luabin_pack_string(wpacket_t wpk,lua_State *L,int index){
+	wpk_write_uint8(wpk,L_STRING);
+	size_t len;
+	const char *data = lua_tolstring(L,index,&len);
+	wpk_write_binary(wpk,data,len);
+	return 0;	
+}
+
+static int luabin_pack_number(wpacket_t wpk,lua_State *L,int index){
+	wpk_write_uint8(wpk,L_NUNBER);
+	double value = lua_tonumber(L,index);
+	wpk_write_double(wpk,value);
+	return 0;
+}
+
+static int luabin_pack_boolean(wpacket_t wpk,lua_State *L,int index){
+	wpk_write_uint8(wpk,L_BOOL);
+	int value = lua_toboolean(L,index);
+	wpk_write_uint8(wpk,value);
+	return 0;
+}
+
+static int luabin_pack_table(wpacket_t wpk,lua_State *L,int index){
+	wpk_write_uint8(wpk,L_TABLE);
+	write_pos wpos = wpk_get_writepos(wpk);
+	wpk_write_uint32(wpk,0);
+	int ret;
+	int c = 0;
+	lua_pushnil(L);
+	do{		
+		if(!lua_next(L,index - 1)){
+			break;
+		}
+		int key_type = lua_type(L, -2);
+		int val_type = lua_type(L, -1);
+		if(!(key_type == LUA_TSTRING || key_type == LUA_TNUMBER)){
+			ret = -1;
+			break;
+		}
+		if(!(val_type == LUA_TSTRING || val_type == LUA_TNUMBER || val_type == LUA_TTABLE || val_type == LUA_TBOOLEAN)){
+			ret = -1;
+			break;
+		}
+		if(key_type == LUA_TSTRING)
+			ret = luabin_pack_string(wpk,L,-2);
+		else
+			ret = luabin_pack_number(wpk,L,-2);
+
+		if(val_type == LUA_TSTRING)
+			ret = luabin_pack_string(wpk,L,-1);
+		else if(val_type == LUA_TNUMBER)
+			ret = luabin_pack_number(wpk,L,-1);
+		else if(val_type == LUA_TBOOLEAN)
+			ret = luabin_pack_boolean(wpk,L,-1);
+		else
+			ret = luabin_pack_table(wpk,L,-1);
+		if(ret != 0){
+			break;
+		}
+		lua_pop(L,1);
+		++c;
+	}while(1);
+	if(0 == ret){
+		wpk_rewrite_uint32(&wpos,c);
+	}						
+	return ret;
+}
 
 static int lua_new_packet(lua_State *L,int packettype){
 	int argtype = lua_type(L,1); 
@@ -33,7 +105,20 @@ static int lua_new_packet(lua_State *L,int packettype){
 			lua_setmetatable(L, -2);
 			p->_packet = make_writepacket(other->_packet);//(packet_t)wpk_copy_create(other->_packet);
 			return 1;												
-		}else
+		}else if(argtype == LUA_TTABLE){
+			wpacket_t wpk = wpk_create(512);
+			if(0 != luabin_pack_table(wpk,L,-1)){
+				destroy_packet((packet_t)wpk);
+				lua_pushnil(L);
+			}else{
+				lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+				luaL_getmetatable(L, LUAPACKET_METATABLE);
+				lua_setmetatable(L, -2);
+				p->_packet = (packet_t)wpk;		
+			}
+			return 1;
+		}
+		else	
 			return luaL_error(L,"invaild opration for arg1");		
 	}else if(packettype == RAWPACKET){
 		if(argtype == LUA_TSTRING){
@@ -166,6 +251,21 @@ static int _write_wpk(lua_State *L){
 	return 0;			
 }
 
+
+int _write_table(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(!p->_packet || p->_packet->type != WPACKET)
+		return luaL_error(L,"invaild opration");	
+	if(LUA_TTABLE != lua_type(L, 2))
+		luaL_error(L,"argument should be lua table");
+	if(0 != luabin_pack_table((wpacket_t)p->_packet,L,-1))
+		lua_pushboolean(L,0);
+	else
+		lua_pushboolean(L,1);
+	return 1;	
+}
+
+
 static int _rewrite_uint8(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(p->_packet->type != WPACKET)
@@ -290,6 +390,95 @@ static int _read_string(lua_State *L){
 	return 1;
 }
 
+static int un_pack_boolean(rpacket_t rpk,lua_State *L){
+	int n = rpk_read_uint8(rpk);
+	lua_pushboolean(L,n);
+	return 0;
+}
+
+static int un_pack_number(rpacket_t rpk,lua_State *L){
+	double n = rpk_read_double(rpk);
+	lua_pushnumber(L,n);
+	return 0;
+}
+
+static int un_pack_string(rpacket_t rpk,lua_State *L){
+	uint32_t len;
+	const char *data = rpk_read_binary(rpk,&len);
+	lua_pushlstring(L,data,(size_t)len);
+	return 0;
+}
+
+static int un_pack_table(rpacket_t rpk,lua_State *L){
+	int size = rpk_read_uint32(rpk);
+	int i = 0;
+	lua_newtable(L);
+	for(; i < size; ++i){
+		int key_type,value_type;
+		key_type = rpk_read_uint8(rpk);
+		if(key_type == L_STRING){
+			un_pack_string(rpk,L);
+		}else if(key_type == L_NUNBER){
+			un_pack_number(rpk,L);
+		}else
+			return -1;
+		value_type = rpk_read_uint8(rpk);
+		if(value_type == L_STRING){
+			un_pack_string(rpk,L);
+		}else if(value_type == L_NUNBER){
+			un_pack_number(rpk,L);
+		}else if(value_type == L_BOOL){
+			un_pack_boolean(rpk,L);
+		}else if(value_type == L_TABLE){
+			if(0 != un_pack_table(rpk,L)){
+				return -1;
+			}
+		}else
+			return -1;
+		lua_rawset(L,-3);			
+	}
+	return 0;
+}
+
+static int to_lua_table(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(!p->_packet || p->_packet->type != RPACKET)
+		return luaL_error(L,"invaild opration");
+	rpacket_t rpk = 	(rpacket_t)p->_packet;
+	int type = rpk_read_uint8(rpk);
+	if(type != L_TABLE){
+		lua_pushnil(L);
+		return 1;
+	}	
+	int old_top = lua_gettop(L);
+	int ret = un_pack_table(rpk,L);
+	destroy_packet((packet_t)rpk);
+	if(0 != ret){
+		lua_settop(L,old_top);
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+static int _read_table(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(!p->_packet || p->_packet->type != RPACKET)
+		return luaL_error(L,"invaild opration");
+	rpacket_t rpk = 	(rpacket_t)p->_packet;
+	int type = rpk_read_uint8(rpk);
+	if(type != L_TABLE){
+		lua_pushnil(L);
+		return 1;
+	}	
+	int old_top = lua_gettop(L);
+	int ret = un_pack_table(rpk,L);
+	if(0 != ret){
+		lua_settop(L,old_top);
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 static int _read_rawbin(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
 	if(!p->_packet || p->_packet->type != RAWPACKET)
@@ -399,6 +588,10 @@ static int _get_write_pos(lua_State *L){
 }
 
 
+
+
+
+
 void reg_luapacket(lua_State *L){
     luaL_Reg packet_mt[] = {
         {"__gc", destroy_luapacket},
@@ -411,6 +604,7 @@ void reg_luapacket(lua_State *L){
         {"Read_uint32", _read_uint32},
         {"Read_double", _read_double},        
         {"Read_string", _read_string},
+        {"Read_table", _read_table},
         {"Read_rawbin", _read_rawbin},
         {"Reverse_read_uint16", _reverse_read_uint16},
         {"Reverse_read_uint32", _reverse_read_uint32},
@@ -427,16 +621,16 @@ void reg_luapacket(lua_State *L){
         {"Write_uint16", _write_uint16},
         {"Write_uint32", _write_uint32},
         {"Write_double",_write_double},        
-        {"Write_string",_write_string},
+        {"Write_string", _write_string},
         {"Write_wpk",   _write_wpk},
+        {"Write_table",  _write_table},
 
         {"Rewrite_uint8",  _rewrite_uint8},
         {"Rewrite_uint16", _rewrite_uint16},
         {"Rewrite_uint32", _rewrite_uint32},
         {"Rewrite_double", _rewrite_double},        
-     
-		{"Get_write_pos", _get_write_pos},
-		
+        {"Get_write_pos", _get_write_pos},
+        {"ToTable",to_lua_table},
         {NULL, NULL}
     };
 
@@ -450,7 +644,7 @@ void reg_luapacket(lua_State *L){
     luaL_Reg l[] = {
         {"NewWPacket",lua_new_wpacket},
         {"NewRPacket",lua_new_rpacket},
-        {"NewRawPacket",lua_new_rawpacket},                    
+        {"NewRawPacket",lua_new_rawpacket},
         {NULL, NULL}
     };
     luaL_newlib(L, l);

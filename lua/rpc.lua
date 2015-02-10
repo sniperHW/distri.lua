@@ -9,8 +9,8 @@ local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
 
 local function RPC_Process_Call(app,s,rpk)
-	local str = rpk:Read_string()
-	local request = cjson.decode(str)
+	--local str = rpk:Read_string()
+	local request = rpk:Read_table()--cjson.decode(str)
 	local funname = request.f
 	local co = request.co
 	local func = app._RPCService[funname]
@@ -29,13 +29,21 @@ local function RPC_Process_Call(app,s,rpk)
 	end
 	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
 	wpk:Write_uint32(CMD_RPC_RESP)
-	wpk:Write_string(cjson.encode(response))
+	if not wpk:Write_table(response) then
+		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process write table error:%s",cjson.encode(response)))
+		return
+	end
+	--wpk:Write_string(cjson.encode(response))
 	s:Send(wpk)
 end
 
 local function RPC_Process_Response(s,rpk)
-	local str = rpk:Read_string()
-	local response = cjson.decode(str)
+	--local str = rpk:Read_string()
+	local response = rpk:Read_table()--cjson.decode(str)
+	if not response then
+		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc read table error"))		
+		return
+	end
 	local co = Sche.GetCoByIdentity(response.co)
 	if co then
 		co.response = response
@@ -63,7 +71,11 @@ function rpcCaller:Call(...)
 	request.arg = {...}
 	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
-	wpk:Write_string(cjson.encode(request))
+	if not wpk:Write_table(request) then
+		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc call write table error:%s",cjson.encode(request)))
+		return "socket error"
+	end
+	--wpk:Write_string(cjson.encode(request))
 	local ret = self.s:Send(wpk)
 	if ret then
 		return "socket error"
