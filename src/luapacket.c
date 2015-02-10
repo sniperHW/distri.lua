@@ -4,35 +4,88 @@
 #define L_TABLE     2
 #define L_STRING   3
 #define L_BOOL      4
+#define L_ARRAY     5
 
-static int luabin_pack_string(wpacket_t wpk,lua_State *L,int index){
+#define VAILD_KEY_TYPE(TYPE) (TYPE == LUA_TSTRING || TYPE == LUA_TNUMBER)
+#define VAILD_VAILD_TYPE(TYPE) (TYPE == LUA_TSTRING || TYPE == LUA_TNUMBER || TYPE == LUA_TTABLE || TYPE == LUA_TBOOLEAN)
+
+
+static void luabin_pack_string(wpacket_t wpk,lua_State *L,int index){
 	wpk_write_uint8(wpk,L_STRING);
 	size_t len;
 	const char *data = lua_tolstring(L,index,&len);
-	wpk_write_binary(wpk,data,len);
-	return 0;	
+	wpk_write_binary(wpk,data,len);	
 }
 
-static int luabin_pack_number(wpacket_t wpk,lua_State *L,int index){
+static void luabin_pack_number(wpacket_t wpk,lua_State *L,int index){
 	wpk_write_uint8(wpk,L_NUNBER);
 	double value = lua_tonumber(L,index);
 	wpk_write_double(wpk,value);
-	return 0;
 }
 
-static int luabin_pack_boolean(wpacket_t wpk,lua_State *L,int index){
+static void luabin_pack_boolean(wpacket_t wpk,lua_State *L,int index){
 	wpk_write_uint8(wpk,L_BOOL);
 	int value = lua_toboolean(L,index);
 	wpk_write_uint8(wpk,value);
-	return 0;
+}
+
+static int luabin_pack_table(wpacket_t wpk,lua_State *L,int index);
+
+static int luabin_pack_array(wpacket_t wpk,lua_State *L,int index,uint32_t size){
+	wpk_write_uint8(wpk,L_ARRAY);
+	write_pos wpos = wpk_get_writepos(wpk);
+	wpk_write_uint32(wpk,0);
+	int ret = 0;
+	int c = 0;
+	int top = lua_gettop(L);
+	lua_pushnil(L);
+	do{		
+		if(!lua_next(L,index - 1)){
+			break;
+		}
+		int val_type = lua_type(L, -1);
+		if(!VAILD_VAILD_TYPE(val_type)){
+			lua_pop(L,1);
+			continue;
+		}
+
+		if(val_type == LUA_TSTRING)
+			luabin_pack_string(wpk,L,-1);
+		else if(val_type == LUA_TNUMBER)
+			luabin_pack_number(wpk,L,-1);
+		else if(val_type == LUA_TBOOLEAN)
+			luabin_pack_boolean(wpk,L,-1);
+		else{
+			uint32_t size = lua_rawlen(L,-1);
+			if(size == 0){
+				if(0 != (ret = luabin_pack_array(wpk,L,-1,size)))
+					break;				
+			}else{
+				if(0 != (ret = luabin_pack_table(wpk,L,-1)))
+					break;
+			}
+		}
+		lua_pop(L,1);
+		++c;
+	}while(1);
+	lua_settop(L,top);
+	if(0 == ret){
+		wpk_rewrite_uint32(&wpos,c);
+	}						
+	return ret;
 }
 
 static int luabin_pack_table(wpacket_t wpk,lua_State *L,int index){
+	if(0 != lua_getmetatable(L,index)){
+		lua_pop(L,1);
+		return -1;
+	}
 	wpk_write_uint8(wpk,L_TABLE);
 	write_pos wpos = wpk_get_writepos(wpk);
 	wpk_write_uint32(wpk,0);
-	int ret;
+	int ret = 0;
 	int c = 0;
+	int top = lua_gettop(L);
 	lua_pushnil(L);
 	do{		
 		if(!lua_next(L,index - 1)){
@@ -40,33 +93,39 @@ static int luabin_pack_table(wpacket_t wpk,lua_State *L,int index){
 		}
 		int key_type = lua_type(L, -2);
 		int val_type = lua_type(L, -1);
-		if(!(key_type == LUA_TSTRING || key_type == LUA_TNUMBER)){
-			ret = -1;
-			break;
+		if(!VAILD_KEY_TYPE(key_type)){
+			lua_pop(L,1);
+			continue;
 		}
-		if(!(val_type == LUA_TSTRING || val_type == LUA_TNUMBER || val_type == LUA_TTABLE || val_type == LUA_TBOOLEAN)){
-			ret = -1;
-			break;
+		if(!VAILD_VAILD_TYPE(val_type)){
+			lua_pop(L,1);
+			continue;
 		}
 		if(key_type == LUA_TSTRING)
-			ret = luabin_pack_string(wpk,L,-2);
+			luabin_pack_string(wpk,L,-2);
 		else
-			ret = luabin_pack_number(wpk,L,-2);
+			luabin_pack_number(wpk,L,-2);
 
 		if(val_type == LUA_TSTRING)
-			ret = luabin_pack_string(wpk,L,-1);
+			luabin_pack_string(wpk,L,-1);
 		else if(val_type == LUA_TNUMBER)
-			ret = luabin_pack_number(wpk,L,-1);
+			luabin_pack_number(wpk,L,-1);
 		else if(val_type == LUA_TBOOLEAN)
-			ret = luabin_pack_boolean(wpk,L,-1);
-		else
-			ret = luabin_pack_table(wpk,L,-1);
-		if(ret != 0){
-			break;
+			luabin_pack_boolean(wpk,L,-1);
+		else{
+			uint32_t size = lua_rawlen(L,-1);
+			if(size > 0){
+				if(0 != (ret = luabin_pack_array(wpk,L,-1,size)))
+					break;				
+			}else{
+				if(0 != (ret = luabin_pack_table(wpk,L,-1)))
+					break;
+			}
 		}
 		lua_pop(L,1);
 		++c;
 	}while(1);
+	lua_settop(L,top);
 	if(0 == ret){
 		wpk_rewrite_uint32(&wpos,c);
 	}						
@@ -109,7 +168,8 @@ static int lua_new_packet(lua_State *L,int packettype){
 			wpacket_t wpk = wpk_create(512);
 			if(0 != luabin_pack_table(wpk,L,-1)){
 				destroy_packet((packet_t)wpk);
-				lua_pushnil(L);
+				return luaL_error(L,"table should not hava metatable");	
+				//lua_pushnil(L);
 			}else{
 				lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
 				luaL_getmetatable(L, LUAPACKET_METATABLE);
@@ -257,12 +317,10 @@ int _write_table(lua_State *L){
 	if(!p->_packet || p->_packet->type != WPACKET)
 		return luaL_error(L,"invaild opration");	
 	if(LUA_TTABLE != lua_type(L, 2))
-		luaL_error(L,"argument should be lua table");
+		return luaL_error(L,"argument should be lua table");
 	if(0 != luabin_pack_table((wpacket_t)p->_packet,L,-1))
-		lua_pushboolean(L,0);
-	else
-		lua_pushboolean(L,1);
-	return 1;	
+		return luaL_error(L,"table should not hava metatable");	
+	return 0;	
 }
 
 
@@ -390,23 +448,48 @@ static int _read_string(lua_State *L){
 	return 1;
 }
 
-static int un_pack_boolean(rpacket_t rpk,lua_State *L){
+static void un_pack_boolean(rpacket_t rpk,lua_State *L){
 	int n = rpk_read_uint8(rpk);
 	lua_pushboolean(L,n);
-	return 0;
 }
 
-static int un_pack_number(rpacket_t rpk,lua_State *L){
+static void un_pack_number(rpacket_t rpk,lua_State *L){
 	double n = rpk_read_double(rpk);
 	lua_pushnumber(L,n);
-	return 0;
 }
 
-static int un_pack_string(rpacket_t rpk,lua_State *L){
+static void un_pack_string(rpacket_t rpk,lua_State *L){
 	uint32_t len;
 	const char *data = rpk_read_binary(rpk,&len);
 	lua_pushlstring(L,data,(size_t)len);
-	return 0;
+}
+static int un_pack_table(rpacket_t rpk,lua_State *L);
+static int un_pack_array(rpacket_t rpk,lua_State *L){
+
+	int size = rpk_read_uint32(rpk);
+	int i = 0;
+	lua_newtable(L);
+	for(; i < size; ++i){
+		int value_type = rpk_read_uint8(rpk);
+		if(value_type == L_STRING){
+			un_pack_string(rpk,L);
+		}else if(value_type == L_NUNBER){
+			un_pack_number(rpk,L);
+		}else if(value_type == L_BOOL){
+			un_pack_boolean(rpk,L);
+		}else if(value_type == L_TABLE){
+			if(0 != un_pack_table(rpk,L)){
+				return -1;
+			}
+		}else if(value_type == L_ARRAY){
+			if(0 != un_pack_array(rpk,L)){
+				return -1;
+			}
+		}else
+			return -1;
+		lua_rawseti(L,-2,i+1);		
+	}
+	return 0;	
 }
 
 static int un_pack_table(rpacket_t rpk,lua_State *L){
@@ -433,6 +516,10 @@ static int un_pack_table(rpacket_t rpk,lua_State *L){
 			if(0 != un_pack_table(rpk,L)){
 				return -1;
 			}
+		}else if(value_type == L_ARRAY){
+			if(0 != un_pack_array(rpk,L)){
+				return -1;
+			}
 		}else
 			return -1;
 		lua_rawset(L,-3);			
@@ -450,11 +537,10 @@ static int to_lua_table(lua_State *L){
 		lua_pushnil(L);
 		return 1;
 	}	
-	int old_top = lua_gettop(L);
+	int top = lua_gettop(L);
 	int ret = un_pack_table(rpk,L);
-	destroy_packet((packet_t)rpk);
 	if(0 != ret){
-		lua_settop(L,old_top);
+		lua_settop(L,top);
 		lua_pushnil(L);
 	}
 	return 1;
@@ -648,5 +734,5 @@ void reg_luapacket(lua_State *L){
         {NULL, NULL}
     };
     luaL_newlib(L, l);
-	lua_setglobal(L,"CPacket");    	
+    lua_setglobal(L,"CPacket");    	
 }

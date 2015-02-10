@@ -4,13 +4,14 @@ local t = {
 	1,
 	"hello",
 	{3,4},
-	fuck = "you"
+	fuck = "you",
+              hello = function () print("hello") end
 }
+--setmetatable(t,{})
 
 local wpk = CPacket.NewWPacket(512)
 
 wpk:Write_table(t)
-
 local tt = CPacket.NewRPacket(wpk):Read_table()
 
 print(tt[1])
@@ -18,7 +19,7 @@ print(tt[2])
 print(tt[3][1])
 print(tt[3][2])
 print(tt.fuck)
-
+print(tt.hello)
 
 --[[
 local ab = {

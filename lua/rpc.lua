@@ -29,10 +29,7 @@ local function RPC_Process_Call(app,s,rpk)
 	end
 	local wpk = CPacket.NewWPacket(512)--Packet.WPacket.New(512)
 	wpk:Write_uint32(CMD_RPC_RESP)
-	if not wpk:Write_table(response) then
-		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process write table error:%s",cjson.encode(response)))
-		return
-	end
+	wpk:Write_table(response)
 	--wpk:Write_string(cjson.encode(response))
 	s:Send(wpk)
 end
@@ -71,10 +68,7 @@ function rpcCaller:Call(...)
 	request.arg = {...}
 	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
-	if not wpk:Write_table(request) then
-		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc call write table error:%s",cjson.encode(request)))
-		return "socket error"
-	end
+	wpk:Write_table(request)
 	--wpk:Write_string(cjson.encode(request))
 	local ret = self.s:Send(wpk)
 	if ret then
