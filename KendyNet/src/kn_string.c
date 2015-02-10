@@ -7,9 +7,10 @@
 
 typedef struct string_holder
 {
-	refobj    ref;
-	char*     str;
-	int32_t   len;
+	refobj       ref;
+	char*       str;
+	uint32_t   len;
+	uint32_t   cap;
 }*holder_t;
 
 
@@ -23,16 +24,45 @@ static void destroy_string_holder(void *arg)
 static inline holder_t string_holder_create(const char *str,uint32_t len)
 {
 	holder_t h = calloc(1,sizeof(*h));
-	if(strlen(str)+1 == len){	
-		h->str = calloc(1,size_of_pow2(len));
-		strncpy(h->str,str,len);
-	}else{
-		h->str = calloc(1,size_of_pow2(len+1));
-		strncpy(h->str,str,len);
-		h->str[len] = 0;
-	}
+	h->cap = size_of_pow2(len+1);
+	h->str = calloc(1,h->cap);
+	strncpy(h->str,str,len);
+	h->str[len] = 0;
+	h->len = len;
 	refobj_init(&h->ref,destroy_string_holder);
 	return h;
+}
+
+static inline void string_holder_append(holder_t h,const char *str,uint32_t len){
+	uint32_t total_len = h->len + len +1;
+	if(h->cap < total_len){
+		h->cap = size_of_pow2(total_len);
+		char *tmp = realloc(h->str,h->cap);
+		if(!tmp){
+			tmp = calloc(1,h->cap);
+			strcpy(tmp,h->str);
+			free(h->str);
+		}
+		h->str = tmp;
+	}
+	strcat(h->str,str);
+	h->len = total_len - 1;
+}
+
+static inline void string_holder_replace(holder_t h,const char *str,uint32_t n){
+	uint32_t total_len = n +1;
+	if(h->cap < total_len){
+		h->cap = size_of_pow2(total_len);
+		char *tmp = realloc(h->str,h->cap);
+		if(!tmp){
+			tmp = calloc(1,h->cap);
+			free(h->str);
+		}
+		h->str = tmp;				
+	}
+	strncpy(h->str,str,n);
+	h->str[n] = 0;
+	h->len = n;	
 }
 
 static inline void string_holder_release(holder_t h)
@@ -51,6 +81,7 @@ static inline void string_holder_acquire(holder_t h)
 struct kn_string
 {
 	holder_t holder;
+	uint32_t len;
 	char str[MIN_STRING_LEN];
 };
 
@@ -58,11 +89,12 @@ struct kn_string
 kn_string_t kn_new_string(const char *str)
 {
 	if(!str) return NULL;
-
 	kn_string_t _str = calloc(1,sizeof(*_str));
-	int32_t len = strlen(str)+1;
-	if(len <= MIN_STRING_LEN)
-		strncpy(_str->str,str,MIN_STRING_LEN);
+	uint32_t len = strlen(str);
+	if(len + 1 <= MIN_STRING_LEN){
+		strcpy(_str->str,str);
+		_str->len = len;
+	}
 	else
 		_str->holder = string_holder_create(str,len);
 	return _str;
@@ -81,52 +113,38 @@ const char *kn_to_cstr(kn_string_t s){
 
 int32_t  kn_string_len(kn_string_t s)
 {
-	if(s->holder) return strlen(s->holder->str)+1;
-	return strlen(s->str)+1;
+	if(s->holder) return s->holder->len;
+	return s->len;
 }
 
-void kn_string_copy(kn_string_t to,kn_string_t from,uint32_t n)
+void kn_string_replace(kn_string_t to,const char *from,uint32_t n)
 {
-	if(n > kn_string_len(from)) return;
-	if(n <= MIN_STRING_LEN)
-	{
-		if(to->holder){
-			string_holder_release(to->holder);
-			to->holder = NULL;
-		}
-		char *str = from->str;
-		if(from->holder) str = from->holder->str;
-		strncpy(to->str,str,n);
-	}else
-	{
-		if(n == kn_string_len(from)){
-			if(to->holder) string_holder_release(to->holder);
-			string_holder_acquire(to->holder);
-		}else if(n > kn_string_len(to)){
-			if(to->holder) string_holder_release(to->holder);
-			to->holder = string_holder_create(kn_to_cstr(from),n);	
-		}else{
-			strncpy(to->holder->str,kn_to_cstr(from),n);	
-		}
+	uint32_t _n = strlen(from);
+	if(n > _n) n = _n;
+	if(to->holder){
+		string_holder_replace(to->holder,from,n);
+	}else if(n + 1 <= MIN_STRING_LEN){
+		strncpy(to->str,from,n);
+		to->str[n] = 0;
+		to->len = n;
+	}else{
+		to->holder = string_holder_create(from,n);
 	}
 }
 
-void kn_string_append(kn_string_t s,const char *cstr)
+void kn_string_append(kn_string_t s,const char *str)
 {
-	if(!s || !cstr) return;
-	int32_t len = kn_string_len(s) + strlen(cstr);
-	if(len <= MIN_STRING_LEN)
-		strcat(s->str,cstr);
-	else
-	{
-		if(s->holder && len <= s->holder->len)
-			strcat(s->holder->str,cstr);
-		else{
-			
-			holder_t h = string_holder_create(kn_to_cstr(s),len*2);
-			strcat(h->str,cstr);
-			string_holder_release(s->holder);
-			s->holder = h;
-		}
+	if(!s || !str) return;
+	uint32_t len = strlen(str);
+	uint32_t total_len = kn_string_len(s) + len + 1;
+	if(s->holder)
+		string_holder_append(s->holder,str,len);	
+	else if(total_len <= MIN_STRING_LEN){
+		strcat(s->str,str);
+		s->len = total_len - 1;
+	}
+	else{
+		s->holder = string_holder_create(kn_to_cstr(s),s->len);
+		string_holder_append(s->holder,str,len);
 	}
 }

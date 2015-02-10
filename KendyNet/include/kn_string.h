@@ -26,7 +26,7 @@ void     kn_release_string(kn_string_t);
 
 const char *kn_to_cstr(kn_string_t);
 
-void     kn_string_copy(kn_string_t,kn_string_t,uint32_t n);
+void     kn_string_replace(kn_string_t,const char *from,uint32_t n);
 
 int32_t  kn_string_len(kn_string_t);
 
