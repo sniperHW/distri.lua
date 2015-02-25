@@ -77,7 +77,7 @@ static inline int rpk_read(rpacket_t r,int8_t *out,uint32_t size)
 		{
 			//当前buffer数据已经被读完,切换到下一个buffer
 			r->rpos = 0;
-			r->readbuf = buffer_acquire(r->readbuf,r->readbuf->next);
+			r->readbuf = r->readbuf->next;//buffer_acquire(r->readbuf,r->readbuf->next);
 		}
 	}
 	return 0;

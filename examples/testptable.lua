@@ -64,8 +64,9 @@ print("encode:" .. os.clock() - t)
 t = os.clock()
 
 wpk = CPacket.NewWPacket(ab)
+local rpk = CPacket.NewRPacket(wpk)
 for i = 1,1000000 do
-    CPacket.NewRPacket(wpk):ToTable()
+    rpk:ToTable()
 end
 
 print("decode:" .. os.clock() - t)

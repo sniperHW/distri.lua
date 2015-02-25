@@ -619,17 +619,30 @@ static int to_lua_table(lua_State *L){
 	if(!p->_packet || p->_packet->type != RPACKET)
 		return luaL_error(L,"invaild opration");
 	rpacket_t rpk = 	(rpacket_t)p->_packet;
-	int type = rpk_read_uint8(rpk);
-	if(type != L_TABLE){
-		lua_pushnil(L);
-		return 1;
-	}	
-	int top = lua_gettop(L);
-	int ret = un_pack_table(rpk,L);
-	if(0 != ret){
-		lua_settop(L,top);
-		lua_pushnil(L);
-	}
+
+	//backup
+	uint32_t rpos = rpk->rpos;
+	uint32_t data_remain = rpk->data_remain;
+	buffer_t readbuf = rpk->readbuf;
+
+	do{
+		int type = rpk_read_uint8(rpk);
+		if(type != L_TABLE){
+			lua_pushnil(L);
+			break;
+		}	
+		int top = lua_gettop(L);
+		int ret = un_pack_table(rpk,L);
+		if(0 != ret){
+			lua_settop(L,top);
+			lua_pushnil(L);
+		}		
+	}while(0);
+
+	//recover
+	rpk->rpos = rpos;
+	rpk->data_remain = data_remain; 
+	rpk->readbuf = readbuf;
 	return 1;
 }
 

@@ -8,7 +8,9 @@ local delay = 0
 
 local function on_packet(s,rpk)
      local id = rpk:Read_uint32()
-     --print(id)
+     --if id > 50 or id < 1 then
+      --print(id)
+     --end
      if id == s.id then
             local tick = rpk:Read_uint32()
             local wpk = CPacket.NewWPacket(64)

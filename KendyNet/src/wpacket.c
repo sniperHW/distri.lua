@@ -19,7 +19,7 @@ wpacket_t wpk_create(uint32_t size)
 	if(size < 64) size = 64;
 	wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));
 	packet_buf(w) = buffer_create(size);
-	w->writebuf = buffer_acquire(NULL,packet_buf(w));
+	w->writebuf = packet_buf(w);//buffer_acquire(NULL,packet_buf(w));
 	packet_begpos(w)= 0;
 	packet_next(w) = NULL;
 	packet_type(w) = WPACKET;
@@ -41,7 +41,7 @@ wpacket_t wpk_create_by_bin(int8_t *addr,uint32_t size)
 	if(size < 64) size = 64;
 	wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));	
 	packet_buf(w) = buffer_create(size);
-	w->writebuf = buffer_acquire(NULL,packet_buf(w));
+	w->writebuf = packet_buf(w);//buffer_acquire(NULL,packet_buf(w));
 	packet_begpos(w)= 0;
 	packet_next(w) = NULL;
 	packet_type(w) = WPACKET;

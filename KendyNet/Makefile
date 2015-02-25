@@ -74,7 +74,8 @@ sample-source = sample/broadcast_svr.c\
 		 sample/testatomicst.c\
 		 sample/ssl_server.c\
 		 sample/ssl_client.c\
-		 sample/teststr.c
+		 sample/teststr.c\
+		 sample/testpacket.c
 	   
 release:$(source)
 	$(CC) $(SHARED) -O2 $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE)
@@ -110,6 +111,7 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o ssl_server ssl_server.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o ssl_client ssl_client.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o teststr teststr.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o testpacket testpacket.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 
 teststr:sample/teststr.c $(LIBNAME)
 	$(CC) $(CFLAGS) -o teststr sample/teststr.c $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)	

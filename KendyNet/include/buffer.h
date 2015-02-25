@@ -27,7 +27,7 @@
 #include "kn_refobj.h"
 #include "kn_list.h"
 
-extern uint32_t buffer_count;
+//extern uint32_t buffer_count;
 
 typedef struct buffer
 {
@@ -49,23 +49,25 @@ static inline void buffer_release(buffer_t b)
 
 static void buffer_destroctor(void *b)
 {
+             //printf("buffer_destroctor\n");
 	buffer_t _b = (buffer_t)b;
 	if(_b->next)
 		buffer_release((_b)->next);
-    free(_b);
-    --buffer_count;
+            free(_b);
+    //--buffer_count;
 }
 
 static inline buffer_t buffer_create(uint32_t capacity)
 {
 	uint32_t size = sizeof(struct buffer) + capacity;
-    buffer_t b = (buffer_t)calloc(1,size);
+            buffer_t b = (buffer_t)calloc(1,size);
 	if(b)
 	{
+                          //printf("buffer_create\n");    
 		b->size = 0;
 		b->capacity = capacity;
 		refobj_init((refobj*)b,buffer_destroctor);
-		++buffer_count;
+		//++buffer_count;
 	}
 	return b;
 }

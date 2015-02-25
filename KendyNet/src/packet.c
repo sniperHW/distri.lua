@@ -18,7 +18,7 @@ void rpk_destroy(rpacket_t r)
 {
 	//释放所有对buffer_t的引用
 	buffer_release(packet_buf(r));
-	buffer_release(r->readbuf);
+	//buffer_release(r->readbuf);
 	buffer_release(r->binbuf);
 	FREE(g_rpk_allocator,r);
 	//free(r);
@@ -27,7 +27,7 @@ void rpk_destroy(rpacket_t r)
 void wpk_destroy(wpacket_t w)
 {
 	buffer_release(packet_buf(w));
-	buffer_release(w->writebuf);
+	//buffer_release(w->writebuf);
 	FREE(g_wpk_allocator,w);
 	//free(w);
 }

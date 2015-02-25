@@ -21,7 +21,7 @@ rpacket_t rpk_create(buffer_t b,
 	r->binbuf = NULL;
 	r->binbufpos = 0;
 	packet_buf(r) = buffer_acquire(NULL,b);
-	r->readbuf = buffer_acquire(NULL,b);
+	r->readbuf = packet_buf(r);//buffer_acquire(NULL,b);
 	r->len = kn_hton32(pk_len);
 	r->data_remain = pk_len;
 	packet_begpos(r) = pos;
@@ -31,8 +31,7 @@ rpacket_t rpk_create(buffer_t b,
 	packet_makeforwrite(r) = rpk_makeforwrite;
 	packet_makeforread(r) = rpk_clone;
 	r->rpos = (pos + sizeof(r->len))%packet_buf(r)->capacity;
-	if(r->rpos < packet_begpos(r))
-		r->readbuf = buffer_acquire(r->readbuf,r->readbuf->next);
+	if(r->rpos < packet_begpos(r)) r->readbuf = r->readbuf->next;//buffer_acquire(r->readbuf,r->readbuf->next);
 	return r;
 }
 
@@ -43,7 +42,7 @@ static packet_t rpk_clone(packet_t p){
 	    	r->binbuf = NULL;
 		r->binbufpos = 0;
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(other));
-		r->readbuf = buffer_acquire(NULL,other->readbuf);
+		r->readbuf = other->readbuf;//packet_buf(r);//buffer_acquire(NULL,other->readbuf);
 		r->len = other->len;
 	    	r->data_remain = other->data_remain;
 	    	packet_begpos(r) = packet_begpos(other);
@@ -66,7 +65,7 @@ packet_t wpk_makeforread(packet_t p){
 		r->binbuf = NULL;
 		r->binbufpos = 0;
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(w));
-	    	r->readbuf = buffer_acquire(NULL,packet_buf(w));
+	    	r->readbuf = packet_buf(r);//buffer_acquire(NULL,packet_buf(w));
 	    	packet_begpos(r) = packet_begpos(w);
 	    	packet_next(r) = NULL;
 	    	packet_type(r) = RPACKET;
@@ -78,7 +77,7 @@ packet_t wpk_makeforread(packet_t p){
 		r->len = kn_hton32(hlen);
 		r->rpos = (packet_begpos(r) + sizeof(r->len))%packet_buf(r)->capacity;
 		if(r->rpos < packet_begpos(r))//base->begin_pos)
-			r->readbuf = buffer_acquire(r->readbuf,r->readbuf->next);
+			r->readbuf = r->readbuf->next;//buffer_acquire(r->readbuf,r->readbuf->next);
 		r->data_remain = hlen;
 		return (packet_t)r;		
 	}else
@@ -108,7 +107,7 @@ const void* rpk_read_binary(rpacket_t r,uint32_t *len)
 		{
 			//当前buffer数据已经被读完,切换到下一个buffer
 			r->rpos = 0;
-			r->readbuf = buffer_acquire(r->readbuf,r->readbuf->next);
+			r->readbuf = r->readbuf->next;//buffer_acquire(r->readbuf,r->readbuf->next);
 		}
 	}
 	else
@@ -133,7 +132,7 @@ const void* rpk_read_binary(rpacket_t r,uint32_t *len)
 			{
 				//当前buffer数据已经被读完,切换到下一个buffer
 				r->rpos = 0;
-				r->readbuf = buffer_acquire(r->readbuf,r->readbuf->next);
+				r->readbuf = r->readbuf->next;//buffer_acquire(r->readbuf,r->readbuf->next);
 			}
 		}
 

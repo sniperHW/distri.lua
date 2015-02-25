@@ -108,8 +108,8 @@ static inline void wpk_expand(wpacket_t w,uint32_t size)
     size = size_of_pow2(size);
     if(size < 64) size = 64;
     w->writebuf->next = buffer_create(size);
-	w->writebuf = buffer_acquire(w->writebuf,w->writebuf->next);
-	w->wpos = 0;
+    w->writebuf = w->writebuf->next;//buffer_acquire(w->writebuf,w->writebuf->next);
+    w->wpos = 0;
 }
 
 //将w中所有数据拷贝到buf中
@@ -134,9 +134,9 @@ static inline void wpk_copy(wpacket_t w,buffer_t buf)
 
 static inline void do_write_copy(wpacket_t w)
 {
-	/*wpacket是由rpacket构造的，这里执行写时拷贝，
-	* 执行完后wpacket和构造时传入的rpacket不再共享buffer
-	*/
+    /*wpacket是由rpacket构造的，这里执行写时拷贝，
+    * 执行完后wpacket和构造时传入的rpacket不再共享buffer
+    */
     uint32_t size = size_of_pow2(packet_datasize(w));
     if(size < 64) size = 64;
     buffer_t tmp = buffer_create(size);
@@ -145,10 +145,10 @@ static inline void do_write_copy(wpacket_t w)
     w->wpos = packet_datasize(w);
     tmp->size = packet_datasize(w);
     if(packet_buf(w)) buffer_release(packet_buf(w));
-    if(w->writebuf) buffer_release(w->writebuf);
+    //if(w->writebuf) buffer_release(w->writebuf);
     packet_buf(w) = tmp;
-    w->len = (uint32_t*)packet_buf(w)->buf;
-    w->writebuf = buffer_acquire(NULL,packet_buf(w));
+    w->len = (uint32_t*)tmp->buf;
+    w->writebuf = tmp;//buffer_acquire(NULL,packet_buf(w));
 }
 
 static inline void wpk_write(wpacket_t w,int8_t *addr,uint32_t size)
