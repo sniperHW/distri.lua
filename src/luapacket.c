@@ -1,29 +1,74 @@
 #include "luapacket.h"
 
-#define L_NUNBER 1
-#define L_TABLE     2
-#define L_STRING   3
-#define L_BOOL      4
-#define L_ARRAY     5
+enum{
+	L_TABLE = 1,
+	L_STRING,
+	L_BOOL,
+	L_ARRAY,
+	L_FLOAT,
+	L_UINT8,
+	L_UINT16,
+	L_UINT32,
+	L_UINT64,
+	L_INT8,
+	L_INT16,
+	L_INT32,
+	L_INT64,		
+};
+
 
 #define VAILD_KEY_TYPE(TYPE) (TYPE == LUA_TSTRING || TYPE == LUA_TNUMBER)
 #define VAILD_VAILD_TYPE(TYPE) (TYPE == LUA_TSTRING || TYPE == LUA_TNUMBER || TYPE == LUA_TTABLE || TYPE == LUA_TBOOLEAN)
 
 
-static void luabin_pack_string(wpacket_t wpk,lua_State *L,int index){
+static inline void luabin_pack_string(wpacket_t wpk,lua_State *L,int index){
 	wpk_write_uint8(wpk,L_STRING);
 	size_t len;
 	const char *data = lua_tolstring(L,index,&len);
 	wpk_write_binary(wpk,data,len);	
 }
 
-static void luabin_pack_number(wpacket_t wpk,lua_State *L,int index){
-	wpk_write_uint8(wpk,L_NUNBER);
-	double value = lua_tonumber(L,index);
-	wpk_write_double(wpk,value);
+static inline void luabin_pack_number(wpacket_t wpk,lua_State *L,int index){
+	lua_Number v = lua_tonumber(L,index);
+	if(v != (lua_Integer)v){
+		wpk_write_uint8(wpk,L_FLOAT);
+		wpk_write_double(wpk,v);
+	}else{
+		if((int64_t)v > 0){
+			uint64_t _v = (uint64_t)v;
+			if(_v <= 0xFF){
+				wpk_write_uint8(wpk,L_UINT8);
+				wpk_write_uint8(wpk,(uint8_t)_v);				
+			}else if(_v <= 0xFFFF){
+				wpk_write_uint8(wpk,L_UINT16);
+				wpk_write_uint16(wpk,(uint16_t)_v);					
+			}else if(_v <= 0xFFFFFFFF){
+				wpk_write_uint8(wpk,L_UINT32);
+				wpk_write_uint32(wpk,(uint32_t)_v);					
+			}else{
+				wpk_write_uint8(wpk,L_UINT64);
+				wpk_write_uint64(wpk,(uint64_t)_v);				
+			}
+		}else{
+			int64_t _v = (int64_t)v;
+			if(_v >= 0x80){
+				wpk_write_uint8(wpk,L_INT8);
+				wpk_write_uint8(wpk,(uint8_t)_v);				
+			}else if(_v >= 0x8000){
+				wpk_write_uint8(wpk,L_INT16);
+				wpk_write_uint16(wpk,(uint16_t)_v);					
+			}else if(_v < 0x80000000){
+				wpk_write_uint8(wpk,L_INT32);
+				wpk_write_uint32(wpk,(uint32_t)_v);					
+			}else{
+				wpk_write_uint8(wpk,L_INT64);
+				wpk_write_uint64(wpk,(uint64_t)_v);				
+			}
+		}
+	}
 }
 
-static void luabin_pack_boolean(wpacket_t wpk,lua_State *L,int index){
+static inline void luabin_pack_boolean(wpacket_t wpk,lua_State *L,int index){
 	wpk_write_uint8(wpk,L_BOOL);
 	int value = lua_toboolean(L,index);
 	wpk_write_uint8(wpk,value);
@@ -448,17 +493,59 @@ static int _read_string(lua_State *L){
 	return 1;
 }
 
-static void un_pack_boolean(rpacket_t rpk,lua_State *L){
+static inline void un_pack_boolean(rpacket_t rpk,lua_State *L){
 	int n = rpk_read_uint8(rpk);
 	lua_pushboolean(L,n);
 }
 
-static void un_pack_number(rpacket_t rpk,lua_State *L){
-	double n = rpk_read_double(rpk);
+static inline void un_pack_number(rpacket_t rpk,lua_State *L,int type){
+	double n;// = rpk_read_double(rpk);
+	switch(type){
+		case L_FLOAT:{
+			n = rpk_read_double(rpk);
+			break;
+		}
+		case L_UINT8:{
+			n = (double)rpk_read_uint8(rpk);
+			break;
+		}
+		case L_UINT16:{
+			n = (double)rpk_read_uint16(rpk);
+			break;
+		}
+		case L_UINT32:{
+			n = (double)rpk_read_uint32(rpk);
+			break;
+		}
+		case L_UINT64:{
+			n = (double)rpk_read_uint64(rpk);
+			break;
+		}
+		case L_INT8:{
+			n = (double)((int8_t)rpk_read_uint8(rpk));
+			break;
+		}
+		case L_INT16:{
+			n = (double)((int16_t)rpk_read_uint16(rpk));
+			break;
+		}
+		case L_INT32:{
+			n = (double)((int32_t)rpk_read_uint32(rpk));
+			break;
+		}
+		case L_INT64:{
+			n = (double)((int64_t)rpk_read_uint64(rpk));
+			break;
+		}
+		default:{
+			assert(0);
+			break;						
+		}
+	}
 	lua_pushnumber(L,n);
 }
 
-static void un_pack_string(rpacket_t rpk,lua_State *L){
+static inline void un_pack_string(rpacket_t rpk,lua_State *L){
 	uint32_t len;
 	const char *data = rpk_read_binary(rpk,&len);
 	lua_pushlstring(L,data,(size_t)len);
@@ -473,8 +560,8 @@ static int un_pack_array(rpacket_t rpk,lua_State *L){
 		int value_type = rpk_read_uint8(rpk);
 		if(value_type == L_STRING){
 			un_pack_string(rpk,L);
-		}else if(value_type == L_NUNBER){
-			un_pack_number(rpk,L);
+		}else if(value_type >= L_FLOAT && value_type <= L_INT64){
+			un_pack_number(rpk,L,value_type);
 		}else if(value_type == L_BOOL){
 			un_pack_boolean(rpk,L);
 		}else if(value_type == L_TABLE){
@@ -501,15 +588,15 @@ static int un_pack_table(rpacket_t rpk,lua_State *L){
 		key_type = rpk_read_uint8(rpk);
 		if(key_type == L_STRING){
 			un_pack_string(rpk,L);
-		}else if(key_type == L_NUNBER){
-			un_pack_number(rpk,L);
+		}else if(key_type >= L_FLOAT && key_type <= L_INT64){
+			un_pack_number(rpk,L,key_type);
 		}else
 			return -1;
 		value_type = rpk_read_uint8(rpk);
 		if(value_type == L_STRING){
 			un_pack_string(rpk,L);
-		}else if(value_type == L_NUNBER){
-			un_pack_number(rpk,L);
+		}else if(value_type >= L_FLOAT && value_type <= L_INT64){
+			un_pack_number(rpk,L,value_type);
 		}else if(value_type == L_BOOL){
 			un_pack_boolean(rpk,L);
 		}else if(value_type == L_TABLE){

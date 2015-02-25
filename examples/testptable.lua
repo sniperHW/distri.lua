@@ -1,9 +1,9 @@
 
 
 local t = {
-	1,
+	65537,
 	"hello",
-	{3,4},
+	{-3,-65536},
 	fuck = "you",
               hello = function () print("hello") end
 }
