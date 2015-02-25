@@ -21,7 +21,7 @@ print(tt[3][2])
 print(tt.fuck)
 print(tt.hello)
 
---[[
+
 local ab = {
     person = {
         {
@@ -56,8 +56,16 @@ local ab = {
 t = os.clock()
 
 for i = 1,1000000 do
-	local wpk = CPacket.PackTable(ab)
+	CPacket.NewWPacket(ab)
 end
 
-print(os.clock() - t)
-]]--
+print("encode:" .. os.clock() - t)
+
+t = os.clock()
+
+wpk = CPacket.NewWPacket(ab)
+for i = 1,1000000 do
+    CPacket.NewRPacket(wpk):ToTable()
+end
+
+print("decode:" .. os.clock() - t)
