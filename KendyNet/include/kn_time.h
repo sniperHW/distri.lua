@@ -137,11 +137,12 @@ static inline time_t kn_systemsec()
 
 static inline void kn_sleepms(uint32_t ms)
 {
-	uint64_t endtick = kn_systemms64()+ms;
-	do{
-		uint64_t _ms = endtick - kn_systemms64();
-		usleep(_ms*1000);
-	}while(kn_systemms64() < endtick);
+        usleep(ms*1000);
+        /*uint64_t endtick = kn_systemms64()+ms;
+        do{
+        	uint64_t _ms = endtick - kn_systemms64();
+        	usleep(_ms*1000);
+        }while(kn_systemms64() < endtick);*/
 }
 
 /*
