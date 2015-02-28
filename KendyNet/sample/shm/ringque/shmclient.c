@@ -32,7 +32,7 @@ int main()
 	fstat(fd,&stat);
 	ring1_int *ringque = NULL;	
 	ringque = (ring1_int*)mmap(NULL,stat.st_size,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);	
-	
+	printf("%x\n",ringque);
 
 	uint64_t c = 0;
 	uint64_t tick = kn_systemms64();

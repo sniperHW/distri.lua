@@ -15,7 +15,7 @@
 #include             <stdint.h>
 #include            "lockfree/kn_ringque.h"
 
-DECLARE_RINGQUE_1(ring1_int,int,1024,1);
+SHM_LNKLIST(ring1_int,int,1024,1);
 
 int main()
 {
@@ -33,6 +33,7 @@ int main()
 	}		
 	ftruncate(fd,length);
 	ringque = (ring1_int*)mmap(NULL,length,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
+	printf("%x\n",ringque);
 	ring1_int_init(ringque);
 	while(1){
 		ring1_int_push(ringque,1);
