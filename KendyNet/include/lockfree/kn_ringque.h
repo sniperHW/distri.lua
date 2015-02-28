@@ -2,33 +2,31 @@
 #define _RINGQUE_H
 
 #include <stdint.h>
+#include <assert.h>
 #include "kn_atomic.h"
 #include "../kn_common_define.h"
 
 //单读单写循环队列
-#define CARGO_CAPACITY 8
-
-#define DECLARE_RINGQUE_1(NAME,TYPE)\
+#define DECLARE_RINGQUE_1(NAME,TYPE,SIZE,CARGOSIZE)\
 struct NAME##cargo{\
-	TYPE cargo[CARGO_CAPACITY];\
+	TYPE cargo[CARGOSIZE];\
 	uint8_t size;\
 };\
-typedef struct NAME{\
+typedef struct {\
 	volatile uint32_t ridx;\
 	uint32_t indexmask;\
 	volatile uint32_t widx;\
 	uint32_t pad;\
-	struct NAME##cargo data[];\
-}*NAME;\
-static inline void NAME##_push(NAME que,TYPE element)\
+	struct NAME##cargo data[SIZE];\
+}NAME;\
+static inline void NAME##_push(NAME *que,TYPE element)\
 {\
 	struct NAME##cargo *cargo = &que->data[que->widx];\
 	cargo->cargo[cargo->size++] = element;\
-	if(unlikely(cargo->size == CARGO_CAPACITY))\
+	if(unlikely(cargo->size == CARGOSIZE))\
 	{\
 		int32_t c=0;\
 		uint32_t next_widx = (que->widx+1)&que->indexmask;\
-		que->widx = next_widx;\
 		while(next_widx == que->ridx)\
 		{\
 			if(c < 4000){\
@@ -39,10 +37,11 @@ static inline void NAME##_push(NAME que,TYPE element)\
                 			nanosleep(&ts, NULL);\
             			}\
 		}\
-		if(que->data[next_widx].size != 0) exit(0);\
+		que->widx = next_widx;\
+		if(unlikely(que->data[next_widx].size != 0)) abort();\
 	}\
 }\
-static inline int32_t NAME##_pop(NAME que,TYPE *ret)\
+static inline int32_t NAME##_pop(NAME *que,TYPE *ret)\
 {\
 	if(que->ridx == que->widx)\
 		return -1;\
@@ -52,20 +51,28 @@ static inline int32_t NAME##_pop(NAME que,TYPE *ret)\
 		if(new_ridx == que->widx)\
 			return -1;\
 		que->ridx = new_ridx;\
-		cargo = &que->data[new_ridx];\
-		if(cargo->size != CARGO_CAPACITY) exit(0);\
+		cargo = &que->data[que->ridx];\
+		if(unlikely(cargo->size != CARGOSIZE)) abort();\
 	}\
-	*ret = cargo->cargo[CARGO_CAPACITY-cargo->size];\
+	*ret = cargo->cargo[CARGOSIZE-cargo->size];\
 	--cargo->size;\
 	return 0;\
 }\
+static inline NAME NAME##_init(NAME *ringque){\
+	assert(SIZE == size_of_pow2(SIZE));\
+	ringque->indexmask = SIZE-1;\
+	ringque->ridx = ringque->widx = 0;\
+	memset(ringque->data,0,sizeof(ringque->data));\
+}	
+
+/*
 static inline NAME NAME##_new(uint32_t maxsize){\
 	maxsize = size_of_pow2(maxsize);\
 	NAME ringque = calloc(1,sizeof(*ringque)*sizeof(struct NAME##cargo)*maxsize);\
 	ringque->indexmask = maxsize-1;\
 	ringque->ridx = ringque->widx = 0;\
 	return ringque;\
-}
+}*/
 
 //多读多写循环队列
 #define DECLARE_RINGQUE_N(NAME,TYPE)\
