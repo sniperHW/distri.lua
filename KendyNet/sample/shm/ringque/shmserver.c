@@ -15,7 +15,7 @@
 #include             <stdint.h>
 #include            "lockfree/kn_ringque.h"
 
-SHM_LNKLIST(ring1_int,int,1024,1);
+DECLARE_RINGQUE_1(ring1_int,int,1024,1);
 
 int main()
 {
