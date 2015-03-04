@@ -101,8 +101,15 @@ static void process_read(kn_socket *s){
 	while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
 		errno = 0;
 		if(s->protocal == IPPROTO_TCP){
-			if(s->ssl)
+			if(s->ssl){
 				bytes_transfer = TEMP_FAILURE_RETRY(SSL_read(s->ssl,io_req->iovec[0].iov_base,io_req->iovec[0].iov_len));
+				int ssl_error = SSL_get_error(s->ssl,bytes_transfer);
+				if(bytes_transfer < 0 && (ssl_error == SSL_ERROR_WANT_WRITE ||
+							ssl_error == SSL_ERROR_WANT_READ ||
+							ssl_error == SSL_ERROR_WANT_X509_LOOKUP)){
+					errno = EAGAIN;
+				}			
+			}
 			else
 				bytes_transfer = TEMP_FAILURE_RETRY(readv(s->comm_head.fd,io_req->iovec,io_req->iovec_count));
 		}else if(s->protocal == IPPROTO_UDP){		
@@ -132,8 +139,15 @@ static void process_write(kn_socket *s){
 	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
 		errno = 0;
 		if(s->protocal == IPPROTO_TCP){
-			if(s->ssl)
+			if(s->ssl){
 				bytes_transfer = TEMP_FAILURE_RETRY(SSL_write(s->ssl,io_req->iovec[0].iov_base,io_req->iovec[0].iov_len));
+				int ssl_error = SSL_get_error(s->ssl,bytes_transfer);
+				if(bytes_transfer < 0 && (ssl_error == SSL_ERROR_WANT_WRITE ||
+							ssl_error == SSL_ERROR_WANT_READ ||
+							ssl_error == SSL_ERROR_WANT_X509_LOOKUP)){
+					errno = EAGAIN;
+				}			
+			}
 			else	
 				bytes_transfer = TEMP_FAILURE_RETRY(writev(s->comm_head.fd,io_req->iovec,io_req->iovec_count));
 		}else if(s->protocal == IPPROTO_UDP){		
@@ -320,8 +334,18 @@ int kn_sock_send(handle_t h,st_io *req){
 	int bytes_transfer = 0;
 
 	if(s->protocal == IPPROTO_TCP)
-		if(s->ssl)
+		if(s->ssl){
+			assert(req->iovec_count == 1);
+			if(req->iovec_count != 1)
+				return -1;			
 			bytes_transfer = TEMP_FAILURE_RETRY(SSL_write(s->ssl,req->iovec[0].iov_base,req->iovec[0].iov_len));
+			int ssl_error = SSL_get_error(s->ssl,bytes_transfer);
+			if(bytes_transfer < 0 && (ssl_error == SSL_ERROR_WANT_WRITE ||
+						ssl_error == SSL_ERROR_WANT_READ ||
+						ssl_error == SSL_ERROR_WANT_X509_LOOKUP)){
+				errno = EAGAIN;
+			}		
+		}
 		else	
 			bytes_transfer = TEMP_FAILURE_RETRY(writev(s->comm_head.fd,req->iovec,req->iovec_count));		
 	else if(s->protocal == IPPROTO_UDP){		
@@ -348,8 +372,18 @@ int kn_sock_recv(handle_t h,st_io *req){
 	int bytes_transfer = 0;
 
 	if(s->protocal == IPPROTO_TCP)
-		if(s->ssl)
+		if(s->ssl){
+			assert(req->iovec_count == 1);
+			if(req->iovec_count != 1)
+				return -1;
 			bytes_transfer = TEMP_FAILURE_RETRY(SSL_read(s->ssl,req->iovec[0].iov_base,req->iovec[0].iov_len));
+			int ssl_error = SSL_get_error(s->ssl,bytes_transfer);
+			if(bytes_transfer < 0 && (ssl_error == SSL_ERROR_WANT_WRITE ||
+						ssl_error == SSL_ERROR_WANT_READ ||
+						ssl_error == SSL_ERROR_WANT_X509_LOOKUP)){
+				errno = EAGAIN;
+			}		
+		}
 		else	
 			bytes_transfer = TEMP_FAILURE_RETRY(readv(s->comm_head.fd,req->iovec,req->iovec_count));		
 	else if(s->protocal == IPPROTO_UDP){		
@@ -358,8 +392,7 @@ int kn_sock_recv(handle_t h,st_io *req){
 		
 	if(bytes_transfer < 0 && errno == EAGAIN)
 		return kn_sock_post_recv(h,req);				
-	return bytes_transfer > 0 ? bytes_transfer:-1;
-		
+	return bytes_transfer > 0 ? bytes_transfer:-1;		
 }
 
 int kn_sock_post_send(handle_t h,st_io *req){
@@ -370,10 +403,15 @@ int kn_sock_post_send(handle_t h,st_io *req){
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
 		return -1;
 	 }
-	 if(!is_set_write((handle_t)s)){
+	if(s->ssl){
+		assert(req->iovec_count == 1);
+		if(req->iovec_count != 1)
+			return -1;
+	}			 
+	if(!is_set_write((handle_t)s)){
 	 	if(0 != kn_enable_write(s->e,(handle_t)s))
 	 		return -1;
-	 }
+	}
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);	 	
 	return 0;
 }
@@ -386,6 +424,11 @@ int kn_sock_post_recv(handle_t h,st_io *req){
 	if(!s->e || s->comm_head.status != SOCKET_ESTABLISH){
 		return -1;
 	}
+	if(s->ssl){
+		assert(req->iovec_count == 1);
+		if(req->iovec_count != 1)
+			return -1;
+	}	
 	 if(!is_set_read((handle_t)s)){
 	 	if(0 != kn_enable_read(s->e,(handle_t)s))
 	 		return -1;
