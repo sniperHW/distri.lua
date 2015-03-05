@@ -198,7 +198,7 @@ static void stream_conn_destroy(void *ptr)
 stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,decoder *_decoder)
 {
 	buffersize = size_of_pow2(buffersize);
-    	if(buffersize < 1024) buffersize = 1024;	
+    	if(buffersize < 256) buffersize = 256;	
 	stream_conn_t c = calloc(1,sizeof(*c));
 	c->recv_bufsize = buffersize;
 	c->unpack_buf = buffer_create(buffersize);
@@ -322,7 +322,7 @@ void RecvFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 				return;
 			}
 			if(ret != 0) return;
-			if(total_recv > 65536){
+			if(total_recv >= c->recv_bufsize){
 				PostRecv(c);
 				return;
 			}else{
