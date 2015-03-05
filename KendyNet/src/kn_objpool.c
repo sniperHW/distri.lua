@@ -85,6 +85,7 @@ static void* _calloc(allocator_t _,size_t num,size_t size){
 		}
 		free(a->chunks);
 		a->chunks = tmp;
+		a->chunkcount = chunkcount;
 		freechunk = (chunk*)kn_list_head(&a->freechunk);
 	}
 	obj *_obj = (obj*)(((char*)freechunk->data) + freechunk->head * objsize);

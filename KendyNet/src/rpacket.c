@@ -18,14 +18,14 @@ rpacket_t rpk_create(buffer_t b,
                      uint32_t pk_len)
 {
 	rpacket_t r = (rpacket_t)CALLOC(g_rpk_allocator,1,sizeof(*r));//calloc(1,sizeof(*r));
-	r->binbuf = NULL;
-	r->binbufpos = 0;
+	//r->binbuf = NULL;
+	//r->binbufpos = 0;
 	packet_buf(r) = buffer_acquire(NULL,b);
 	r->readbuf = packet_buf(r);//buffer_acquire(NULL,b);
 	r->len = kn_hton32(pk_len);
 	r->data_remain = pk_len;
 	packet_begpos(r) = pos;
-	packet_next(r) = NULL;
+	//packet_next(r) = NULL;
 	packet_type(r) = RPACKET;
 	packet_clone(r) = rpk_clone;
 	packet_makeforwrite(r) = rpk_makeforwrite;
@@ -39,14 +39,14 @@ static packet_t rpk_clone(packet_t p){
 	if(packet_type(p) == RPACKET){
 		rpacket_t other = (rpacket_t)p;
 		rpacket_t r = (rpacket_t)CALLOC(g_rpk_allocator,1,sizeof(*r));//calloc(1,sizeof(*r));	
-	    	r->binbuf = NULL;
-		r->binbufpos = 0;
+	    	//r->binbuf = NULL;
+		//r->binbufpos = 0;
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(other));
 		r->readbuf = other->readbuf;//packet_buf(r);//buffer_acquire(NULL,other->readbuf);
 		r->len = other->len;
 	    	r->data_remain = other->data_remain;
 	    	packet_begpos(r) = packet_begpos(other);
-	    	packet_next(r) = NULL;
+	    	//packet_next(r) = NULL;
 	    	packet_type(r) = RPACKET;
 		packet_clone(r) = rpk_clone;
 		packet_makeforwrite(r) = rpk_makeforwrite;
@@ -62,12 +62,12 @@ packet_t wpk_makeforread(packet_t p){
 		uint32_t hlen;
 		wpacket_t w = (wpacket_t)p;
 		rpacket_t r = (rpacket_t)CALLOC(g_rpk_allocator,1,sizeof(*r));//calloc(1,sizeof(*r));	
-		r->binbuf = NULL;
-		r->binbufpos = 0;
+		//r->binbuf = NULL;
+		//r->binbufpos = 0;
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(w));
 	    	r->readbuf = packet_buf(r);//buffer_acquire(NULL,packet_buf(w));
 	    	packet_begpos(r) = packet_begpos(w);
-	    	packet_next(r) = NULL;
+	    	//packet_next(r) = NULL;
 	    	packet_type(r) = RPACKET;
 		packet_clone(r) = rpk_clone;
 		packet_makeforwrite(r) = rpk_makeforwrite;

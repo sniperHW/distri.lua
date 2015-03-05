@@ -23,7 +23,7 @@ typedef struct
 engine_t kn_new_engine();
 void     kn_release_engine(engine_t);
 int        kn_engine_run(engine_t);
-void     kn_engine_runonce(engine_t,uint32_t);
+void     kn_engine_runonce(engine_t,uint32_t,uint32_t);
 void     kn_stop_engine(engine_t);
 void     SSL_init();
 

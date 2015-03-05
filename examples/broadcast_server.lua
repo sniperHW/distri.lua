@@ -17,13 +17,13 @@ local function on_packet(s,rpk)
 end
 
 local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
-		client:Establish(CSocket.rpkdecoder(65535))
+		client:Establish(CSocket.rpkdecoder(1024),1024)
 		clients[client] = client
 		clientcount = clientcount + 1
 		pingpong:Add(client,on_packet,function () 
 						 clients[client] = nil 
 					             	 clientcount = clientcount - 1 
-					             end,5000)		
+					             end)		
 	end)
 
 if success then

@@ -121,7 +121,7 @@ void kn_release_engine(engine_t e){
 	free(kq);
 }
 
-void kn_engine_runonce(engine_t e,uint32_t ms){
+void kn_engine_runonce(engine_t e,uint32_t ms,uint32_t max_process_time){
 	kn_kqueue *kq = (kn_kqueue*)e;
 	errno = 0;
 	int i;
@@ -131,9 +131,12 @@ void kn_engine_runonce(engine_t e,uint32_t ms){
 	msec = ms%1000;
 	ts.tv_nsec = (msec*1000*1000);
 	ts.tv_sec   = (ms/1000);
+	if(max_process_time < ms) 
+		max_process_time = ms; 
+	uint64_t timeout = kn_systemms64() + max_process_time;	
 	int nfds = TEMP_FAILURE_RETRY(kevent(kq->kfd, &kq->change, kq->timerfd ? 1:0 , kq->events,kq->maxevents, &ts));	
 	if(nfds > 0){
-		for(i=0; i < nfds ; ++i)
+		for(i=0; i < nfds && kn_systemms64() < timeout; ++i)
 		{
 			h = (handle_t)kq->events[i].udata;
 			if(h){ 

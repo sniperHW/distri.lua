@@ -87,6 +87,7 @@ static inline kn_list_node* kn_list_pop(kn_list *l)
 	if(!l->head) l->tail = NULL;
 	--l->size;
 	head->next = NULL;
+	
 	return head;
 }
 

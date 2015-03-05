@@ -14,7 +14,7 @@ local rpcclient = App.New()
 				return
 			end		
 			rpcclient:Add(client:Establish(CSocket.rpkdecoder()),nil,on_disconnected)
-			for j=1,1000 do
+			for j=1,100 do
 				Sche.Spawn(function (client)
 					while true do			
 						local rpccaller = RPC.MakeRPC(client,"Plus")

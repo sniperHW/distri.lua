@@ -164,8 +164,9 @@ static int lua_RunOnce(lua_State *L){
 	if(lua_gettop(L) < 1 || !lua_isnumber(L,1))
 		return luaL_error(L,"need a integer param");		
 	if(g_status){ 
-		uint32_t ms = (uint32_t)lua_tointeger(L,1);
-		kn_engine_runonce(g_engine,ms);
+		uint32_t ms = (uint32_t)lua_tounsigned(L,1);
+		uint32_t max_process_time = (uint32_t)lua_tounsigned(L,2);
+		kn_engine_runonce(g_engine,ms,max_process_time);
 	}
 	lua_pushboolean(L,g_status);
 	return 1;
@@ -200,6 +201,11 @@ static int lua_AddTopFilter(lua_State *L){
 		add_filter(g_top,lua_tostring(L,i));
 	}		
 	return 0;
+}
+
+static int lua_GetPid(lua_State *L){
+	lua_pushinteger(L,getpid());
+	return 1;
 }
 
 void reg_luahttp(lua_State *L);
@@ -237,7 +243,8 @@ int main(int argc,char **argv)
         		{"AddTopFilter",lua_AddTopFilter},
         		{"ForkExec",lua_ForkExec},
         		{"KillProcess",lua_KillProcess},
-        		{"StopProcess",lua_StopProcess},          		              		                   
+        		{"StopProcess",lua_StopProcess}, 
+        		{"GetPid",lua_GetPid},         		              		                   
         		{NULL, NULL}
     	};
     	luaL_newlib(L, l);

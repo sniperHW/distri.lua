@@ -151,10 +151,12 @@ static inline void update_send_list(stream_conn_t c,int32_t _bytestransfer)
 	uint32_t size;
 	while(bytestransfer)
 	{
-		w = (packet_t)kn_list_pop(&c->send_list);
+		w = (packet_t)kn_list_head(&c->send_list);
 		assert(w);
 		if((uint32_t)bytestransfer >= w->data_size)
 		{
+			kn_list_pop(&c->send_list);
+			//assert(c->send_list.size > 0 && c->head != NULL);
 			bytestransfer -= w->data_size;
 			destroy_packet(w);
 		}
@@ -173,7 +175,8 @@ static inline void update_send_list(stream_conn_t c,int32_t _bytestransfer)
 					packet_buf(w) = buffer_acquire(packet_buf(w),packet_buf(w)->next);
 				}
 			}
-			kn_list_pushfront(&c->send_list,(kn_list_node*)w);
+			break;
+			//kn_list_pushfront(&c->send_list,(kn_list_node*)w);
 		}
 	}
 }

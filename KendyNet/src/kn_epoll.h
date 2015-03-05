@@ -100,14 +100,17 @@ void kn_release_engine(engine_t e){
 	free(ep);
 }
 
-void kn_engine_runonce(engine_t e,uint32_t ms){
+void kn_engine_runonce(engine_t e,uint32_t ms,uint32_t max_process_time){
 	kn_epoll *ep = (kn_epoll*)e;
 	errno = 0;
 	int i;
 	handle_t h;
+	if(max_process_time < ms) 
+		max_process_time = ms; 
+	uint64_t timeout = kn_systemms64() + max_process_time;
 	int nfds = TEMP_FAILURE_RETRY(epoll_wait(ep->epfd,ep->events,ep->maxevents,ms));
 	if(nfds > 0){
-		for(i=0; i < nfds ; ++i)
+		for(i=0; i < nfds && kn_systemms64() < timeout; ++i)
 		{
 			h = (handle_t)ep->events[i].data.ptr;
 			if(h){ 

@@ -20,8 +20,8 @@ wpacket_t wpk_create(uint32_t size)
 	wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));
 	packet_buf(w) = buffer_create(size);
 	w->writebuf = packet_buf(w);//buffer_acquire(NULL,packet_buf(w));
-	packet_begpos(w)= 0;
-	packet_next(w) = NULL;
+	//packet_begpos(w)= 0;
+	//packet_next(w) = NULL;
 	packet_type(w) = WPACKET;
 	w->wpos = sizeof(*(w->len));
 	w->len = (uint32_t*)packet_buf(w)->buf;
@@ -42,8 +42,8 @@ wpacket_t wpk_create_by_bin(int8_t *addr,uint32_t size)
 	wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));	
 	packet_buf(w) = buffer_create(size);
 	w->writebuf = packet_buf(w);//buffer_acquire(NULL,packet_buf(w));
-	packet_begpos(w)= 0;
-	packet_next(w) = NULL;
+	//packet_begpos(w)= 0;
+	//packet_next(w) = NULL;
 	packet_type(w) = WPACKET;
 	memcpy(&w->writebuf->buf[0],addr,datasize);		
 	w->len = (uint32_t*)packet_buf(w)->buf;
@@ -60,11 +60,11 @@ static packet_t wpk_clone(packet_t p){
 	if(packet_type(p) == WPACKET){
 		wpacket_t _w = (wpacket_t)p;
 		wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));
-		w->writebuf = NULL;
-		w->len = NULL;
+		//w->writebuf = NULL;
+		//w->len = NULL;
 		packet_begpos(w) = packet_begpos(_w);
 		packet_buf(w) = buffer_acquire(NULL,packet_buf(_w));
-		packet_next(w) = NULL;
+		//packet_next(w) = NULL;
 		packet_type(w) = WPACKET;
 		packet_datasize(w) = packet_datasize(_w);
 		packet_clone(w) = wpk_clone;
@@ -79,10 +79,10 @@ packet_t rpk_makeforwrite(packet_t p){
 	if(packet_type(p) == RPACKET){
 		rpacket_t r = (rpacket_t)p;
 		wpacket_t w = (wpacket_t)CALLOC(g_wpk_allocator,1,sizeof(*w));//calloc(1,sizeof(*w));	
-		w->writebuf = NULL;
-		w->len = NULL;//触发拷贝之前len没有作用
-		w->wpos = 0;
-		packet_next(w) = NULL;
+		//w->writebuf = NULL;
+		//w->len = NULL;//触发拷贝之前len没有作用
+		//w->wpos = 0;
+		//packet_next(w) = NULL;
 		packet_type(w) = WPACKET;
 		packet_begpos(w) = packet_begpos(r);
 		packet_buf(w) = buffer_acquire(NULL,packet_buf(r));
