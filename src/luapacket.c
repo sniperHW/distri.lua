@@ -102,7 +102,7 @@ static int luabin_pack_array(wpacket_t wpk,lua_State *L,int index,uint32_t size)
 			luabin_pack_boolean(wpk,L,-1);
 		else{
 			uint32_t size = lua_rawlen(L,-1);
-			if(size == 0){
+			if(size > 0){
 				if(0 != (ret = luabin_pack_array(wpk,L,-1,size)))
 					break;				
 			}else{
