@@ -489,7 +489,10 @@ static int _read_string(lua_State *L){
 	rpacket_t rpk = (rpacket_t)p->_packet;
 	uint32_t len;
 	const char *data = rpk_read_binary(rpk,&len);
-	lua_pushlstring(L,data,(size_t)len);
+	if(data)
+		lua_pushlstring(L,data,(size_t)len);
+	else
+		lua_pushnil(L);
 	return 1;
 }
 
