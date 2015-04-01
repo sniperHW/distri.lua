@@ -33,7 +33,10 @@ Post feedback and issues on the [bug tracker](https://github.com/sniperHW/distri
 build
 ------
 ```
-in Linux
+in Ubuntu
+
+sudo apt-get install libssl-dev
+sudo apt-get install libreadline-dev
 
 make
 
