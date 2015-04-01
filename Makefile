@@ -48,7 +48,7 @@ KendyNet/libkendynet.a:
 deps/jemalloc/lib/libjemalloc.a:
 		cd deps/jemalloc;./configure;make
 deps/hiredis/libhiredis.a:
-		cd deps/hiredis/;make $(PLAT)
+		cd deps/hiredis/;make
 
 deps/http-parser/libhttp_parser.a:		
 		cd deps/http-parser/;make package
