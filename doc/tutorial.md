@@ -43,9 +43,17 @@ distri.lua是一个轻量级的lua网络应用框架,其主要设计目标是使
 
 [从github上克隆项目的最新版本](https://github.com/sniperHW/distri.lua.git)
 
-执行make distrilua
+在ubuntu下首先使用以下命令安装依赖库
 
-执行./distrilua examples/testsche 确定已经成功安装
+sudo apt-get install libssl-dev
+
+sudo apt-get install libreadline-dev
+
+其它系统请自行查找安装方法
+
+执行make
+
+执行./distrilua examples/testsche 确定已经编译成功
 
 ###<span id="3 事件处理模型">4 事件处理模型</span>
 
