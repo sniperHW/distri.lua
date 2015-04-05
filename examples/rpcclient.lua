@@ -5,28 +5,26 @@ local Sche = require "lua.sche"
 
 local rpcclient = App.New()
 
---rpcclient:Run(function ()
-	for i=1,10 do
-		Sche.Spawn(function () 
-			local client = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
-			if client:Connect("127.0.0.1",8000) then
-				print("connect to 127.0.0.1:8000 error")
-				return
-			end		
-			rpcclient:Add(client:Establish(CSocket.rpkdecoder()),nil,on_disconnected)
-			for j=1,100 do
-				Sche.Spawn(function (client)
-					while true do			
-						local rpccaller = RPC.MakeRPC(client,"Plus")
-						local err,ret = rpccaller:Call(1,2)
-						if err then
-							print("rpc error:" .. err)
-							client:Close()
-							return
-						end
+for i=1,10 do
+	Sche.Spawn(function () 
+		local client = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+		if client:Connect("127.0.0.1",8000) then
+			print("connect to 127.0.0.1:8000 error")
+			return
+		end		
+		rpcclient:Add(client:Establish(CSocket.rpkdecoder()),nil,on_disconnected)
+		local rpcHandler = RPC.MakeRPC(client,"Plus")
+		for j=1,100 do
+			Sche.Spawn(function (client)
+				while true do			
+					local err,ret = rpcHandler:Call(1,2)
+					if err then
+						print("rpc error:" .. err)
+						client:Close()
+						return
 					end
-				end,client)
-			end
-		end)	
-	end
---end)
+				end
+			end,client)
+		end
+	end)	
+end
