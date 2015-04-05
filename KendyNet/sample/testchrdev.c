@@ -42,7 +42,7 @@ void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	if(err == 0){
 		sock = s;
 		printf("connect ok\n");
-		kn_sock_associate(s,(engine_t)ud,sock_transfer_finish,release_stio);
+		kn_engine_associate((engine_t)ud,s,sock_transfer_finish,release_stio);
 	}else{
 		printf("connect failed\n");
 	}	

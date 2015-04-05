@@ -296,8 +296,8 @@ handle_t kn_new_sock(int domain,int type,int protocal){
 	return h;
 }
 
-int kn_sock_associate(handle_t h,
-		           engine_t e,
+int kn_engine_associate(engine_t e,
+		           handle_t h,
 		           void (*cb_ontranfnish)(handle_t,st_io*,int,int),
 		           void (*destry_stio)(st_io*)){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
