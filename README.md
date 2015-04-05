@@ -7,7 +7,7 @@ Features include:
 
 * Fast event loop
 * Cooperative socket library
-* Rpc support used json
+* RPC framework
 * Supported Linux and FreeBSD
 * Cooperative dns query
 * Lighted HttpServer
