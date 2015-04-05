@@ -175,6 +175,29 @@ packet分成两种类型分别为wpacket和rpacket,分别用于读和写,下面�
     hello
     ]]--
 
+除了基本类型以外,wpacket和rpacket还支持对lua table的打包和解包操作,因此可以直接使用lua table作为网络通讯协议,
+以下代码片段展示了如何操作lua table:
+
+    local t = {
+    	65537,
+    	"hello",
+    	{-3,-65536},
+    	fuck = "you",
+                  hello = function () print("hello") end
+    }
+    --setmetatable(t,{})
+    
+    local wpk = CPacket.NewWPacket(512)
+    
+    wpk:Write_table(t)
+    local tt = CPacket.NewRPacket(wpk):Read_table()
+    
+    print(tt[1])
+    print(tt[2])
+    print(tt[3][1])
+    print(tt[3][2])
+    print(tt.fuck)
+    print(tt.hello)
 
 
 ####<span id="5.3 application">5.3 application</span>
