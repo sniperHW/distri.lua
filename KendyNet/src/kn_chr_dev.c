@@ -124,8 +124,8 @@ int kn_chrdev_fd(handle_t h){
 	return ((handle_t)h)->fd; 
 }
 
-int kn_chrdev_associate(handle_t h,
-		            engine_t e,
+int kn_chrdev_associate(engine_t e,
+		            handle_t h,
 		            void (*cb_ontranfnish)(handle_t,st_io*,int,int),
 		            void (*destry_stio)(st_io*))
 {

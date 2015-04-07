@@ -10,10 +10,10 @@ int      kn_release_chrdev(handle_t,int close);
 
 int      kn_chrdev_fd(handle_t);
 
-int      kn_chrdev_associate(handle_t,
-						     engine_t,
-						     void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-						     void (*destry_stio)(st_io*));
+int      kn_chrdev_associate(engine_t,
+			    handle_t,
+			    void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+			    void (*destry_stio)(st_io*));
 						   
 						   
 int      kn_chrdev_write(handle_t,st_io*);

@@ -25,7 +25,7 @@ void     kn_release_engine(engine_t);
 int        kn_engine_run(engine_t);
 void     kn_engine_runonce(engine_t,uint32_t,uint32_t);
 void     kn_stop_engine(engine_t);
-int       kn_engine_associate(engine_t,
+int       kn_sock_associate(engine_t,
 			    handle_t,
 			    void (*cb_ontranfnish)(handle_t,st_io*,int,int),
 			    void (*destry_stio)(st_io*));

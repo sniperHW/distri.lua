@@ -17,7 +17,6 @@ typedef struct{
     	kn_list pending_recv;//尚未处理的读请求
     	struct kn_sockaddr    addr_local;
     	struct kn_sockaddr    addr_remote;    
-	void   (*cb_disconnect)(handle_t,int);
 	void   (*cb_accept)(handle_t,void *ud);
 	void   (*cb_ontranfnish)(handle_t,st_io*,int,int);
 	void   (*cb_connect)(handle_t,int,void *ud,kn_sockaddr*);
@@ -296,7 +295,7 @@ handle_t kn_new_sock(int domain,int type,int protocal){
 	return h;
 }
 
-int kn_engine_associate(engine_t e,
+int kn_sock_associate(engine_t e,
 		           handle_t h,
 		           void (*cb_ontranfnish)(handle_t,st_io*,int,int),
 		           void (*destry_stio)(st_io*)){
