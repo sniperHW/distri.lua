@@ -34,7 +34,7 @@ void     SSL_init();
 
 int      kn_is_ssl_socket(handle_t);
 int      kn_get_ssl_error(handle_t,int ret);
-handle_t kn_new_sock(int domain,int type,int protocal);
+handle_t kn_new_sock(int domain);
 int      kn_close_sock(handle_t);
 
 int      kn_sock_listen(engine_t,

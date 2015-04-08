@@ -61,7 +61,7 @@ int main(int argc,char **argv){
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
 	
-	handle_t l = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+	handle_t l = kn_new_sock(AF_INET);
 	kn_sock_listen(p,l,&local,on_accept,p);
 	kn_reg_timer(p,1000,timer_callback,NULL);		
 	kn_engine_run(p);

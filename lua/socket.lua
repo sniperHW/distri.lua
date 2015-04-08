@@ -7,11 +7,11 @@ local Sche = require "lua.sche"
 local LinkQue  = require "lua.linkque"
 local socket = {}
 
-function socket:new(domain,type,protocal)
+function socket:new(domain)
   local o = {}
   self.__index = self      
   setmetatable(o,self)
-  o.luasocket = CSocket.new1(o,domain,type,protocal)
+  o.luasocket = CSocket.new1(o,domain)
   if not o.luasocket then
 	return nil
   end
@@ -259,6 +259,6 @@ function socket:tostring()
 end
 
 return {
-	New = function (domain,type,protocal) return socket:new(domain,type,protocal) end
+	New = function (domain) return socket:new(domain) end
 }
 

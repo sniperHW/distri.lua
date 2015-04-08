@@ -15,9 +15,9 @@ enum{
 static int luasocket_new1(lua_State *L){
 	luaRef_t obj = toluaRef(L,1);
 	int domain = lua_tointeger(L,2);
-	int type = lua_tointeger(L,3);
-	int protocal = lua_tointeger(L,4);
-	handle_t sock = kn_new_sock(domain,type,protocal);	
+	//int type = lua_tointeger(L,3);
+	//int protocal = lua_tointeger(L,4);
+	handle_t sock = kn_new_sock(domain);	
 	if(!sock){
 		lua_pushnil(L);
 		return 1;

@@ -21,7 +21,7 @@ end
 
 for i=1,50 do
        sche.Spawn(function () 
-		local client = socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+		local client = socket.New(CSocket.AF_INET)
 		if client:Connect("127.0.0.1",8000) then
 			print("connect to 127.0.0.1:8000 error")
 			return

@@ -50,7 +50,7 @@ int main(int argc,char **argv){
 	int client_count = atoi(argv[3]);
 	int i = 0;
 	for(; i < client_count; ++i){
-		handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+		handle_t c = kn_new_sock(AF_INET);
 		//kn_sock_connect(p,c,&remote,NULL,on_connect,p);
 		int ret = kn_sock_connect(p,c,&remote,NULL);
 		if(ret > 0){

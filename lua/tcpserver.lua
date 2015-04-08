@@ -2,7 +2,7 @@ local Socket = require "lua.socket"
 local Sche = require "lua.sche"
 
 local function listen(ip,port,process)
-	local server = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+	local server = Socket.New(CSocket.AF_INET)
 	local err = server:Listen(ip,port)
 	if err then
 		return err

@@ -83,7 +83,7 @@ static void on_accept(handle_t s,void *ud){
 
 ut_socket_t ut_socket_listen(kn_sockaddr *local){
 	if(!g_engine) return empty_ident;
-	handle_t sock = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+	handle_t sock = kn_new_sock(AF_INET);
 	if(!sock) return empty_ident;
 	ut_socket* _ut_sock = ut_socket_new1(sock);
 	kn_sock_listen(g_engine,sock,local,on_accept,(void*)_ut_sock);
@@ -172,7 +172,7 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder* _decoder
 		}
 		return empty_ident;
 	}
-	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+	handle_t c = kn_new_sock(AF_INET);
 	struct st_connect _st_connect = {.err=0,.s=NULL,.ut=NULL};
 	int ret = kn_sock_connect(g_engine,c,remote,NULL);//,on_connect,&_st_connect);
 	if(ret < 0){
@@ -272,8 +272,8 @@ int ut_close(ut_socket_t _){
 void ut_socket_run(){
 	while(1){
 		if(uschedule() > 0)
-			kn_engine_runonce(g_engine,0);
+			kn_engine_runonce(g_engine,0,1);
 		else
-			kn_engine_runonce(g_engine,1);
+			kn_engine_runonce(g_engine,1,1);
 	}
 }
