@@ -42,7 +42,7 @@ void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	if(err == 0){
 		sock = s;
 		printf("connect ok\n");
-		kn_sock_associate((engine_t)ud,s,sock_transfer_finish,release_stio);
+		kn_engine_associate((engine_t)ud,s,sock_transfer_finish,release_stio);
 	}else{
 		printf("connect failed\n");
 	}	
@@ -75,7 +75,7 @@ int main(int argc,char **argv){
 	engine_t p = kn_new_engine();
 	handle_t h = kn_new_chrdev(0);
 	if(!h) return 0;
-	kn_chrdev_associate(p,h,chr_transfer_finish,NULL);
+	kn_engine_associate(p,h,chr_transfer_finish,NULL);
 	st_io io;
 	io.next.next = NULL;
 	struct iovec wbuf[1];

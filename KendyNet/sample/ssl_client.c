@@ -12,7 +12,7 @@ void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 		struct session *session = calloc(1,sizeof(*session));
 		session->s = s;
 		engine_t p = (engine_t)ud;
-		kn_sock_associate(p,s,transfer_finish,NULL);	
+		kn_engine_associate(p,s,transfer_finish,NULL);	
 		kn_sock_setud(s,session);    	
 		session_send(session,4096);
 	}else{

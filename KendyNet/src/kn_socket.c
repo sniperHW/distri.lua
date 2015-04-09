@@ -76,6 +76,29 @@ static void on_destroy(void *_){
 	free(s);
 }
 
+static int sock_associate(engine_t e,
+		               handle_t h,
+		               void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+		               void (*destry_stio)(st_io*)){
+	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
+	kn_socket *s = (kn_socket*)h;
+	if(!cb_ontranfnish) return -1;
+	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
+	if(s->e) kn_event_del(s->e,h);
+	s->destry_stio = destry_stio;
+	s->cb_ontranfnish = cb_ontranfnish;
+	s->e = e;
+#ifdef _LINUX
+	kn_event_add(s->e,h,EPOLLRDHUP);
+#elif   _BSD
+	kn_event_add(s->e,h,EVFILT_READ);
+	kn_event_add(s->e,h,EVFILT_WRITE);
+	kn_disable_read(s->e,h);
+	kn_disable_write(s->e,h);
+#endif
+	return 0;
+}
+
 static handle_t new_sock(int fd,int domain){//,int type,int protocal){
 	kn_socket *s = calloc(1,sizeof(*s));
 	if(!s){
@@ -86,6 +109,7 @@ static handle_t new_sock(int fd,int domain){//,int type,int protocal){
 	s->domain = domain;
 	s->comm_head.on_events = on_events;
 	s->comm_head.on_destroy = on_destroy;
+	s->comm_head.associate = sock_associate;
 	return (handle_t)s; 
 }
 
@@ -282,29 +306,6 @@ handle_t kn_new_sock(int domain){
 	handle_t h = new_sock(fd,domain);
 	if(!h) close(fd);
 	return h;
-}
-
-int kn_sock_associate(engine_t e,
-		           handle_t h,
-		           void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-		           void (*destry_stio)(st_io*)){
-	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
-	kn_socket *s = (kn_socket*)h;
-	if(!cb_ontranfnish) return -1;
-	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
-	if(s->e) kn_event_del(s->e,h);
-	s->destry_stio = destry_stio;
-	s->cb_ontranfnish = cb_ontranfnish;
-	s->e = e;
-#ifdef _LINUX
-	kn_event_add(s->e,h,EPOLLRDHUP);
-#elif   _BSD
-	kn_event_add(s->e,h,EVFILT_READ);
-	kn_event_add(s->e,h,EVFILT_WRITE);
-	kn_disable_read(s->e,h);
-	kn_disable_write(s->e,h);
-#endif
-	return 0;
 }
 
 int kn_sock_send(handle_t h,st_io *req){

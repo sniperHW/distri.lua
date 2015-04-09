@@ -93,41 +93,10 @@ static void on_events(handle_t h,int events){
 	}while(0);	
 }
 
-handle_t kn_new_chrdev(int fd){
-	struct stat buf;
-	if(0 != fstat(fd,&buf)) return NULL;
-	if(!S_ISCHR(buf.st_mode)) return NULL; 
-	kn_chr_dev *r = calloc(1,sizeof(*r));
-	((handle_t)r)->fd = fd;
-	kn_set_noblock(fd,0);
-	((handle_t)r)->type = KN_CHRDEV;
-	((handle_t)r)->on_events = on_events;
-	((handle_t)r)->on_destroy = on_destroy;
-	return (handle_t)r;
-}
-
-//如果close非0,则同时调用close(fd)
-int kn_release_chrdev(handle_t h,int beclose){
-	if(((handle_t)h)->type != KN_CHRDEV) return -1;
-	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
-	kn_chr_dev *r = (kn_chr_dev*)h;
-	if(beclose) close(r->comm_head.fd);
-	if(r->e){
-		r->comm_head.status = KN_CHRDEV_RELEASE;
-		kn_push_destroy(r->e,(handle_t)r);
-	}else
-		on_destroy(r);
-	return 0;	
-}
-
-int kn_chrdev_fd(handle_t h){
-	return ((handle_t)h)->fd; 
-}
-
-int kn_chrdev_associate(engine_t e,
-		            handle_t h,
-		            void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-		            void (*destry_stio)(st_io*))
+static int chrdev_associate(engine_t e,
+		                   handle_t h,
+		                   void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+		                   void (*destry_stio)(st_io*))
 {
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
@@ -147,8 +116,40 @@ int kn_chrdev_associate(engine_t e,
 #endif			
 	return 0;
 }
-						   
-						   
+
+handle_t kn_new_chrdev(int fd){
+	struct stat buf;
+	if(0 != fstat(fd,&buf)) return NULL;
+	if(!S_ISCHR(buf.st_mode)) return NULL; 
+	kn_chr_dev *r = calloc(1,sizeof(*r));
+	((handle_t)r)->fd = fd;
+	kn_set_noblock(fd,0);
+	((handle_t)r)->type = KN_CHRDEV;
+	((handle_t)r)->on_events = on_events;
+	((handle_t)r)->on_destroy = on_destroy;
+	((handle_t)r)->associate = chrdev_associate;
+	return (handle_t)r;
+}
+
+
+//如果close非0,则同时调用close(fd)
+int kn_release_chrdev(handle_t h,int beclose){
+	if(((handle_t)h)->type != KN_CHRDEV) return -1;
+	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
+	kn_chr_dev *r = (kn_chr_dev*)h;
+	if(beclose) close(r->comm_head.fd);
+	if(r->e){
+		r->comm_head.status = KN_CHRDEV_RELEASE;
+		kn_push_destroy(r->e,(handle_t)r);
+	}else
+		on_destroy(r);
+	return 0;	
+}
+
+int kn_chrdev_fd(handle_t h){
+	return ((handle_t)h)->fd; 
+}
+						  						   
 int kn_chr_dev_write(handle_t h,st_io *req){
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;

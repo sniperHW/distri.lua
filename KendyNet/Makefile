@@ -50,6 +50,7 @@ source =  src/kn_engine.c \
 	   src/uthread.c\
 	   src/kn_objpool.c\
 	   src/kn_chr_dev.c\
+	   src/kendynet.c\
 	   src/buffer.c
 
 sample-source = sample/broadcast_svr.c\

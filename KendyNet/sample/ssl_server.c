@@ -9,7 +9,7 @@ void on_accept(handle_t s,void *ud){
 	struct session *session = calloc(1,sizeof(*session));
 	session->s = s;
 	kn_sock_setud(s,session);
-	kn_sock_associate(p,s,transfer_finish,NULL);	
+	kn_engine_associate(p,s,transfer_finish,NULL);	
 	session_recv(session);
 	++client_count;
 	printf("%d\n",client_count); 

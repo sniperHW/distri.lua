@@ -15,7 +15,11 @@ typedef struct handle{
 			short set_read;
 			short set_write;
 		};
-	};	
+	};
+	int   (*associate)(engine_t,
+			  handle_t,
+			  void (*cb_ontranfnish)(handle_t,st_io*,int,int),
+			  void (*destry_stio)(st_io*));		
 	void (*on_events)(handle_t,int events);
 	void (*on_destroy)(void*);
 }handle;
