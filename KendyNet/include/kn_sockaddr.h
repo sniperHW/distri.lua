@@ -2,12 +2,12 @@
 #define _KN_SOCKADDR_H
 #include "kn_common_include.h"
 typedef struct kn_sockaddr{
-	int  addrtype;
 	union{
 		struct sockaddr_in  in;   //for ipv4 
 		struct sockaddr_in6 in6;  //for ipv6
 		struct sockaddr_un  un;   //for unix domain
 	};
+	int  addrtype;	
 }kn_sockaddr;
 
 

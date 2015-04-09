@@ -52,6 +52,7 @@ source =  src/kn_engine.c \
 	   src/kn_chr_dev.c\
 	   src/kendynet.c\
 	   src/kn_stream_socket.c\
+	   src/kn_datagram_socket.c\
 	   src/buffer.c
 
 sample-source = sample/broadcast_svr.c\
@@ -76,7 +77,9 @@ sample-source = sample/broadcast_svr.c\
 		 sample/testatomicst.c\
 		 sample/ssl_server.c\
 		 sample/ssl_client.c\
-		 sample/testpacket.c
+		 sample/testpacket.c\
+		 sample/udpserver.c\
+		 sample/udpclient.c
 	   
 release:$(source)
 	$(CC) $(SHARED) -O2 $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE)
@@ -112,6 +115,8 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o ssl_server ssl_server.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o ssl_client ssl_client.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testpacket testpacket.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o udpserver udpserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o udpclient udpclient.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 
 clean:
 	rm *.o

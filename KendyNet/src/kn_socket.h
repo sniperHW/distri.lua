@@ -20,12 +20,8 @@ typedef struct{
     	kn_list pending_recv;//尚未处理的读请求
     	struct kn_sockaddr    addr_local;
     	struct kn_sockaddr    addr_remote;    
-	//void   (*cb_accept)(handle_t,void *ud);
 	void   (*cb_ontranfnish)(handle_t,st_io*,int,int);
-	//void   (*cb_connect)(handle_t,int,void *ud,kn_sockaddr*);
-	void   (*destry_stio)(st_io*);
-	//SSL_CTX *ctx;
-	//SSL *ssl;
+	void   (*clear_func)(void*);
 }kn_socket;
 
 enum{

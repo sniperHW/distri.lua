@@ -24,11 +24,11 @@ static void on_events(handle_t h,int events);
 static void on_destroy(void *_){
 	kn_socket *s = (kn_socket*)_;
 	st_io *io_req;
-	if(s->destry_stio){
+	if(s->clear_func){
         		while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL)
-            			s->destry_stio(io_req);
+            			s->clear_func(io_req);
         		while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL)
-            			s->destry_stio(io_req);
+            			s->clear_func(io_req);
 	}
 	kn_stream_socket *ss = (kn_stream_socket*)_;
 	if(ss->ctx){
@@ -64,14 +64,12 @@ int stream_socket_close(handle_t h){
 
 static int stream_socket_associate(engine_t e,
 		               handle_t h,
-		               void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-		               void (*destry_stio)(st_io*)){
+		               void (*cb_ontranfnish)(handle_t,st_io*,int,int)){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
 	kn_socket *s = (kn_socket*)h;
 	if(!cb_ontranfnish) return -1;
 	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
 	if(s->e) kn_event_del(s->e,h);
-	s->destry_stio = destry_stio;
 	s->cb_ontranfnish = cb_ontranfnish;
 	s->e = e;
 #ifdef _LINUX
@@ -301,6 +299,8 @@ int stream_socket_listen(engine_t e,
 		   void (*cb_accept)(handle_t,void*),
 		   void*ud)
 {	
+	if(((handle_t)ss)->status != SOCKET_NONE) 
+		return -1;
 	int fd = ((handle_t)ss)->fd;
 	kn_set_noblock(fd,0);
 	int32_t yes = 1;

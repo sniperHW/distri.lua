@@ -7,13 +7,11 @@
 
 typedef struct{
 	handle comm_head;
-	//int    events;
-	//int    processing;
 	engine_t e;
 	kn_list pending_write;//尚未处理的发请求
     	kn_list pending_read;//尚未处理的读请求
 	void   (*cb_ontranfnish)(handle_t,st_io*,int,int);
-	void   (*destry_stio)(st_io*);
+	void   (*clear_func)(void*);
 }kn_chr_dev;
 
 
@@ -69,11 +67,11 @@ static void process_write(kn_chr_dev *r){
 static void on_destroy(void *_){
 	kn_chr_dev *r = (kn_chr_dev*)_;
 	st_io *io_req;
-	if(r->destry_stio){
+	if(r->clear_func){
         		while((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL)
-            			r->destry_stio(io_req);
+            			r->clear_func(io_req);
         		while((io_req = (st_io*)kn_list_pop(&r->pending_read))!=NULL)
-            			r->destry_stio(io_req);
+            			r->clear_func(io_req);
 	}
 	kn_event_del(r->e,(handle_t)r);
 	free(r);	
@@ -95,15 +93,13 @@ static void on_events(handle_t h,int events){
 
 static int chrdev_associate(engine_t e,
 		                   handle_t h,
-		                   void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-		                   void (*destry_stio)(st_io*))
+		                   void (*cb_ontranfnish)(handle_t,st_io*,int,int))
 {
 	if(((handle_t)h)->type != KN_CHRDEV) return -1;
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;	
 	if(!cb_ontranfnish) return -1;
 	if(r->e) kn_event_del(r->e,h);
-	r->destry_stio = destry_stio;
 	r->cb_ontranfnish = cb_ontranfnish;
 	r->e = e;
 #ifdef _LINUX
@@ -172,4 +168,9 @@ int kn_chrdev_read(handle_t h,st_io *req){
 	 }	
 	kn_list_pushback(&r->pending_read,(kn_list_node*)req);			
 	return 0;
+}
+
+void   kn_chrdev_set_clear_func(handle_t h,void (*func)(void*)){
+	if(((handle_t)h)->type == KN_CHRDEV)
+		((kn_chr_dev*)h)->clear_func = func; 
 }

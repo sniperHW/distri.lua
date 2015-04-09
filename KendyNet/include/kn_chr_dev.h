@@ -9,13 +9,8 @@ handle_t kn_new_chrdev(int fd);
 int      kn_release_chrdev(handle_t,int close);
 
 int      kn_chrdev_fd(handle_t);
-
-int      kn_chrdev_associate(engine_t,
-			    handle_t,
-			    void (*cb_ontranfnish)(handle_t,st_io*,int,int),
-			    void (*destry_stio)(st_io*));
 						   
-						   
+void   kn_chrdev_set_clear_func(handle_t,void (*func)(void*));						   
 int      kn_chrdev_write(handle_t,st_io*);
 int      kn_chrdev_read(handle_t,st_io*);						   
 

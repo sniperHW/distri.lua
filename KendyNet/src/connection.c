@@ -407,7 +407,7 @@ int connection_associate(engine_t e,
 			  CCB_DISCONNECTD on_disconnect)
 {
 		
-      kn_engine_associate(e,conn->handle,IoFinish,NULL);
+      kn_engine_associate(e,conn->handle,IoFinish);
       if(on_packet) conn->on_packet = on_packet;
       if(on_disconnect) conn->on_disconnected = on_disconnect;
       if(e && !conn->doing_recv) PostRecv(conn);
