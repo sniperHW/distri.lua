@@ -1,7 +1,7 @@
-#include "stream_conn.h"
+#include "connection.h"
 #include <assert.h>
 
-static inline void update_next_recv_pos(stream_conn_t c,int32_t _bytestransfer)
+static inline void update_next_recv_pos(connection_t c,int32_t _bytestransfer)
 {
 	assert(_bytestransfer >= 0);
 	uint32_t bytestransfer = (uint32_t)_bytestransfer;
@@ -23,7 +23,7 @@ static inline void update_next_recv_pos(stream_conn_t c,int32_t _bytestransfer)
 }
 
 
-static int raw_unpack(decoder *_,stream_conn_t c){
+static int raw_unpack(decoder *_,connection_t c){
 	((void)_);
 	uint32_t pk_len = 0;
 	packet_t r = NULL;
@@ -41,12 +41,12 @@ static int raw_unpack(decoder *_,stream_conn_t c){
 		}
 		c->on_packet(c,r); 
 		destroy_packet(r);
-		if(stream_conn_isclose(c)) return decode_socket_close;
+		if(connection_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;
 }
 
-static int rpk_unpack(decoder *d,stream_conn_t c){
+static int rpk_unpack(decoder *d,connection_t c){
 	uint32_t pk_len = 0;
 	uint32_t pk_total_size;
 	uint32_t pk_hlen = 0;
@@ -80,7 +80,7 @@ static int rpk_unpack(decoder *d,stream_conn_t c){
 		}while(pk_total_size);
 		c->on_packet(c,r);
 		destroy_packet(r);
-		if(stream_conn_isclose(c)) return decode_socket_close;
+		if(connection_isclose(c)) return decode_socket_close;
 	}while(1);
 	return 0;	
 }
@@ -105,7 +105,7 @@ void destroy_decoder(decoder *d){
 	free(d);
 }
 
-static inline st_io *prepare_send(stream_conn_t c)
+static inline st_io *prepare_send(connection_t c)
 {
 	int32_t i = 0;
 	packet_t w = (packet_t)kn_list_head(&c->send_list);
@@ -143,7 +143,7 @@ static inline st_io *prepare_send(stream_conn_t c)
 	return O;
 
 }
-static inline void update_send_list(stream_conn_t c,int32_t _bytestransfer)
+static inline void update_send_list(connection_t c,int32_t _bytestransfer)
 {
 	assert(_bytestransfer >= 0);
 	packet_t w;
@@ -181,9 +181,9 @@ static inline void update_send_list(stream_conn_t c,int32_t _bytestransfer)
 	}
 }
 
-static void stream_conn_destroy(void *ptr)
+static void connection_destroy(void *ptr)
 {
-	stream_conn_t c = (stream_conn_t)ptr;
+	connection_t c = (connection_t)ptr;
 	packet_t w;
 	while((w = (packet_t)kn_list_pop(&c->send_list))!=NULL)
 		destroy_packet(w);
@@ -198,11 +198,11 @@ static void stream_conn_destroy(void *ptr)
 	free(c);				
 }
 
-stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,decoder *_decoder)
+connection_t new_connection(handle_t sock,uint32_t buffersize,decoder *_decoder)
 {
 	buffersize = size_of_pow2(buffersize);
     	if(buffersize < 256) buffersize = 256;	
-	stream_conn_t c = calloc(1,sizeof(*c));
+	connection_t c = calloc(1,sizeof(*c));
 	c->recv_bufsize = buffersize;
 	c->unpack_buf = buffer_create(buffersize);
 	c->next_recv_buf = buffer_acquire(NULL,c->unpack_buf);
@@ -210,7 +210,7 @@ stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,decoder *_decode
 	c->wrecvbuf[0].iov_base = c->next_recv_buf->buf;
 	c->recv_overlap.iovec_count = 1;
 	c->recv_overlap.iovec = c->wrecvbuf;	
-	refobj_init((refobj*)c,stream_conn_destroy);
+	refobj_init((refobj*)c,connection_destroy);
 	c->handle = sock;
 	kn_sock_setud(sock,c);
 	c->_decoder = _decoder;
@@ -218,7 +218,7 @@ stream_conn_t new_stream_conn(handle_t sock,uint32_t buffersize,decoder *_decode
 	return c;
 }
 
-static void _force_close(stream_conn_t c,int err){
+static void _force_close(connection_t c,int err){
 	if(c->close_step == 2) return;
 	c->close_step = 2;
 	if(c->on_disconnected) c->on_disconnected(c,err);
@@ -230,12 +230,12 @@ static void _force_close(stream_conn_t c,int err){
 }
 
 int cb_lastsend(kn_timer_t t){
-	stream_conn_t c = (stream_conn_t)kn_timer_getud(t);
+	connection_t c = (connection_t)kn_timer_getud(t);
 	_force_close(c,0);
 	return 0;
 }
 
-void stream_conn_close(stream_conn_t c){
+void connection_close(connection_t c){
 	if(c->close_step) return;
 	c->close_step = 1;
 	if(!c->doing_send){
@@ -256,7 +256,7 @@ void stream_conn_close(stream_conn_t c){
 }
 
 
-static inline void prepare_recv(stream_conn_t c){
+static inline void prepare_recv(connection_t c){
 	buffer_t buf;
 	uint32_t pos;
 	int32_t i = 0;
@@ -289,13 +289,13 @@ static inline void prepare_recv(stream_conn_t c){
 
 
 
-static inline void PostRecv(stream_conn_t c){
+static inline void PostRecv(connection_t c){
 	prepare_recv(c);
 	kn_sock_post_recv(c->handle,&c->recv_overlap);	
 	c->doing_recv = 1;	
 }
 
-static inline int Recv(stream_conn_t c,int32_t* err_code){
+static inline int Recv(connection_t c,int32_t* err_code){
 	prepare_recv(c);
 	int ret = kn_sock_recv(c->handle,&c->recv_overlap);
 	if(err_code) *err_code = errno;
@@ -306,7 +306,7 @@ static inline int Recv(stream_conn_t c,int32_t* err_code){
 	return ret;
 }
 
-void RecvFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
+void RecvFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 {
 	c->doing_recv = 0;
 	int total_recv = 0;
@@ -336,7 +336,7 @@ void RecvFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 	}while(1);
 }
 
-void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
+void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 {
 	if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
 		_force_close(c,err_code);
@@ -346,7 +346,7 @@ void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 			st_io *io = prepare_send(c);
 			if(!io) {
 				c->doing_send = 0;
-				if(stream_conn_isclose(c)){
+				if(connection_isclose(c)){
 					//数据发送完毕且收到关闭请求，可以安全关闭了
 					_force_close(c,0);
 				}
@@ -367,7 +367,7 @@ void SendFinish(stream_conn_t c,int32_t bytestransfer,int32_t err_code)
 
 void IoFinish(handle_t sock,st_io *io,int32_t bytestransfer,int32_t err_code)
 {
-	stream_conn_t c = kn_sock_getud(sock);
+	connection_t c = kn_sock_getud(sock);
 	refobj_inc((refobj*)c);
 	if(io == (st_io*)&c->send_overlap)
 		SendFinish(c,bytestransfer,err_code);
@@ -379,13 +379,13 @@ void IoFinish(handle_t sock,st_io *io,int32_t bytestransfer,int32_t err_code)
 	refobj_dec((refobj*)c);
 }
 
-int stream_conn_send(stream_conn_t c,packet_t w)
+int connection_send(connection_t c,packet_t w)
 {	
 	if(packet_type(w) != WPACKET && packet_type(w) != RAWPACKET){
 		destroy_packet(w);
 		return -1;
 	}	
-	if(stream_conn_isclose(c)){
+	if(connection_isclose(c)){
 		destroy_packet(w);
 		return -1;
 	}
@@ -401,8 +401,8 @@ int stream_conn_send(stream_conn_t c,packet_t w)
 	return 0;
 }
 
-int stream_conn_associate(engine_t e,
-			  stream_conn_t conn,
+int connection_associate(engine_t e,
+			  connection_t conn,
 			  CCB_PROCESS_PKT on_packet,
 			  CCB_DISCONNECTD on_disconnect)
 {

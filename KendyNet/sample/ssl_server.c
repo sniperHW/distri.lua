@@ -28,7 +28,7 @@ int main(int argc,char **argv){
 	engine_t p = kn_new_engine();
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
-	handle_t l = kn_new_sock(AF_INET);
+	handle_t l = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	kn_sock_ssllisten(p,l,&local,on_accept,p,"cacert.pem","privkey.pem");
 	kn_reg_timer(p,1000,timer_callback,NULL);				
 	kn_engine_run(p);

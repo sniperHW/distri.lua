@@ -27,10 +27,10 @@ typedef struct handle{
 
 enum{
 	KN_SOCKET = 1,
-	KN_TIMERFD,
-	KN_CHRDEV,
-	KN_REDISCONN,
-	KN_MAILBOX,
+	KN_TIMERFD = 2,
+	KN_CHRDEV = 3,
+	KN_REDISCONN = 4,
+	KN_MAILBOX = 5,
 };
 
 #endif

@@ -1,4 +1,4 @@
-#include "stream_conn.h"
+#include "connection.h"
 #include "kendynet.h"
 #include "kn_refobj.h"
 

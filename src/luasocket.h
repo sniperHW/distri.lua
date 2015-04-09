@@ -1,12 +1,12 @@
 #ifndef _LUASOCKET_H
 #define _LUASOCKET_H
 #include "kendynet.h"
-#include "stream_conn.h"
+#include "connection.h"
 #include "lua_util.h"
 
 typedef struct {
 	handle_t      sock;
-	stream_conn_t streamconn;
+	connection_t streamconn;
 	int                type;
 	luaRef_t      luaObj;
 	int                listening;

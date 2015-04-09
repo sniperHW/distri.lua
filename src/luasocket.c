@@ -17,7 +17,7 @@ static int luasocket_new1(lua_State *L){
 	int domain = lua_tointeger(L,2);
 	//int type = lua_tointeger(L,3);
 	//int protocal = lua_tointeger(L,4);
-	handle_t sock = kn_new_sock(domain);	
+	handle_t sock = kn_new_sock(domain,SOCK_STREAM,IPPROTO_TCP);	
 	if(!sock){
 		lua_pushnil(L);
 		return 1;
@@ -60,8 +60,8 @@ static void PushPacket(lua_State *L,luaPushFunctor_t _){
 	//packet_ref_inc(self->p);
 }
 
-static void  on_packet(stream_conn_t c,packet_t p){
-	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
+static void  on_packet(connection_t c,packet_t p){
+	luasocket_t luasock = (luasocket_t)connection_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
 	stPushPacket st;
 	st.p = clone_packet(p);//(packet_t)rpk_copy_create(p);
@@ -82,15 +82,15 @@ static int luasocket_close(lua_State *L){
 			destroy_luasocket(luasock);
 		}						
 	}else{
-		stream_conn_close(luasock->streamconn);
+		connection_close(luasock->streamconn);
 		refobj_dec((refobj*)luasock->streamconn);
 	}
 	return 0;
 }
 
-static void on_disconnected(stream_conn_t c,int err){
+static void on_disconnected(connection_t c,int err){
 	printf("on_disconnected\n");
-	luasocket_t luasock = (luasocket_t)stream_conn_getud(c);
+	luasocket_t luasock = (luasocket_t)connection_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
 	const char *error = push_obj_callback(obj->L,"sri","__on_disconnected",*obj,err);
 	if(error){
@@ -99,19 +99,19 @@ static void on_disconnected(stream_conn_t c,int err){
 }
 
 int mask_http_decode;
-void on_http_cb(stream_conn_t c,packet_t p);
+void on_http_cb(connection_t c,packet_t p);
 static int luasocket_establish(lua_State *L){
 	luasocket_t luasock = (luasocket_t)lua_touserdata(L,1);
 	uint32_t    recvbuf_size = lua_tointeger(L,2);
 	decoder*    _decoder = (decoder*)lua_touserdata(L,3);
 	recvbuf_size = size_of_pow2(recvbuf_size);
     	if(recvbuf_size < 1024) recvbuf_size = 1024;
-	stream_conn_t conn = new_stream_conn(luasock->sock,recvbuf_size,_decoder);
-	stream_conn_associate(g_engine,conn,_decoder->mask == mask_http_decode?on_http_cb:on_packet,on_disconnected);	
+	connection_t conn = new_connection(luasock->sock,recvbuf_size,_decoder);
+	connection_associate(g_engine,conn,_decoder->mask == mask_http_decode?on_http_cb:on_packet,on_disconnected);	
 	refobj_inc((refobj*)conn);
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
-	stream_conn_setud(conn,luasock,destroy_luasocket);
+	connection_setud(conn,luasock,destroy_luasocket);
 	return 0;
 }
 
@@ -232,7 +232,7 @@ static int luasocket_send(lua_State *L){
 		lua_pushstring(L,"invaild data");
 		return 1;				
 	} 
-	if(0 != stream_conn_send(luasock->streamconn,(packet_t)pk->_packet))
+	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);

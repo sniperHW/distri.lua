@@ -14,7 +14,7 @@ typedef struct{
 	refobj refobj;
 	uint8_t type;
 	union{
-		stream_conn_t conn;
+		connection_t conn;
 		handle_t            sock;
 	};
 	kn_list pending_accept;
@@ -60,11 +60,11 @@ ut_socket* ut_socket_new1(handle_t sock){
 	return ut_sock;
 }
 
-ut_socket* ut_socket_new2(stream_conn_t conn){
+ut_socket* ut_socket_new2(connection_t conn){
 	ut_socket* ut_sock = calloc(1,sizeof(*ut_sock));
 	ut_sock->type = UT_CONN;
 	ut_sock->conn = conn;
-	stream_conn_setud(conn,ut_sock,NULL);
+	connection_setud(conn,ut_sock,NULL);
 	refobj_init((refobj*)ut_sock,ut_socket_destroy);	
 	return ut_sock;
 }
@@ -83,16 +83,16 @@ static void on_accept(handle_t s,void *ud){
 
 ut_socket_t ut_socket_listen(kn_sockaddr *local){
 	if(!g_engine) return empty_ident;
-	handle_t sock = kn_new_sock(AF_INET);
+	handle_t sock = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	if(!sock) return empty_ident;
 	ut_socket* _ut_sock = ut_socket_new1(sock);
 	kn_sock_listen(g_engine,sock,local,on_accept,(void*)_ut_sock);
 	return make_ident((refobj*)_ut_sock);
 }
 
-static void  on_packet(stream_conn_t c,packet_t p){
+static void  on_packet(connection_t c,packet_t p){
 	packet_t rpk = clone_packet(p);
-	ut_socket* utsock = (ut_socket*)stream_conn_getud(c);
+	ut_socket* utsock = (ut_socket*)connection_getud(c);
 	kn_list_pushback(&utsock->packets,(kn_list_node*)rpk);
 	struct st_node_block *_block = (struct st_node_block*)kn_list_pop(&utsock->ut_block);
 	if(_block){
@@ -101,8 +101,8 @@ static void  on_packet(stream_conn_t c,packet_t p){
 	}
 }
 
-static void on_disconnected(stream_conn_t c,int err){
-	ut_socket* utsock = (ut_socket*)stream_conn_getud(c);
+static void on_disconnected(connection_t c,int err){
+	ut_socket* utsock = (ut_socket*)connection_getud(c);
 	utsock->err = err;
 	utsock->close_step = 2;
 	struct st_node_block *_block;
@@ -127,9 +127,9 @@ ut_socket_t ut_accept(ut_socket_t _,uint32_t buffersize,decoder *_decoder){
 	while(1){
 		struct st_node_accept *_node = (struct st_node_accept*)kn_list_pop(&ut_sock->pending_accept);
 		if(_node){			
-			stream_conn_t conn = new_stream_conn(_node->sock,buffersize,_decoder);
+			connection_t conn = new_connection(_node->sock,buffersize,_decoder);
 			_utsock = make_ident((refobj*)ut_socket_new2(conn));
-			stream_conn_associate(g_engine,conn,on_packet,on_disconnected);
+			connection_associate(g_engine,conn,on_packet,on_disconnected);
 			free(_node);
 			break;
 		}
@@ -172,7 +172,7 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder* _decoder
 		}
 		return empty_ident;
 	}
-	handle_t c = kn_new_sock(AF_INET);
+	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	struct st_connect _st_connect = {.err=0,.s=NULL,.ut=NULL};
 	int ret = kn_sock_connect(g_engine,c,remote,NULL);//,on_connect,&_st_connect);
 	if(ret < 0){
@@ -185,9 +185,9 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder* _decoder
 		ut_block(0);
 	}	
 	if(_st_connect.s){
-		stream_conn_t conn = new_stream_conn(_st_connect.s,buffersize,_decoder);
+		connection_t conn = new_connection(_st_connect.s,buffersize,_decoder);
 		ut_socket_t _utsock = make_ident((refobj*)ut_socket_new2(conn));		
-		stream_conn_associate(g_engine,conn,on_packet,on_disconnected);		
+		connection_associate(g_engine,conn,on_packet,on_disconnected);		
 		return _utsock;
 	}else{
 		if(_decoder)
@@ -241,7 +241,7 @@ int ut_send(ut_socket_t _,packet_t p){
 		destroy_packet(p);
 		return -1;
 	}
-	int ret = stream_conn_send(utsock->conn,p);
+	int ret = connection_send(utsock->conn,p);
 	refobj_dec((refobj*)utsock);
 	return ret;
 }
@@ -257,7 +257,7 @@ int ut_close(ut_socket_t _){
 	}
 	utsock->close_step = 1;
 	if(utsock->type == UT_CONN){
-		stream_conn_close(utsock->conn);
+		connection_close(utsock->conn);
 	}else{
 		struct st_node_block *_block;
 		while((_block = (struct st_node_block*)kn_list_pop(&utsock->ut_block))){

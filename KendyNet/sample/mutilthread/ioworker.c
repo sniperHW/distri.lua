@@ -1,7 +1,7 @@
 #include "ioworker.h"
 #include "kn_thread.h"
 #include "logicprocessor.h"
-#include "stream_conn.h"
+#include "connection.h"
 
 static __thread worker_t t_worker = NULL;
 
@@ -10,13 +10,13 @@ static void sendmsg2logic(msg_t msg){
 	send2logic(t_worker->_logicprocessor,msg);
 }
 
-static void  on_packet(stream_conn_t c,packet_t _p){	
+static void  on_packet(connection_t c,packet_t _p){	
 	packet_t p = clone_packet(_p);
 	msg_t _msg = new_msg(MSG_PACKET,make_ident((refobj*)c),p,NULL);
 	sendmsg2logic(_msg);	
 }
 
-static void on_disconnected(stream_conn_t c,int err){
+static void on_disconnected(connection_t c,int err){
 	//notify logic disconnected
 	msg_t _msg = new_msg(MSG_CLOSED,make_ident((refobj*)c),NULL,(void*)((uint64_t)err));
 	sendmsg2logic(_msg);
@@ -25,24 +25,24 @@ static void on_disconnected(stream_conn_t c,int err){
 static void on_mail(kn_thread_mailbox_t *from,void *mail){
 	msg_t _msg = (msg_t)mail;
 	do{
-		stream_conn_t conn = (stream_conn_t)cast2refobj(_msg->_stream_conn);
+		connection_t conn = (connection_t)cast2refobj(_msg->_stream_conn);
 		if(!conn){ 
 			break;
 		}
 		switch(_msg->_msg_type){
 			case MSG_CONNECTION:{
-				stream_conn_associate(t_worker->_engine,conn,on_packet,on_disconnected);
+				connection_associate(t_worker->_engine,conn,on_packet,on_disconnected);
 				msg_t _msg1 = new_msg(MSG_CONNECTION,_msg->_stream_conn,NULL,NULL);
 				sendmsg2logic(_msg1);				
 				break;
 			}
 			case MSG_PACKET:{
-				stream_conn_send(conn,_msg->_packet);
+				connection_send(conn,_msg->_packet);
 				_msg->_packet = NULL;
 				break;
 			}
 			case MSG_ACTIVECLOSE:{
-				stream_conn_close(conn);
+				connection_close(conn);
 				break;
 			}
 			default:

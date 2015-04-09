@@ -31,7 +31,7 @@ source =  src/kn_engine.c \
 	   src/packet.c \
 	   src/kn_socket.c \
 	   src/kn_refobj.c \
-	   src/stream_conn.c \
+	   src/connection.c \
 	   src/kn_thread.c \
 	   src/kn_thread_mailbox.c \
 	   src/hash_map.c \
@@ -51,6 +51,7 @@ source =  src/kn_engine.c \
 	   src/kn_objpool.c\
 	   src/kn_chr_dev.c\
 	   src/kendynet.c\
+	   src/kn_stream_socket.c\
 	   src/buffer.c
 
 sample-source = sample/broadcast_svr.c\

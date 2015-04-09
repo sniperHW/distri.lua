@@ -29,7 +29,7 @@ int main(int argc,char **argv){
 	int i = 0;
 	send_size = atoi(argv[4]);
 	for(; i < client_count; ++i){
-		handle_t c = kn_new_sock(AF_INET);
+		handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 		int ret = kn_sock_connect(p,c,&remote,NULL);
 		if(ret > 0){
 			on_connect(c,0,p,&remote);

@@ -1,10 +1,10 @@
 #include "kendynet.h"
-#include "stream_conn.h"
+#include "connection.h"
 #include "kn_timer.h"
 
 int  client_count = 0; 
 
-void  on_packet(stream_conn_t c,packet_t p){
+void  on_packet(connection_t c,packet_t p){
 	
 	rpacket_t rpk = (rpacket_t)p;
 	const char *str = rpk_read_string(rpk);
@@ -13,10 +13,10 @@ void  on_packet(stream_conn_t c,packet_t p){
 		printf("error\n");
 		exit(0);
 	}
-	stream_conn_send(c,(packet_t)make_writepacket(p));
+	connection_send(c,(packet_t)make_writepacket(p));
 }
 
-void on_disconnected(stream_conn_t c,int err){
+void on_disconnected(connection_t c,int err){
 	printf("on_disconnectd\n");
 }
 
@@ -26,11 +26,11 @@ void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
 	if(s && err == 0){
 		printf("connect ok\n");
 		engine_t p = (engine_t)ud;
-		stream_conn_t conn = new_stream_conn(s,4096,new_rpk_decoder(4096));
-		stream_conn_associate(p,conn,on_packet,on_disconnected);		
+		connection_t conn = new_connection(s,4096,new_rpk_decoder(4096));
+		connection_associate(p,conn,on_packet,on_disconnected);		
 		wpacket_t wpk = wpk_create(64);
 		wpk_write_string(wpk,"hello");		
-		stream_conn_send(conn,(packet_t)wpk);		
+		connection_send(conn,(packet_t)wpk);		
 	}else{
 		printf("connect failed\n");
 	}	
@@ -50,7 +50,7 @@ int main(int argc,char **argv){
 	int client_count = atoi(argv[3]);
 	int i = 0;
 	for(; i < client_count; ++i){
-		handle_t c = kn_new_sock(AF_INET);
+		handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 		//kn_sock_connect(p,c,&remote,NULL,on_connect,p);
 		int ret = kn_sock_connect(p,c,&remote,NULL);
 		if(ret > 0){
