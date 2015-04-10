@@ -32,10 +32,10 @@ enum{
 typedef struct packet
 {
     kn_list_node  listnode;
+    uint8_t        type;    
     buffer_t      buf;    
     uint32_t      begin_pos;
     uint32_t      data_size;
-    uint8_t        type;
     struct packet * (*clone)(struct packet*);
     struct packet*  (*makeforwrite)(struct packet*);
     struct packet*  (*makeforread)(struct packet*);

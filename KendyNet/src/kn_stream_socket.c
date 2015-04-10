@@ -53,7 +53,7 @@ int stream_socket_close(handle_t h){
 	if(h->status != SOCKET_CLOSE){
 		if(s->e){
 			h->status = SOCKET_CLOSE;
-			shutdown(h->fd,SHUT_WR);
+			//shutdown(h->fd,SHUT_WR);
 			kn_push_destroy(s->e,h);
 		}else
 			on_destroy(s);				
@@ -71,6 +71,7 @@ static int stream_socket_associate(engine_t e,handle_t h,void (*callback)(handle
 		s->e = NULL;
 	}	
 	if(h->status == SOCKET_ESTABLISH){
+		kn_set_noblock(h->fd,0);
 #ifdef _LINUX
 		kn_event_add(e,h,EPOLLRDHUP);
 #elif   _BSD
@@ -253,7 +254,6 @@ static void process_accept(kn_socket *s){
             				continue;
         			}
 		   }
-		   kn_set_noblock(fd,0);
 		   h->status = SOCKET_ESTABLISH;
 		   ((kn_socket*)s)->callback(h,s,0,0);
     	}      

@@ -10,6 +10,7 @@ static int datagram_socket_associate(engine_t e,
 	if(s->e) kn_event_del(s->e,h);
 	s->callback = callback;
 	s->e = e;
+	kn_set_noblock(h->fd,0);
 #ifdef _LINUX
 	//kn_event_add(s->e,h,EPOLLERR);
 	kn_event_add(s->e,h,EPOLLIN);

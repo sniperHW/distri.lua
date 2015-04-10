@@ -115,7 +115,7 @@ static inline int stream_socket_recv(handle_t h,st_io *req){
 	if(!s->e || h->status != SOCKET_ESTABLISH){
 		return -1;
 	 }	
-	if(0 != kn_list_size(&s->pending_send))
+	if(0 != kn_list_size(&s->pending_recv))
 		return kn_sock_post_recv(h,req);
 		
 	int bytes_transfer = 0;
@@ -147,8 +147,8 @@ static inline int datagam_socket_recv(handle_t h,st_io *req){
 	if(!s->e || h->status != SOCKET_DATAGRAM){
 		return -1;
 	 }	
-	if(0 != kn_list_size(&s->pending_send))
-		return kn_sock_post_send(h,req);			
+	if(0 != kn_list_size(&s->pending_recv))
+		return kn_sock_post_recv(h,req);			
 
 	struct msghdr _msghdr = {
 		.msg_name = &req->addr,
@@ -161,7 +161,7 @@ static inline int datagam_socket_recv(handle_t h,st_io *req){
 	};		
 	int bytes_transfer = TEMP_FAILURE_RETRY(recvmsg(s->comm_head.fd,&_msghdr,0));					
 	if(bytes_transfer < 0 && errno == EAGAIN)
-		return kn_sock_post_send(h,req);				
+		return kn_sock_post_recv(h,req);				
 	return bytes_transfer > 0 ? bytes_transfer:-1;	
 } 
 
