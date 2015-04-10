@@ -27,8 +27,6 @@ static void on_destroy(void *_){
 	kn_socket *s = (kn_socket*)_;
 	st_io *io_req;
 	if(s->clear_func){
-        		while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL)
-            			s->clear_func(io_req);
         		while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL)
             			s->clear_func(io_req);
 	}

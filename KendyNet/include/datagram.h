@@ -16,23 +16,19 @@ typedef struct datagram
     refobj   refobj;    
     handle_t handle;
     struct    iovec wsendbuf[MAX_WBAF];
-    struct    iovec wrecvbuf[2];
+    struct    iovec wrecvbuf;
     st_io      recv_overlap;
     void*    ud;
     void      (*destroy_ud)(void*);
-    uint32_t next_recv_pos;
-    buffer_t next_recv_buf;
-    //buffer_t unpack_buf;
-    decoder* _decoder;d
+    buffer_t recv_buf;    
+    decoder* _decoder;
     uint32_t recv_bufsize;
-    void     (*on_packet)(struct datagram*,packet_t,kn_sockaddr);
-    uint8_t  doing_recv:1;
-    uint8_t  close_step:2;
-    uint8_t  processing:1;         
+    void     (*on_packet)(struct datagram*,packet_t,kn_sockaddr*);
+    uint8_t  doing_recv;         
 }datagram,*datagram_t;
 
 
-typedef void  (*DCCB_PROCESS_PKT)(datagram_t,packet_t,kn_sockaddr);
+typedef void  (*DCCB_PROCESS_PKT)(datagram_t,packet_t,kn_sockaddr*);
 
 datagram_t new_datagram(handle_t sock,uint32_t buffersize,decoder *_decoder);
 void              datagram_close(datagram_t c);
@@ -50,22 +46,17 @@ static inline void* datagram_getud(datagram_t c){
     return c->ud;
 }
 
-static inline int datagram_isclose(datagram_t c){
-    return c->close_step > 0;
-}
-
 int     datagram_associate(engine_t,datagram_t conn,DCCB_PROCESS_PKT);
 
 typedef struct {
     decoder base;
-    uint32_t maxpacket_size;
 }datagram_rpk_decoder;
 
 typedef struct {
     decoder base;
 }datagram_rawpk_decoder;
 
-decoder* new_datagram_rpk_decoder(uint32_t maxpacket_size);
+decoder* new_datagram_rpk_decoder();
 decoder* new_datagram_rawpk_decoder();
 
 #endif

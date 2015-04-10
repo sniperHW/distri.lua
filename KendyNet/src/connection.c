@@ -308,7 +308,7 @@ static inline int Recv(connection_t c,int32_t* err_code){
 	return ret;
 }
 
-void RecvFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
+static void RecvFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 {
 	c->doing_recv = 0;
 	int total_recv = 0;
@@ -338,7 +338,7 @@ void RecvFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 	}while(1);
 }
 
-void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
+static void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 {
 	if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
 		_force_close(c,err_code);
@@ -367,7 +367,7 @@ void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 	}
 }
 
-void IoFinish(handle_t sock,void *_,int32_t bytestransfer,int32_t err_code)
+static void IoFinish(handle_t sock,void *_,int32_t bytestransfer,int32_t err_code)
 {
 	st_io *io = ((st_io*)_);
 	connection_t c = kn_sock_getud(sock);
