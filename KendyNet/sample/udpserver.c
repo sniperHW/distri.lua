@@ -25,7 +25,8 @@ void datagram_send(struct datagram *s,int32_t size)
    	s->wbuf[0].iov_len = size;
 	s->send_overlap.iovec_count = 1;
 	s->send_overlap.iovec = s->wbuf;  	
-    	kn_sock_post_send(s->s,&s->send_overlap); 
+    	kn_sock_send(s->s,&s->send_overlap);
+    	datagram_recv(s); 
 }
 
 double totalbytes   = 0; 
@@ -39,12 +40,7 @@ void transfer_finish(handle_t s,void *_,int32_t bytestransfer,int32_t err){
 		exit(0);      
 		return;
 	}	
-	if(io == &session->send_overlap){
-		//printf("send_finish\n");
-		datagram_recv(session);
-	}
-	else if(io == &session->recv_overlap){
-		//printf("recv_finish\n");
+	if(io == &session->recv_overlap){
 		datagram_send(session,bytestransfer);
 		totalbytes += bytestransfer;
 	}

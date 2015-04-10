@@ -12,14 +12,11 @@ static int datagram_socket_associate(engine_t e,
 	s->e = e;
 	kn_set_noblock(h->fd,0);
 #ifdef _LINUX
-	//kn_event_add(s->e,h,EPOLLERR);
 	kn_event_add(s->e,h,EPOLLIN);
 	kn_disable_read(s->e,h);	
 #elif   _BSD
 	kn_event_add(s->e,h,EVFILT_READ);
-	kn_event_add(s->e,h,EVFILT_WRITE);
 	kn_disable_read(s->e,h);
-	kn_disable_write(s->e,h);
 #endif
 	return 0;
 }
@@ -107,38 +104,6 @@ static void process_read(kn_socket *s){
 	}	
 }
 
-static void process_write(kn_socket *s){
-	st_io* io_req = 0;
-	int bytes_transfer = 0;
-	struct msghdr _msghdr;	
-	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
-		errno = 0;
-		_msghdr = (struct msghdr){
-			.msg_name = &io_req->addr,
-			.msg_namelen = sizeof(io_req->addr),
-			.msg_iov = io_req->iovec,
-			.msg_iovlen = io_req->iovec_count,
-			.msg_flags = 0,
-			.msg_control = NULL,
-			.msg_controllen = 0
-		};	
-		bytes_transfer = TEMP_FAILURE_RETRY(sendmsg(s->comm_head.fd,&_msghdr,0));
-		if(bytes_transfer < 0 && errno == EAGAIN){
-				//将请求重新放回到队列
-				kn_list_pushback(&s->pending_send,(kn_list_node*)io_req);
-				break;
-		}else{
-			s->callback((handle_t)s,io_req,bytes_transfer,errno);
-			if(s->comm_head.status == SOCKET_CLOSE)
-				return;
-		}
-	}
-	if(!kn_list_size(&s->pending_send)){
-		//没有接收请求了,取消EPOLLOUT
-		kn_disable_write(s->e,(handle_t)s);
-	}		
-}
-
 static void on_events(handle_t h,int events){	
 	kn_socket *s = (kn_socket*)h;
 	if(h->status == SOCKET_CLOSE)
@@ -146,17 +111,10 @@ static void on_events(handle_t h,int events){
 	do{
 		if(h->status == SOCKET_DATAGRAM){
 			if(events & EVENT_READ){
-				//if(kn_list_size(&s->pending_recv) == 0){
-				//	s->callback((handle_t)s,NULL,-1,0);
-				//	break;
-				//}else{
 				process_read(s);	
 				if(h->status == SOCKET_CLOSE) 
 					break;								
-				//}
-			}		
-			if(events & EVENT_WRITE)
-				process_write(s);			
+			}				
 		}
 	}while(0);
 }

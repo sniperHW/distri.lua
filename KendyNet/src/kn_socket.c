@@ -91,10 +91,7 @@ static inline int datagam_socket_send(handle_t h,st_io *req){
 		.msg_control = NULL,
 		.msg_controllen = 0
 	};		
-	int bytes_transfer = TEMP_FAILURE_RETRY(sendmsg(s->comm_head.fd,&_msghdr,0));					
-	if(bytes_transfer < 0 && errno == EAGAIN)
-		return kn_sock_post_send(h,req);				
-	return bytes_transfer > 0 ? bytes_transfer:-1;	
+	return TEMP_FAILURE_RETRY(sendmsg(s->comm_head.fd,&_msghdr,0));					
 }
 
 int kn_sock_send(handle_t h,st_io *req){
@@ -195,7 +192,7 @@ static inline int stream_socket_post_send(handle_t h,st_io *req){
 	return 0;	
 }
 
-static inline int datagram_socket_post_send(handle_t h,st_io *req){
+/*static inline int datagram_socket_post_send(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || h->status != SOCKET_DATAGRAM){
 		return -1;
@@ -206,7 +203,7 @@ static inline int datagram_socket_post_send(handle_t h,st_io *req){
 	}
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);	 	
 	return 0;	
-}
+}*/
 
 int kn_sock_post_send(handle_t h,st_io *req){
 	if(h->type != KN_SOCKET){ 
@@ -215,7 +212,7 @@ int kn_sock_post_send(handle_t h,st_io *req){
 	if(((kn_socket*)h)->type == SOCK_STREAM)
 		return stream_socket_post_send(h,req);
 	else if(((kn_socket*)h)->type == SOCK_DGRAM)
-		return datagram_socket_post_send(h,req);
+		return -1;//datagram should do send immediate
 	else
 		return -1;
 }
