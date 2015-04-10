@@ -60,7 +60,7 @@ int main(int argc,char **argv){
 	kn_engine_associate(p,l,transfer_finish);
 	struct datagram d = {.s = l};
 	kn_sock_setud(l,&d);
-	datagram_send(&d,100);	
+	datagram_send(&d,200);	
 	kn_engine_run(p);
 	return 0;
 }

@@ -23,8 +23,9 @@ static inline void update_next_recv_pos(connection_t c,int32_t _bytestransfer)
 }
 
 
-static int raw_unpack(decoder *_,connection_t c){
+static int raw_unpack(decoder *_,void* _1){
 	((void)_);
+	connection_t c = (connection_t)_1;
 	uint32_t pk_len = 0;
 	packet_t r = NULL;
 	do{
@@ -46,11 +47,12 @@ static int raw_unpack(decoder *_,connection_t c){
 	return 0;
 }
 
-static int rpk_unpack(decoder *d,connection_t c){
+static int rpk_unpack(decoder *d,void *_){
 	uint32_t pk_len = 0;
 	uint32_t pk_total_size;
 	uint32_t pk_hlen = 0;
 	packet_t r = NULL;
+	connection_t c = (connection_t)_;
 	rpk_decoder *rdecoder = (rpk_decoder*)d;
 	do{
 		if(c->unpack_size <= sizeof(uint32_t))

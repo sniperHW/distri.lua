@@ -173,8 +173,9 @@ static int on_message_complete(http_parser *_parser){
 	return ret;			
 }
 
-static int unpack(decoder *d,connection_t c){
+static int unpack(decoder *d,void *_){
 	uint32_t pk_len = 0;
+	connection_t c = (connection_t)_;
 	struct httpdecoder *httpd = (struct httpdecoder*)d;
 	if(!httpd->parser.c) httpd->parser.c = c;
 	do{ 

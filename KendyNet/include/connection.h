@@ -9,23 +9,7 @@
 #include "rawpacket.h"
 #include "kn_refobj.h"
 #include "kn_timer.h"
-
-#define MAX_WBAF 512
-#define MAX_SEND_SIZE 65535
-
-enum {
-	decode_packet_too_big = -1,
-	decode_socket_close = -2,
-	decode_unknow_error = -3,
-};
-
-struct connection;
-//解包器接口
-typedef struct decoder{
-	int  (*unpack)(struct decoder*,struct connection*);
-	void (*destroy)(struct decoder*);
-	int  mask;
-}decoder;
+#include "decoder.h"
 
 typedef struct connection
 {
@@ -100,7 +84,5 @@ typedef struct {
 
 decoder* new_rpk_decoder(uint32_t maxpacket_size);
 decoder* new_rawpk_decoder();
-
-void destroy_decoder(decoder*);
 
 #endif
