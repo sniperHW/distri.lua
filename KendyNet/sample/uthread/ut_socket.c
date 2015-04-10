@@ -69,8 +69,8 @@ ut_socket* ut_socket_new2(connection_t conn){
 	return ut_sock;
 }
 
-static void on_accept(handle_t s,void *ud){
-	ut_socket* _ut_sock = (ut_socket*)ud;
+static void on_accept(handle_t s,void *listener,int _2,int _3){
+	ut_socket* _ut_sock = (ut_socket*)kn_sock_getud((handle_t)listener);
 	struct st_node_accept *node = calloc(1,sizeof(*node));
 	node->sock = s;
 	kn_list_pushback(&_ut_sock->pending_accept,(kn_list_node*)node);
@@ -86,7 +86,10 @@ ut_socket_t ut_socket_listen(kn_sockaddr *local){
 	handle_t sock = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	if(!sock) return empty_ident;
 	ut_socket* _ut_sock = ut_socket_new1(sock);
-	kn_sock_listen(g_engine,sock,local,on_accept,(void*)_ut_sock);
+	if(0 == kn_sock_listen(sock,local)){
+		kn_sock_setud(sock,_ut_sock);
+		kn_engine_associate(g_engine,sock,on_accept);
+	}
 	return make_ident((refobj*)_ut_sock);
 }
 
@@ -153,9 +156,10 @@ struct st_connect{
 	uthread_t *ut;	
 };
 
-void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
+//void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
+void on_connect(handle_t s,void *_1,int _2,int err)
 {
-	struct st_connect *_st_connect = (struct st_connect*)ud;
+	struct st_connect *_st_connect = (struct st_connect*)kn_sock_getud(s);
 	_st_connect->err = err;
 	_st_connect->s = s;
 	if(_st_connect->ut){
@@ -174,14 +178,16 @@ ut_socket_t ut_connect(kn_sockaddr *remote,uint32_t buffersize,decoder* _decoder
 	}
 	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	struct st_connect _st_connect = {.err=0,.s=NULL,.ut=NULL};
-	int ret = kn_sock_connect(g_engine,c,remote,NULL);//,on_connect,&_st_connect);
+	int ret = kn_sock_connect(c,remote,NULL);//,on_connect,&_st_connect);
 	if(ret < 0){
 		if(_decoder)
 			destroy_decoder(_decoder);	
 		return empty_ident;		
 	}else if(ret == 0){
 		_st_connect.ut = &ut_current;
-		kn_sock_set_connect_cb(c,on_connect,&_st_connect);		
+		kn_sock_setud(c,&_st_connect);
+		kn_engine_associate(g_engine,c,on_connect);
+		//kn_sock_set_connect_cb(c,on_connect,&_st_connect);		
 		ut_block(0);
 	}	
 	if(_st_connect.s){

@@ -18,7 +18,7 @@ typedef struct handle{
 	};
 	int   (*associate)(engine_t,
 			  handle_t,
-			  void (*cb_ontranfnish)(handle_t,st_io*,int,int));		
+			  void (*callback)(handle_t,void*,int,int));		
 	void (*on_events)(handle_t,int events);
 	void (*on_destroy)(void*);
 }handle;

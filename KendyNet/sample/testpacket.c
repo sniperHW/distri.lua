@@ -8,7 +8,7 @@ int main(){
 	for(; i < 64; ++i){
 		wpk_write_uint32(wpk,i);
 	}
-	rpacket_t rpk = (rpacket_t)make_readpacket(wpk);
+	rpacket_t rpk = (rpacket_t)make_readpacket((packet_t)wpk);
 	destroy_packet(wpk);
 	printf("here\n");
 	for(i = 0; i < 64; ++i){

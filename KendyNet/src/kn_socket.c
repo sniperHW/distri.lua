@@ -264,17 +264,15 @@ int kn_sock_post_recv(handle_t h,st_io *req){
 }
 
 
-int kn_sock_listen(engine_t e,
-		   handle_t h,
-		   kn_sockaddr *local,
-		   void (*cb_accept)(handle_t,void*),
-		   void *ud)
+int kn_sock_listen(handle_t h,
+		   kn_sockaddr *local)
+		   //void (*cb_accept)(handle_t,void*),
+		   //void *ud)
 {
 	if(!(((handle_t)h)->type & KN_SOCKET)) return -1;	
 	kn_socket *s = (kn_socket*)h;
-	if(s->e) return -1;
 	if(s->type == SOCK_STREAM){
-		return stream_socket_listen(e,(kn_stream_socket*)s,local,cb_accept,ud);	
+		return stream_socket_listen((kn_stream_socket*)s,local);	
 	}else if(s->type == SOCK_DGRAM){
 		return datagram_socket_listen((kn_datagram_socket*)s,local);
 	}	
@@ -282,14 +280,14 @@ int kn_sock_listen(engine_t e,
 }
 
 
-void   kn_sock_set_connect_cb(handle_t h,void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),void*ud){
+/*void   kn_sock_set_connect_cb(handle_t h,void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),void*ud){
 	if(((handle_t)h)->type == KN_SOCKET && ((kn_socket*)h)->type == SOCK_STREAM){
 		((kn_stream_socket*)h)->cb_connect = cb_connect;
 		h->ud = ud;
 	}
-}
+}*/
 
-int kn_sock_connect(engine_t e,
+int kn_sock_connect(//engine_t e,
 		        handle_t h,
 		        kn_sockaddr *remote,
 		        kn_sockaddr *local)
@@ -297,11 +295,10 @@ int kn_sock_connect(engine_t e,
 	if(((handle_t)h)->type != KN_SOCKET) return -1;
 	kn_socket *s = (kn_socket*)h;
 	if(s->comm_head.status != SOCKET_NONE) return -1;
-	if(s->e) return -1;
 	if(s->type == SOCK_STREAM){
-		return stream_socket_connect(e,(kn_stream_socket*)s,local,remote);	
+		return stream_socket_connect((kn_stream_socket*)s,local,remote);	
 	}else if(s->type == SOCK_DGRAM){
-
+		return datagram_socket_connect((kn_datagram_socket*)s,local,remote);
 	}
 	return -1;	
 }

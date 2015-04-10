@@ -28,27 +28,30 @@ void datagram_send(struct datagram *s,int32_t size)
     	kn_sock_post_send(s->s,&s->send_overlap); 
 }
 
-uint64_t totalbytes   = 0; 
+double totalbytes   = 0; 
 
-void transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
-    struct datagram *session = kn_sock_getud(s);
+void transfer_finish(handle_t s,void *_,int32_t bytestransfer,int32_t err){
+    	st_io *io = ((st_io*)_); 
+    	struct datagram *session = kn_sock_getud(s);
 	if(!io || bytestransfer <= 0)
 	{
-	kn_close_sock(s);
-	exit(0);      
-	return;
+		kn_close_sock(s);
+		exit(0);      
+		return;
 	}	
 	if(io == &session->send_overlap){
-	datagram_recv(session);
+		//printf("send_finish\n");
+		datagram_recv(session);
 	}
 	else if(io == &session->recv_overlap){
-	datagram_send(session,bytestransfer);
-	totalbytes += bytestransfer;
+		//printf("recv_finish\n");
+		datagram_send(session,bytestransfer);
+		totalbytes += bytestransfer;
 	}
 }
 
 int timer_callback(kn_timer_t timer){
-	printf("totalbytes:%ld MB/s\n",totalbytes/1024/1024);
+	printf("totalbytes:%f MB/s\n",totalbytes/1024/1024);
 	totalbytes = 0;
 	return 1;
 }
@@ -59,7 +62,7 @@ int main(int argc,char **argv){
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
 	handle_t l = kn_new_sock(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
-	kn_sock_listen(NULL,l,&local,NULL,NULL);
+	kn_sock_listen(l,&local);
 	kn_engine_associate(p,l,transfer_finish);
 	struct datagram d = {.s = l};
 	kn_sock_setud(l,&d);

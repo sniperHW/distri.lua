@@ -115,7 +115,7 @@ static int luasocket_establish(lua_State *L){
 	return 0;
 }
 
-static void cb_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
+static void cb_connect(handle_t s,void *remoteaddr,int _ ,int err)
 {
 	((void)_);
 	luasocket_t luasock = kn_sock_getud(s);
@@ -146,38 +146,21 @@ static int luasocket_connect(lua_State *L){
 	int port = lua_tointeger(L,3);	
 	kn_sockaddr host;
 	kn_addr_init_in(&host,ip,port);
-	int ret = kn_sock_connect(g_engine,luasock->sock,&host,NULL);
+	int ret = kn_sock_connect(luasock->sock,&host,NULL);
 	if(ret > 0){//kn_sock_connect(p,c,&remote,NULL)){
 		lua_pushnil(L);
 		lua_pushinteger(L,ret);
 	}else if(ret == 0){
-		kn_sock_set_connect_cb(luasock->sock,cb_connect,NULL);
+		kn_engine_associate(g_engine,luasock->sock,cb_connect);
 		lua_pushnil(L);
 		lua_pushinteger(L,ret);		
 	}else{
 		lua_pushstring(L,"connect error");
 		lua_pushnil(L);
 	}	
-	/*int ret;	
-	if( 0 > (ret = kn_sock_connect(g_engine,luasock->sock,&host,NULL,cb_connect,NULL))){
-		lua_pushstring(L,"connect error");
-		lua_pushnil(L);
-	}else{
-		lua_pushnil(L);
-		lua_pushinteger(L,ret);
-	}*/
 	kn_sock_setud(luasock->sock,luasock);
 	return 2;
 }
-
-/*static void on_new_conn(handle_t s,void* ud){
-	luasocket_t luasock = (luasocket_t)ud;
-	luaRef_t  *obj = &luasock->luaObj;
-	const char *error = push_obj_callback(obj->L,"srp","__on_new_connection",*obj,s);
-	if(error){
-		SYS_LOG(LOG_ERROR,"error on __on_new_connection:%s\n",error);			
-	}	
-}*/
 
 static int luasocket_listen(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);

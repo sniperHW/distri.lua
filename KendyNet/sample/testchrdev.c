@@ -16,14 +16,15 @@ st_io *new_stio(int size){
 		return io;	
 }
 
-void release_stio(st_io *io){
+void release_stio(void *_){
+	st_io *io = ((st_io*)_);
 	free(io->iovec->iov_base);
 	free(io->iovec);
 	free(io);
 }
 
-
-void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
+void sock_transfer_finish(handle_t s,void *_,int32_t bytestransfer,int32_t err){
+    	st_io *io = ((st_io*)_); 
 	if(!io || bytestransfer <= 0)
 	{
 		kn_close_sock(s);
@@ -36,22 +37,22 @@ void sock_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err
 	release_stio(io);
 }
 	
-void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
+void on_connect(handle_t s,void *_1,int _2,int err)
 {
-	((void)_);
 	if(err == 0){
 		sock = s;
 		printf("connect ok\n");
-		kn_chrdev_set_clear_func(s,release_stio);
-		kn_engine_associate((engine_t)ud,s,sock_transfer_finish);
+		kn_sock_set_clearfunc(s,release_stio);
+		engine_t p = kn_sock_engine(s);
+		kn_engine_associate(p,s,sock_transfer_finish);
 	}else{
 		printf("connect failed\n");
 	}	
 }
 
 
-
-void chr_transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
+void chr_transfer_finish(handle_t s,void *_,int32_t bytestransfer,int32_t err){
+    	st_io *io = ((st_io*)_); 
 	if(bytestransfer <= 0)
 	{       
 		kn_release_chrdev(s,1);
@@ -89,12 +90,14 @@ int main(int argc,char **argv){
 	kn_sockaddr remote;
 	kn_addr_init_in(&remote,argv[1],atoi(argv[2]));
 	handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-	//kn_sock_connect(p,c,&remote,on_connect,p);
-	int ret = kn_sock_connect(p,c,&remote,NULL);
+	int ret = kn_sock_connect(c,&remote,NULL);
 	if(ret > 0){
-		on_connect(c,0,p,&remote);
+		sock = c;
+		printf("connect ok\n");
+		kn_sock_set_clearfunc(c,release_stio);
+		kn_engine_associate(p,c,sock_transfer_finish);		
 	}else if(ret == 0){
-		kn_sock_set_connect_cb(c,on_connect,p);
+		kn_engine_associate(p,c,on_connect);
 	}else{
 		kn_close_sock(c);
 		printf("connect failed\n");

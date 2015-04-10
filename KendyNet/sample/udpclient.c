@@ -33,7 +33,8 @@ void datagram_send(struct datagram *s,int32_t size)
 
 uint64_t totalbytes   = 0; 
 
-void transfer_finish(handle_t s,st_io *io,int32_t bytestransfer,int32_t err){
+void transfer_finish(handle_t s,void *_,int32_t bytestransfer,int32_t err){
+    st_io *io = ((st_io*)_); 
     struct datagram *session = kn_sock_getud(s);
     if(!io || bytestransfer <= 0)
     {

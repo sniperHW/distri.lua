@@ -55,8 +55,8 @@ static void* routine(void *_){
 	return NULL;
 }
 
-static void on_new_conn(handle_t s,void* ud){
-	luasocket_t luasock = (luasocket_t)ud;
+static void on_new_conn(handle_t s,void* l,int _1,int _2){
+	luasocket_t luasock = (luasocket_t)kn_sock_getud((handle_t)l);	
 	send2main(new_msg(MSG_CLOSED,luasock,s));	
 }
 
@@ -69,7 +69,12 @@ int    listener_listen(luasocket_t lsock,kn_sockaddr *addr){
 		g_listener->mainmailbox = kn_self_mailbox();//get mailbox of main thread
 		kn_thread_start_run(g_listener->thread,routine,NULL);
 	}
-	return kn_sock_listen(g_listener->engine,lsock->sock,addr,on_new_conn,lsock);
+	if(0 == kn_sock_listen(lsock->sock,addr)){
+		kn_sock_setud(lsock->sock,lsock);
+		return kn_engine_associate(g_listener->engine,lsock->sock,on_new_conn);
+	}else{
+		return -1;
+	}
 }
 
 void listener_close_listen(luasocket_t lsock){

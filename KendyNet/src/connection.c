@@ -365,8 +365,9 @@ void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 	}
 }
 
-void IoFinish(handle_t sock,st_io *io,int32_t bytestransfer,int32_t err_code)
+void IoFinish(handle_t sock,void *_,int32_t bytestransfer,int32_t err_code)
 {
+	st_io *io = ((st_io*)_);
 	connection_t c = kn_sock_getud(sock);
 	refobj_inc((refobj*)c);
 	if(io == (st_io*)&c->send_overlap)

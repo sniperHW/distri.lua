@@ -8,13 +8,15 @@ function channel:new()
   self.__index = self      
   setmetatable(o,self)
   o.chan = LinkQue.New()
+  o.block = LinkQue.New()
   return o
 end
 
 function channel:Send(msg)
 	self.chan:Push({msg})
-	if self.blocking then
-		Shce.WakeUp(self.blocking)
+	local co = self.block:Pop()  
+	if co then
+		Shce.WakeUp(co)
 	end		
 end
 
@@ -22,11 +24,11 @@ function channel:Recv()
 	while true do
 		local msg = self.chan:Pop()
 		if not msg then
-			self.blocking = Shce.Running()
+			local co = Shce.Running()
+			self.block:Push(co)
 			Shce.Block()
-			self.blocking = nil
 		else
-			return msg[1]
+			return table.unpack(msg)
 		end
 	end	
 end

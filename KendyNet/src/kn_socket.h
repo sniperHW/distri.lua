@@ -20,7 +20,7 @@ typedef struct{
     	kn_list pending_recv;//尚未处理的读请求
     	struct kn_sockaddr    addr_local;
     	struct kn_sockaddr    addr_remote;    
-	void   (*cb_ontranfnish)(handle_t,st_io*,int,int);
+	void   (*callback)(handle_t,void*,int,int);
 	void   (*clear_func)(void*);
 }kn_socket;
 

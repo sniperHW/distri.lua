@@ -16,12 +16,10 @@ void on_disconnected(connection_t c,int err){
 	printf("on_disconnectd\n");
 }
 
-void on_connect(handle_t s,int err,void *ud,kn_sockaddr *_)
+void on_connect(handle_t s,void *_1,int _2,int err)
 {
-	((void)_);
 	if(err == 0){
-		printf("connect ok\n");
-		engine_t p = (engine_t)ud;
+		engine_t p = kn_sock_engine(s);
 		connection_t conn = new_connection(s,4096,new_rpk_decoder(4096));
 		connection_associate(p,conn,on_packet,on_disconnected);		
 		wpacket_t wpk = wpk_create(64);
@@ -48,11 +46,15 @@ int main(int argc,char **argv){
 	int i = 0;
 	for(; i < client_count; ++i){
 		handle_t c = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-		int ret = kn_sock_connect(p,c,&remote,NULL);
+		int ret = kn_sock_connect(c,&remote,NULL);
 		if(ret > 0){
-			on_connect(c,0,p,&remote);
+			connection_t conn = new_connection(c,4096,new_rpk_decoder(4096));
+			connection_associate(p,conn,on_packet,on_disconnected);		
+			wpacket_t wpk = wpk_create(64);
+			wpk_write_uint64(wpk,(uint64_t)conn);		
+			connection_send(conn,(packet_t)wpk);	
 		}else if(ret == 0){
-			kn_sock_set_connect_cb(c,on_connect,p);
+			kn_engine_associate(p,c,on_connect);
 		}else{
 			kn_close_sock(c);
 			printf("connect failed\n");

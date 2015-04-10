@@ -4,12 +4,11 @@
 
 static int datagram_socket_associate(engine_t e,
 		               handle_t h,
-		               void (*cb_ontranfnish)(handle_t,st_io*,int,int)){
+		               void (*callback)(handle_t,void*,int,int)){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
 	kn_socket *s = (kn_socket*)h;
-	if(!cb_ontranfnish) return -1;
 	if(s->e) kn_event_del(s->e,h);
-	s->cb_ontranfnish = cb_ontranfnish;
+	s->callback = callback;
 	s->e = e;
 #ifdef _LINUX
 	//kn_event_add(s->e,h,EPOLLERR);
@@ -96,7 +95,7 @@ static void process_read(kn_socket *s){
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
 				break;
 		}else{
-			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
+			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
 				return;			
 		}
@@ -128,7 +127,7 @@ static void process_write(kn_socket *s){
 				kn_list_pushback(&s->pending_send,(kn_list_node*)io_req);
 				break;
 		}else{
-			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
+			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
 				return;
 		}
@@ -146,14 +145,14 @@ static void on_events(handle_t h,int events){
 	do{
 		if(h->status == SOCKET_DATAGRAM){
 			if(events & EVENT_READ){
-				if(kn_list_size(&s->pending_recv) == 0){
-					s->cb_ontranfnish((handle_t)s,NULL,-1,0);
-					break;
-				}else{
-					process_read(s);	
-					if(h->status == SOCKET_CLOSE) 
-						break;								
-				}
+				//if(kn_list_size(&s->pending_recv) == 0){
+				//	s->callback((handle_t)s,NULL,-1,0);
+				//	break;
+				//}else{
+				process_read(s);	
+				if(h->status == SOCKET_CLOSE) 
+					break;								
+				//}
 			}		
 			if(events & EVENT_WRITE)
 				process_write(s);			

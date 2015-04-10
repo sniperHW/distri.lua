@@ -62,24 +62,48 @@ int stream_socket_close(handle_t h){
 	return -1;	
 }
 
-static int stream_socket_associate(engine_t e,
-		               handle_t h,
-		               void (*cb_ontranfnish)(handle_t,st_io*,int,int)){
+static int stream_socket_associate(engine_t e,handle_t h,void (*callback)(handle_t,void*,int,int)){
 	if(((handle_t)h)->type != KN_SOCKET) return -1;						  
 	kn_socket *s = (kn_socket*)h;
-	if(!cb_ontranfnish) return -1;
-	if(s->comm_head.status != SOCKET_ESTABLISH) return -1;
-	if(s->e) kn_event_del(s->e,h);
-	s->cb_ontranfnish = cb_ontranfnish;
-	s->e = e;
+	if(!callback) return -1;
+	if(s->e){
+		kn_event_del(s->e,h);
+		s->e = NULL;
+	}	
+	if(h->status == SOCKET_ESTABLISH){
 #ifdef _LINUX
-	kn_event_add(s->e,h,EPOLLRDHUP);
+		kn_event_add(e,h,EPOLLRDHUP);
 #elif   _BSD
-	kn_event_add(s->e,h,EVFILT_READ);
-	kn_event_add(s->e,h,EVFILT_WRITE);
-	kn_disable_read(s->e,h);
-	kn_disable_write(s->e,h);
+		kn_event_add(e,h,EVFILT_READ);
+		kn_event_add(e,h,EVFILT_WRITE);
+		kn_disable_read(e,h);
+		kn_disable_write(e,h);
+#else
+		return -1;
 #endif
+	}else if(h->status == SOCKET_LISTENING){
+#ifdef _LINUX	
+		kn_event_add(e,h,EPOLLIN);
+#elif _BSD
+		kn_event_add(e,EVFILT_READ);
+#else
+		return -1;
+#endif		
+	}else if(h->status == SOCKET_CONNECTING){
+#ifdef _LINUX			
+		kn_event_add(e,h,EPOLLIN | EPOLLOUT);
+#elif _BSD
+		kn_event_add(e,h,EVFILT_READ);
+		kn_event_add(e,h,EVFILT_WRITE);		
+#else
+		return -1;
+#endif
+	}
+	else{
+		return -1;
+	}
+	s->callback = callback;
+	s->e = e;	
 	return 0;
 }
 
@@ -120,7 +144,7 @@ static void process_read(kn_socket *s){
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
 				break;
 		}else{
-			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
+			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
 				return;			
 		}
@@ -153,7 +177,7 @@ static void process_write(kn_socket *s){
 				kn_list_pushback(&s->pending_send,(kn_list_node*)io_req);
 				break;
 		}else{
-			s->cb_ontranfnish((handle_t)s,io_req,bytes_transfer,errno);
+			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
 				return;
 		}
@@ -231,7 +255,7 @@ static void process_accept(kn_socket *s){
 		   }
 		   kn_set_noblock(fd,0);
 		   h->status = SOCKET_ESTABLISH;
-		   ((kn_stream_socket*)s)->cb_accept(h,((handle_t)s)->ud);
+		   ((kn_socket*)s)->callback(h,s,0,0);
     	}      
     }
 }
@@ -239,20 +263,32 @@ static void process_accept(kn_socket *s){
 static void process_connect(kn_socket *s,int events){
 	int err = 0;
 	socklen_t len = sizeof(err);    
-	kn_event_del(s->e,(handle_t)s);
-	s->e = NULL;
+	//kn_event_del(s->e,(handle_t)s);
+	//s->e = NULL;
 	if(getsockopt(s->comm_head.fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1) {
-	    ((kn_stream_socket*)s)->cb_connect((handle_t)s,err,s->comm_head.ud,&s->addr_remote);
+	    if(s->callback){
+	    	s->callback((handle_t)s,&s->addr_remote,0,err);
+	    }else{
+	    	kn_close_sock((handle_t)s);
+	    }
 	    return;
 	}
 	if(err){
 	    errno = err;
-	    ((kn_stream_socket*)s)->cb_connect((handle_t)s,errno,s->comm_head.ud,&s->addr_remote);
+	    if(s->callback){
+	    	s->callback((handle_t)s,&s->addr_remote,0,errno);
+	    }else{
+	    	kn_close_sock((handle_t)s);
+	    }	    
 	    return;
 	}
 	//connect success
-	s->comm_head.status = SOCKET_ESTABLISH;
-	((kn_stream_socket*)s)->cb_connect((handle_t)s,0,s->comm_head.ud,&s->addr_remote);		
+	    if(s->callback){
+	    	s->comm_head.status = SOCKET_ESTABLISH;
+	    	s->callback((handle_t)s,&s->addr_remote,0,0);
+	    }else{
+	    	kn_close_sock((handle_t)s);
+	    }			
 }
 
 static void on_events(handle_t h,int events){	
@@ -267,7 +303,7 @@ static void on_events(handle_t h,int events){
 		}else if(h->status == SOCKET_ESTABLISH){
 			if(events & EVENT_READ){
 				if(kn_list_size(&s->pending_recv) == 0){
-					s->cb_ontranfnish((handle_t)s,NULL,-1,0);
+					s->callback((handle_t)s,NULL,-1,0);
 					break;
 				}else{
 					process_read(s);	
@@ -293,11 +329,7 @@ static int _bind(int fd,kn_sockaddr *addr_local){
 	return ret;	
 }
 
-int stream_socket_listen(engine_t e,
-		   kn_stream_socket *ss,
-		   kn_sockaddr *local,
-		   void (*cb_accept)(handle_t,void*),
-		   void*ud)
+int stream_socket_listen(kn_stream_socket *ss,kn_sockaddr *local)
 {	
 	if(((handle_t)ss)->status != SOCKET_NONE) 
 		return -1;
@@ -315,29 +347,11 @@ int stream_socket_listen(engine_t e,
 	}
 
 	((kn_socket*)ss)->addr_local = *local;
-#ifdef _LINUX	
-	int events = EPOLLIN;
-#elif _BSD
-	int events = EVFILT_READ;
-#else
-
-#error "un support platform!"				
-
-#endif
-	if(0 == kn_event_add(e,(handle_t)ss,events)){
-		((handle_t)ss)->events = events;
-		ss->cb_accept = cb_accept;
-		((handle_t)ss)->ud = ud;
-		((kn_socket*)ss)->e = e;
-		((handle_t)ss)->status = SOCKET_LISTENING;		
-	}
-	else
-		return -1;		
+	((handle_t)ss)->status = SOCKET_LISTENING;	
 	return 0;
 }
 
-int stream_socket_connect(engine_t e,
-			      kn_stream_socket *ss,
+int stream_socket_connect(kn_stream_socket *ss,
 			      kn_sockaddr *local,
 			      kn_sockaddr *remote)
 {
@@ -378,24 +392,8 @@ int stream_socket_connect(engine_t e,
     		}
     		((handle_t)ss)->status = SOCKET_ESTABLISH;
 		return 1;
-	}else{
-#ifdef _LINUX			
-		int events = EPOLLIN | EPOLLOUT;
-#elif _BSD
-		int events = EVFILT_READ | EVFILT_WRITE;
-#else
-
-#error "un support platform!"				
-
-#endif		
-		if(0 == kn_event_add(e,(handle_t)ss,events)){
-			((kn_socket*)ss)->e = e;
-			((handle_t)ss)->events = events;
-		}else
-			return -1;
 	}
 	((handle_t)ss)->status = SOCKET_CONNECTING;
-	((kn_socket*)ss)->e = e;	
 	return 0;	
 }
 
@@ -409,11 +407,8 @@ void SSL_init(){
     SSL_load_error_strings();
 }
 
-int      kn_sock_ssllisten(engine_t e,
-		             handle_t h,
+int      kn_sock_ssllisten(handle_t h,
 		             kn_sockaddr *addr,
-		             void (*cb_accept)(handle_t,void*),
-		             void *ud,
 		             const char *certificate,
 		             const char *privatekey
 		             ){
@@ -421,7 +416,6 @@ int      kn_sock_ssllisten(engine_t e,
 		return 0;	
 	   kn_stream_socket *ss = (kn_stream_socket*)h;
 	   if(h->status != SOCKET_NONE) return -1;
-	   if(((kn_socket*)ss)->e) return -1;	
 	    /* 以 SSL V2 和 V3 标准兼容方式产生一个 SSL_CTX ，即 SSL Content Text */
 	    SSL_CTX *ctx = SSL_CTX_new(SSLv23_server_method());
 	    /* 也可以用 SSLv2_server_method() 或 SSLv3_server_method() 单独表示 V2 或 V3标准 */
@@ -449,10 +443,10 @@ int      kn_sock_ssllisten(engine_t e,
 	    }
 	    kn_set_noblock(((handle_t)ss)->fd,0);    
 	    ss->ctx = ctx;
-	    return stream_socket_listen(e,ss,addr,cb_accept,ud);    
+	    return stream_socket_listen(ss,addr);    
 }
 
-int      kn_sock_sslconnect(engine_t e,
+int      kn_sock_sslconnect(//engine_t e,
 		                  handle_t h,
 		                  kn_sockaddr *remote,
 		                  kn_sockaddr *local){
@@ -460,7 +454,7 @@ int      kn_sock_sslconnect(engine_t e,
 		return 0;
 	kn_socket *s = (kn_socket*)h;
 	if(h->status != SOCKET_NONE) return -1;
-	if(s->e) return -1;
+	//if(s->e) return -1;
 	SSL_CTX *ctx = SSL_CTX_new(SSLv23_client_method());
 	if (ctx == NULL) {
 	    ERR_print_errors_fp(stdout);
@@ -468,7 +462,7 @@ int      kn_sock_sslconnect(engine_t e,
 	}
     	((kn_stream_socket*)s)->ctx = ctx;		
 	s->addr_remote = *remote;
-	int ret = stream_socket_connect(e,(kn_stream_socket*)s,local,remote);
+	int ret = stream_socket_connect((kn_stream_socket*)s,local,remote);
 	if(ret == 1){
 		((kn_stream_socket*)s)->ssl = SSL_new(ctx);
 		SSL_set_fd(((kn_stream_socket*)s)->ssl,h->fd);
