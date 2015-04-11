@@ -78,7 +78,9 @@ static inline int datagam_socket_send(handle_t h,st_io *req){
 	errno = 0;
 	if(h->status != SOCKET_DATAGRAM){
 		return -1;
-	 }	
+	 }
+	if(0 != kn_list_size(&s->pending_send))
+		return kn_sock_post_recv(h,req);		 	
 	struct msghdr _msghdr = {
 		.msg_name = &req->addr,
 		.msg_namelen = sizeof(req->addr),
@@ -185,6 +187,19 @@ static inline int stream_socket_post_send(handle_t h,st_io *req){
 	 	if(0 != kn_enable_write(s->e,h))
 	 		return -1;
 	}
+	kn_list_pushback(&s->pending_send,(kn_list_node*)req);	 	
+	return 0;	
+}
+
+static inline int datagram_socket_post_send(handle_t h,st_io *req){
+	kn_socket *s = (kn_socket*)h;
+	if(!s->e || h->status != SOCKET_DATAGRAM){
+		return -1;
+	 }		 
+	 if(!is_set_write(h)){
+	 	if(0 != kn_enable_write(s->e,h))
+	 		return -1;
+	 }	
 	kn_list_pushback(&s->pending_send,(kn_list_node*)req);	 	
 	return 0;	
 }

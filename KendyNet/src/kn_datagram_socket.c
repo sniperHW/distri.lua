@@ -27,6 +27,8 @@ static void on_destroy(void *_){
 	kn_socket *s = (kn_socket*)_;
 	st_io *io_req;
 	if(s->clear_func){
+        		while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL)
+            			s->clear_func(io_req);		
         		while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL)
             			s->clear_func(io_req);
 	}
@@ -102,6 +104,31 @@ static void process_read(kn_socket *s){
 	}	
 }
 
+static void process_write(kn_socket *s){
+	st_io* io_req = 0;
+	int bytes_transfer = 0;
+	struct msghdr _msghdr;
+	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
+		errno = 0;
+		_msghdr = (struct msghdr){
+			.msg_name = &io_req->addr,
+			.msg_namelen = sizeof(io_req->addr),
+			.msg_iov = io_req->iovec,
+			.msg_iovlen = io_req->iovec_count,
+			.msg_flags = 0,
+			.msg_control = NULL,
+			.msg_controllen = 0
+		};
+		bytes_transfer = TEMP_FAILURE_RETRY(sendmsg(s->comm_head.fd,&_msghdr,0));	
+		s->callback((handle_t)s,io_req,bytes_transfer,errno);
+		if(s->comm_head.status == SOCKET_CLOSE)
+			return;			
+	}	
+	if(!kn_list_size(&s->pending_send)){
+		kn_disable_write(s->e,(handle_t)s);
+	}	
+}
+
 static void on_events(handle_t h,int events){	
 	kn_socket *s = (kn_socket*)h;
 	if(h->status == SOCKET_CLOSE)
@@ -112,6 +139,9 @@ static void on_events(handle_t h,int events){
 				process_read(s);	
 				if(h->status == SOCKET_CLOSE) 
 					break;								
+			}
+			if(events & EVENT_WRITE){
+				process_write(s);
 			}				
 		}
 	}while(0);
