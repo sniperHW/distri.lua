@@ -10,7 +10,7 @@ local function on_packet(s,rpk)
      local id = rpk:Read_uint32()
      if id == s.id then
             local tick = rpk:Read_uint32()
-            local wpk = CPacket.NewWPacket(64)
+            local wpk = socket.WPacket(64)
             wpk:Write_uint32(s.id)
             wpk:Write_uint32(C.GetSysTick())
             s:Send(wpk)
@@ -21,13 +21,13 @@ end
 
 for i=1,50 do
        sche.Spawn(function () 
-		local client = socket.Stream(CSocket.AF_INET)
+		local client = socket.Stream.New(CSocket.AF_INET)
 		if client:Connect("127.0.0.1",8000) then
 			print("connect to 127.0.0.1:8000 error")
 			return
 		end
-		client:Establish(CSocket.rpkdecoder(1024),1024)
-		local wpk = CPacket.NewWPacket(64)
+		client:Establish(socket.Stream.RDecoder(1024),1024)
+		local wpk = socket.WPacket(64)
 	       client.id = C.GetPid()*1000 + i
              wpk:Write_uint32(client.id)
 		wpk:Write_uint32(C.GetSysTick())

@@ -75,22 +75,22 @@ print(string.len(str))
 
 for i=1,10 do
        sche.Spawn(function () 
-		local client = socket.Stream(CSocket.AF_INET)
+		local client = socket.Stream.New(CSocket.AF_INET)
 		if client:Connect("127.0.0.1",8000) then
 			print("connect to 127.0.0.1:8000 error")
 			return
 		end
-		client:Establish(CSocket.rpkdecoder(65535))
-		local wpk = CPacket.NewWPacket(65535)
+		client:Establish(socket.Stream.RDecoder(65535))
+		local wpk = socket.WPacket(65535)
 		wpk:Write_string(str)
 		client:Send(wpk) -- send the first packet
 		pingpong:Add(client,
-                                                                                                        function (s,rpk)
-		                                    s:Send(CPacket.NewWPacket(rpk))		
+                                                                    function (s,rpk)
+		                                    s:Send(socket.WPacket(rpk))		
 		                          end,
-                                                                                                         function ()
-                                                                                                                  print("disconnected")   
-                                                                                                         end)
+                                                                     function ()
+                                                                              print("disconnected")   
+                                                                     end)
 	end)	
 end
 

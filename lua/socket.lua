@@ -316,7 +316,18 @@ function socket:tostring()
 end
 
 return {
-	Stream = function (domain) return socket:new(domain,CSocket.SOCK_STREAM) end,
-	Datagram = function (domain,recvbuf_size,decoder) return socket:new(domain,CSocket.SOCK_DGRAM,recvbuf_size,decoder) end,
+	Stream = {
+			New = function (domain) return socket:new(domain,CSocket.SOCK_STREAM) end,
+			RDecoder = CSocket.rpkdecoder,
+			RawDecoder =  CSocket.rawdecoder,			
+		},
+	Datagram = {
+			New = function (domain,recvbuf_size,decoder) return socket:new(domain,CSocket.SOCK_DGRAM,recvbuf_size,decoder) end,
+			RDecoder = CSocket.datagram_rpkdecoder,
+			RawDecoder =  CSocket.datagram_rawdecoder,
+		},
+	WPacket = CPacket.NewWPacket,
+	RPacket =  CPacket.NewRPacket,
+	RawPacket = CPacket.NewRawPacket,
 }
 

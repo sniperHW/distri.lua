@@ -13,7 +13,7 @@ local Timer = require "lua.timer"
 local Socket = require "lua.socket"
 
 --首先建立到127.0.0.1:8001的连接
-local toserver = Socket.Stream(CSocket.AF_INET)
+local toserver = Socket.Stream.New(CSocket.AF_INET)
 local socketmap = {}
 if toserver:Connect("127.0.0.1",8001) then
 	print("connect to 127.0.0.1:8000 error")
@@ -27,14 +27,14 @@ else
 		local client = socketmap[sock_str]
 		if client then
 			count = count + 1
-			client:Send(CPacket.NewRawPacket(str))	
+			client:Send(Socket.RawPacket(str))	
 		end
 	end
-	toserver_app:Add(toserver:Establish(CSocket.rpkdecoder()),on_server_packet)
+	toserver_app:Add(toserver:Establish(Socket.Stream.RDecoder()),on_server_packet)
 	local toclient_app = App.New()
 	local function on_client_packet(s,rpk)
 		local str = rpk:Read_rawbin()
-		local wpk = CPacket.NewWPacket(64)
+		local wpk = Socket.WPacket(64)
 		wpk:Write_string(str)
 		wpk:Write_string(s:tostring())
 		toserver:Send(wpk)	
@@ -43,7 +43,7 @@ else
 	--local success
 	--toclient_app:Run(function ()
 	local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
-			client:Establish(CSocket.rawdecoder())
+			client:Establish(Socket.Stream.RawDecoder())
 			socketmap[client:tostring()] = client
 			toclient_app:Add(client,on_client_packet,function (s,err)
 						socketmap[s:tostring()] = nil				

@@ -107,7 +107,7 @@ local function RunDaemonServer()
 					local r = FindByLogicname(opreq.logicname,opreq.group)
 					if r then
 						StartProcess(r)
-						retpk = CPacket.NewRawPacket("operation success")
+						retpk = Socket.RawPacket("operation success")
 					end
 				else
 					if opreq.group then
@@ -126,7 +126,7 @@ local function RunDaemonServer()
 					else
 						break
 					end
-					retpk = CPacket.NewRawPacket("operation success")
+					retpk = Socket.RawPacket("operation success")
 				end
 				break
 			elseif opreq.op == "Stop" or opreq.op == "Kill" then
@@ -174,20 +174,20 @@ local function RunDaemonServer()
 						break
 					end
 				end
-				retpk = CPacket.NewRawPacket("operation success")
+				retpk = Socket.RawPacket("operation success")
 				break
 			else
 				break
 			end
 		end
 		if not retpk then
-			retpk = CPacket.NewRawPacket("invaild operation")
+			retpk = Socket.RawPacket("invaild operation")
 		end
 		sock:Send(retpk)
 		sock:Close()
 	end
 
-	local server = Socket.Stream(CSocket.AF_INET)
+	local server = Socket.Stream.New(CSocket.AF_INET)
 	if not server:Listen("127.0.0.1",8800) then
 			print("DaemonServer listen on 127.0.0.1 8800")
 			while true do

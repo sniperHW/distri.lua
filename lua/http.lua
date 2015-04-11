@@ -93,7 +93,7 @@ function http_server:CreateServer(on_request)
 end
 
 function http_server:Listen(ip,port)
-	self.socket = Socket.New(CSocket.AF_INET,CSocket.SOCK_STREAM,CSocket.IPPROTO_TCP)
+	self.socket = Socket.Stream.New(CSocket.AF_INET)
 	local err = self.socket:Listen(ip,port)
 	if err then
 		return err

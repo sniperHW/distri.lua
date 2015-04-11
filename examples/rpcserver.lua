@@ -3,6 +3,7 @@ local App = require "lua.application"
 local RPC = require "lua.rpc"
 local Timer = require "lua.timer"
 local Sche = require "lua.sche"
+local Socket = require "lua.socket"
 
 
 local count = 0
@@ -19,7 +20,7 @@ local success
 --rpcserver:Run(function ()
 local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
 			print("on new client")		
-			rpcserver:Add(client:Establish(CSocket.rpkdecoder()))		
+			rpcserver:Add(client:Establish(Socket.Stream.RDecoder()))		
 	end)
 --end)
 

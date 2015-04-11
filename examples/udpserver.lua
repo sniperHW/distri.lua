@@ -3,7 +3,7 @@ local Timer = require "lua.timer"
 local Sche = require "lua.sche"
 
 local count = 0
-local s = Socket.Datagram(CSocket.AF_INET,1024,CSocket.datagram_rpkdecoder())
+local s = Socket.Datagram.New(CSocket.AF_INET,1024,Socket.Datagram.RDecoder())
 s:Listen("127.0.0.1",8010)
 
 
@@ -12,7 +12,7 @@ Sche.Spawn(function ()
 		local rpk,from = s:Recv()
 		--print(from[1],from[2],from[3])
 		count = count + 1
-		s:Send(CPacket.NewWPacket(rpk),from)
+		s:Send(Socket.WPacket(rpk),from)
 	end
 end)
 

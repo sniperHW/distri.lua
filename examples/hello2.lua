@@ -5,7 +5,7 @@ local Timer = require "lua.timer"
 
 
 local count = 0
-local server = Socket.Stream(CSocket.AF_INET)
+local server = Socket.Stream.New(CSocket.AF_INET)
 if not server:Listen("127.0.0.1",8001) then
 		print("hello2 listen on 127.0.0.1 8001")
 		Sche.Spawn(function ()
