@@ -35,10 +35,11 @@ datagram_t new_datagram(int domain,uint32_t buffersize,decoder *_decoder){
 }
 
 static inline void prepare_recv(datagram_t c){
-	buffer_t buf = buffer_create(c->recv_bufsize);
-	c->recv_buf = buffer_acquire(c->recv_buf,buf);	
+	if(c->recv_buf)
+		buffer_release(c->recv_buf);
+	c->recv_buf = buffer_create(c->recv_bufsize);
 	c->wrecvbuf.iov_len = c->recv_bufsize;
-	c->wrecvbuf.iov_base = buf->buf;
+	c->wrecvbuf.iov_base = c->recv_buf->buf;
 	c->recv_overlap.iovec_count = 1;
 	c->recv_overlap.iovec = &c->wrecvbuf;	
 }

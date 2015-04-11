@@ -90,7 +90,6 @@ debug:$(source)
 	$(CC) $(SHARED) $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE) -D_DEBUG
 	ar -rc $(LIBNAME) *.o
 
-
 sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -c $(sample-source) $(INCLUDE) $(DEFINE)
 	$(CC) $(CFLAGS) -o broadcast_svr broadcast_svr.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
