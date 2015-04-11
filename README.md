@@ -6,7 +6,7 @@ build online game server ,web application,light distributed system and so on.
 Features include:
 
 * Fast event loop
-* Supported TCP and UPD
+* Supported TCP and UDP
 * Cooperative socket library
 * RPC framework
 * Supported Linux and FreeBSD
