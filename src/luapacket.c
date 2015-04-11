@@ -625,7 +625,7 @@ static int to_lua_table(lua_State *L){
 
 	//backup
 	uint32_t rpos = rpk->rpos;
-	uint32_t data_remain = rpk->data_remain;
+	uint32_t data_remain = packet_dataremain(rpk);
 	buffer_t readbuf = rpk->readbuf;
 
 	do{
@@ -644,7 +644,7 @@ static int to_lua_table(lua_State *L){
 
 	//recover
 	rpk->rpos = rpos;
-	rpk->data_remain = data_remain; 
+	packet_dataremain(rpk) = data_remain; 
 	rpk->readbuf = readbuf;
 	return 1;
 }

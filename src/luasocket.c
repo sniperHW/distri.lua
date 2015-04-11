@@ -10,24 +10,108 @@ extern engine_t g_engine;
 enum{
 	_SOCKET = 1,
 	_STREAM_CONN = 2,
+	_DATAGRAM = 3,
 };
+
+typedef struct{
+	luaPushFunctor base;
+	packet_t p;
+}stPushPacket;
+
+static void PushPacket(lua_State *L,luaPushFunctor_t _){
+	stPushPacket *self = (stPushPacket*)_;
+	push_luapacket(L,self->p);
+}
+
+typedef struct{
+	luaPushFunctor base;
+	kn_sockaddr *addr;	
+}stPushAddr;
+
+static void PushAddr(lua_State *L,luaPushFunctor_t _){
+	stPushAddr *self = (stPushAddr*)_;
+	if(!self->addr)
+		lua_pushnil(L);
+	else{
+		if(self->addr->addrtype == AF_INET){
+			lua_newtable(L);
+			char ip[32];
+			inet_ntop(AF_INET,&self->addr->in.sin_addr,ip,32);
+			int    port = ntohs(self->addr->in.sin_port);
+			lua_pushinteger(L,AF_INET);
+			lua_rawseti(L,-2,1);		
+			lua_pushstring(L,ip);
+			lua_rawseti(L,-2,2);
+			lua_pushinteger(L,port);
+			lua_rawseti(L,-2,3);
+		}else if(self->addr->addrtype == AF_LOCAL){
+			lua_newtable(L);
+			char path[256];
+			strncpy(path,self->addr->un.sun_path,sizeof(path)-1);
+			lua_pushinteger(L,AF_LOCAL);
+			lua_rawseti(L,-2,1);		
+			lua_pushstring(L,path);
+			lua_rawseti(L,-2,2);			
+		}else
+			lua_pushnil(L);
+	}
+}
+
+static void on_datagram(struct datagram *d,packet_t p,kn_sockaddr *from){
+	luasocket_t luasock = (luasocket_t)datagram_getud(d);
+	luaRef_t  *obj = &luasock->luaObj;
+	stPushPacket st1;
+	st1.p = clone_packet(p);
+	st1.base.Push = PushPacket;
+
+	stPushAddr st2;
+	st2.addr = from;
+	st2.base.Push = PushAddr;
+
+	const char *error = push_obj_callback(obj->L,"srff","__on_packet",*obj,&st1,&st2);
+	//const char *error = push_obj_callback(obj->L,"srf","__on_packet",*obj,&st1);
+	if(error){
+		SYS_LOG(LOG_ERROR,"error on __on_packet:%s\n",error);	
+	}	
+}
+
+static void destroy_luasocket(void *_){
+	luasocket_t lsock = (luasocket_t)_;
+	release_luaRef(&lsock->luaObj);
+	free(lsock);	
+}
 
 static int luasocket_new1(lua_State *L){
 	luaRef_t obj = toluaRef(L,1);
 	int domain = lua_tointeger(L,2);
-	//int type = lua_tointeger(L,3);
-	//int protocal = lua_tointeger(L,4);
-	handle_t sock = kn_new_sock(domain,SOCK_STREAM,IPPROTO_TCP);	
-	if(!sock){
+	int type = lua_tointeger(L,3);
+	luasocket_t luasock;
+	handle_t sock;
+	if(type == SOCK_STREAM){
+		sock = kn_new_sock(domain,type,IPPROTO_TCP);	
+		if(!sock){
+			lua_pushnil(L);
+			return 1;
+		}
+		luasock = calloc(1,sizeof(*luasock));
+		luasock->type = _SOCKET;
+		kn_sock_setud(sock,luasock);	
+	}else if(type == SOCK_DGRAM){
+		uint32_t    recvbuf_size = lua_tointeger(L,4);
+		decoder*    _decoder = (decoder*)lua_touserdata(L,5);
+		luasock = calloc(1,sizeof(*luasock));
+		luasock->datagram = new_datagram(domain,recvbuf_size,_decoder);
+		luasock->type = _DATAGRAM;
+		sock = datagram_gethandle(luasock->datagram);				
+		datagram_setud(luasock->datagram,luasock,destroy_luasocket);
+		datagram_associate(g_engine,luasock->datagram,on_datagram); 	
+	}else{
 		lua_pushnil(L);
 		return 1;
 	}
-	luasocket_t luasock = calloc(1,sizeof(*luasock));
-	luasock->type = _SOCKET;
 	luasock->sock = sock;
-	luasock->luaObj = obj;
-    	kn_sock_setud(sock,luasock);	
-	lua_pushlightuserdata(L,luasock);	
+	luasock->luaObj = obj;	
+	lua_pushlightuserdata(L,luasock);
 	return 1;
 }
 
@@ -38,26 +122,9 @@ static int luasocket_new2(lua_State *L){
 	luasock->type = _SOCKET;
 	luasock->sock = sock;
 	luasock->luaObj = obj;	
-    kn_sock_setud(sock,luasock);	
+    	kn_sock_setud(sock,luasock);	
 	lua_pushlightuserdata(L,luasock);	
 	return 1;	
-}
-
-static void destroy_luasocket(void *_){
-	luasocket_t lsock = (luasocket_t)_;
-	release_luaRef(&lsock->luaObj);
-	free(lsock);	
-}
-
-typedef struct{
-	luaPushFunctor base;
-	packet_t p;
-}stPushPacket;
-
-static void PushPacket(lua_State *L,luaPushFunctor_t _){
-	stPushPacket *self = (stPushPacket*)_;
-	push_luapacket(L,self->p);
-	//packet_ref_inc(self->p);
 }
 
 static void  on_packet(connection_t c,packet_t p){
@@ -81,9 +148,12 @@ static int luasocket_close(lua_State *L){
 			kn_close_sock(luasock->sock);
 			destroy_luasocket(luasock);
 		}						
-	}else{
+	}else if(luasock->type == _STREAM_CONN){
 		connection_close(luasock->streamconn);
 		refobj_dec((refobj*)luasock->streamconn);
+	}else{
+		datagram_close(luasock->datagram);
+		refobj_dec((refobj*)luasock->datagram);
 	}
 	return 0;
 }
@@ -164,34 +234,45 @@ static int luasocket_connect(lua_State *L){
 
 static int luasocket_listen(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
-	if(luasock->type != _SOCKET){
-		lua_pushstring(L,"invaild socket");
-		return 1;
-	}
-		
-	if(!luaL_checkstring(L,2)){
-		lua_pushstring(L,"invalid ip");
-		return 1;
-	}	
-	if(!luaL_checkunsigned(L,3)){
-		lua_pushstring(L,"invalid port");
-		return 1;		
-	}	
-	const char *ip = lua_tostring(L,2);
-	int port = lua_tointeger(L,3);	
-	kn_sockaddr local;
-	kn_addr_init_in(&local,ip,port);
-	int ret = listener_listen(luasock,&local);
-	if(0 != ret){
-		lua_pushstring(L,"listen error");
-	}else{
-		luasock->listening = 1;
-		lua_pushnil(L);
+	if(luasock->type == _SOCKET){
+		if(!luaL_checkstring(L,2)){
+			lua_pushstring(L,"invalid ip");
+			return 1;
+		}	
+		if(!luaL_checkunsigned(L,3)){
+			lua_pushstring(L,"invalid port");
+			return 1;		
+		}	
+		const char *ip = lua_tostring(L,2);
+		int port = lua_tointeger(L,3);	
+		kn_sockaddr local;
+		kn_addr_init_in(&local,ip,port);
+		int ret = listener_listen(luasock,&local);
+		if(0 != ret){
+			lua_pushstring(L,"listen error");
+		}else{
+			luasock->listening = 1;
+			lua_pushnil(L);
+		}
+	}else if(luasock->type == _DATAGRAM){
+		if(!luaL_checkstring(L,2)){
+			lua_pushstring(L,"invalid ip");
+			return 1;
+		}	
+		if(!luaL_checkunsigned(L,3)){
+			lua_pushstring(L,"invalid port");
+			return 1;		
+		}	
+		const char *ip = lua_tostring(L,2);
+		int port = lua_tointeger(L,3);	
+		kn_sockaddr local;
+		kn_addr_init_in(&local,ip,port);
+		if(0 == kn_sock_listen(datagram_gethandle(luasock->datagram),&local)){
+			lua_pushnil(L);
+		}else{
+			lua_pushstring(L,"listen error");
+		}		
 	}		
-	/*if(0 != kn_sock_listen(g_engine,luasock->sock,&local,on_new_conn,luasock)){
-		lua_pushstring(L,"listen error");
-	}else
-		lua_pushnil(L);*/
 	return 1;		
 }
 
@@ -203,24 +284,71 @@ static int luasocket_tostring(lua_State *L){
 	return 1;
 }
 
-static int luasocket_send(lua_State *L){
+static int lua_getaddr(lua_State *L,int idx,kn_sockaddr *addr){
+	if(!lua_istable(L,idx))
+		return -1;
+	lua_rawgeti(L,idx,1);
+	int domain = lua_tointeger(L,-1);
+	if(domain == AF_INET){
+		lua_rawgeti(L,idx,2);
+		const char *ip = lua_tostring(L,-1);
+		lua_rawgeti(L,idx,3);
+		uint32_t port = lua_tointeger(L,-1);
+		kn_addr_init_in(addr,ip,port);
+	}else if(domain == AF_LOCAL){
+		lua_rawgeti(L,idx,2);
+		const char *path = lua_tostring(L,-1);
+		kn_addr_init_un(addr,path);
+	}else{
+		return -1;
+	}
+	return 0;
+}
+
+static int luasocket_stream_send(lua_State *L){
 	luasocket_t luasock = lua_touserdata(L,1);
-	if(luasock->type != _STREAM_CONN){
+	int type = luasock->type;
+	if(type != _STREAM_CONN){
 		lua_pushstring(L,"invaild socket");
 		return 1;
 	}
-	
+
 	lua_packet_t pk = lua_getluapacket(L,2);
 	if(pk->_packet->type == RPACKET){
 		lua_pushstring(L,"invaild data");
 		return 1;				
-	} 
+	}
 	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);
 	pk->_packet = NULL;
-	return 1;
+	return 1;	
+}
+
+static int luasocket_datagram_send(lua_State *L){
+	luasocket_t luasock = lua_touserdata(L,1);
+	int type = luasock->type;
+	if(type != _DATAGRAM){
+		lua_pushstring(L,"invaild socket");
+		return 1;
+	}
+	lua_packet_t pk = lua_getluapacket(L,2);
+	if(pk->_packet->type == RPACKET){
+		lua_pushstring(L,"invaild data");
+		return 1;				
+	}
+	int ret = -1;
+	kn_sockaddr to;
+	if(0 == lua_getaddr(L,3,&to)){
+		ret = datagram_send(luasock->datagram,(packet_t)pk->_packet,&to);
+	}
+	if(ret >= 0)
+		lua_pushnil(L);
+	else
+		lua_pushstring(L,"send error");
+	pk->_packet = NULL;
+	return 1;			
 }
 
 #define REGISTER_CONST(___N) do{\
@@ -245,6 +373,16 @@ int lua_new_rpkdecoder(lua_State *L){
 	if(lua_gettop(L) == 1)
 		maxpacket_size = lua_tointeger(L,1);
 	lua_pushlightuserdata(L,new_rpk_decoder(maxpacket_size));
+	return 1;
+}
+
+int lua_new_datagram_rawdecoder(lua_State *L){
+	lua_pushlightuserdata(L,new_datagram_rawpk_decoder());
+	return 1;
+}
+
+int lua_new_datagram_rpkdecoder(lua_State *L){
+	lua_pushlightuserdata(L,new_datagram_rpk_decoder());
 	return 1;
 }
 
@@ -280,12 +418,15 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("new2",luasocket_new2);	
 	REGISTER_FUNCTION("establish",luasocket_establish);	
 	REGISTER_FUNCTION("close",luasocket_close);	
-	REGISTER_FUNCTION("send",luasocket_send);
+	REGISTER_FUNCTION("stream_send",luasocket_stream_send);
+	REGISTER_FUNCTION("datagram_send",luasocket_datagram_send);
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
 	REGISTER_FUNCTION("tostring",luasocket_tostring);	
 	REGISTER_FUNCTION("rawdecoder",lua_new_rawdecoder);	
-	REGISTER_FUNCTION("rpkdecoder",lua_new_rpkdecoder);	
+	REGISTER_FUNCTION("rpkdecoder",lua_new_rpkdecoder);
+	REGISTER_FUNCTION("datagram_rawdecoder",lua_new_datagram_rawdecoder);	
+	REGISTER_FUNCTION("datagram_rpkdecoder",lua_new_datagram_rpkdecoder);	
 	
 	lua_setglobal(L,"CSocket");
 	reg_luapacket(L);

@@ -23,7 +23,7 @@ rpacket_t rpk_create(buffer_t b,
 	packet_buf(r) = buffer_acquire(NULL,b);
 	r->readbuf = packet_buf(r);//buffer_acquire(NULL,b);
 	r->len = kn_hton32(pk_len);
-	r->data_remain = pk_len;
+	packet_dataremain(r) = pk_len;
 	packet_begpos(r) = pos;
 	//packet_next(r) = NULL;
 	packet_type(r) = RPACKET;
@@ -44,7 +44,7 @@ static packet_t rpk_clone(packet_t p){
 	    	packet_buf(r) = buffer_acquire(NULL,packet_buf(other));
 		r->readbuf = other->readbuf;//packet_buf(r);//buffer_acquire(NULL,other->readbuf);
 		r->len = other->len;
-	    	r->data_remain = other->data_remain;
+	    	packet_dataremain(r) = packet_dataremain(other);
 	    	packet_begpos(r) = packet_begpos(other);
 	    	//packet_next(r) = NULL;
 	    	packet_type(r) = RPACKET;
@@ -78,7 +78,7 @@ packet_t wpk_makeforread(packet_t p){
 		r->rpos = (packet_begpos(r) + sizeof(r->len))%packet_buf(r)->capacity;
 		if(r->rpos < packet_begpos(r))//base->begin_pos)
 			r->readbuf = r->readbuf->next;//buffer_acquire(r->readbuf,r->readbuf->next);
-		r->data_remain = hlen;
+		packet_dataremain(r) = hlen;
 		return (packet_t)r;		
 	}else
 		return NULL;
@@ -96,14 +96,14 @@ const void* rpk_read_binary(rpacket_t r,uint32_t *len)
 	uint32_t size = 0;
 	size = rpk_read_uint32(r);
 	*len = size;
-	if(!r->data_remain || r->data_remain < size)
+	if(!packet_dataremain(r) || packet_dataremain(r) < size)
 		return addr;
 	if(r->readbuf->size - r->rpos >= size)
 	{
 		addr = &r->readbuf->buf[r->rpos];
 		r->rpos += size;
-		r->data_remain -= size;
-		if(r->rpos >= r->readbuf->size && r->data_remain)
+		packet_dataremain(r) -= size;
+		if(r->rpos >= r->readbuf->size && packet_dataremain(r))
 		{
 			//当前buffer数据已经被读完,切换到下一个buffer
 			r->rpos = 0;
@@ -126,9 +126,9 @@ const void* rpk_read_binary(rpacket_t r,uint32_t *len)
 			memcpy(r->binbuf->buf + r->binbufpos,r->readbuf->buf + r->rpos,copy_size);
 			size -= copy_size;
 			r->rpos += copy_size;
-			r->data_remain -= copy_size;
+			packet_dataremain(r) -= copy_size;
 			r->binbufpos += copy_size;
-			if(r->rpos >= r->readbuf->size && r->data_remain)
+			if(r->rpos >= r->readbuf->size && packet_dataremain(r))
 			{
 				//当前buffer数据已经被读完,切换到下一个buffer
 				r->rpos = 0;

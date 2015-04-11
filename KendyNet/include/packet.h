@@ -35,7 +35,10 @@ typedef struct packet
     uint8_t        type;    
     buffer_t      buf;    
     uint32_t      begin_pos;
-    uint32_t      data_size;
+    union{    
+        uint32_t      data_size;      //for write and raw
+        uint32_t      data_remain;//for read
+    };
     struct packet * (*clone)(struct packet*);
     struct packet*  (*makeforwrite)(struct packet*);
     struct packet*  (*makeforread)(struct packet*);
@@ -62,6 +65,7 @@ static inline packet_t make_writepacket(packet_t p){
 #define packet_type(p)   ((packet_t)(p))->type
 #define packet_begpos(p) ((packet_t)(p))->begin_pos
 #define packet_datasize(p) ((packet_t)(p))->data_size
+#define packet_dataremain(p) ((packet_t)(p))->data_remain
 #define packet_clone(p) ((packet_t)(p))->clone
 #define packet_makeforwrite(p) ((packet_t)(p))->makeforwrite
 #define packet_makeforread(p) ((packet_t)(p))->makeforread

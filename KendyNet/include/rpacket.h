@@ -28,7 +28,7 @@ typedef struct rpacket
 	struct packet base;
 	uint32_t len;          //包长(去除包长度字段)
 	uint32_t rpos;          //读下标
-	uint32_t data_remain;
+	//uint32_t data_remain;
 	uint32_t binbufpos;
 	buffer_t binbuf;       //用于存放跨越buffer_t边界数据的buffer_t
 	buffer_t readbuf;      //当前rpos所在的buffer_t
@@ -56,12 +56,12 @@ static inline uint32_t  rpk_len(rpacket_t r){
 }
 
 static inline uint32_t rpk_data_remain(rpacket_t r){
-	return r->data_remain;
+	return packet_dataremain(r);
 }
 
 static inline int rpk_read(rpacket_t r,int8_t *out,uint32_t size)
 {
-	if(unlikely(r->data_remain < size))
+	if(unlikely(packet_dataremain(r) < size))
 		return -1;
 
 	while(likely(size>0))
@@ -71,9 +71,9 @@ static inline int rpk_read(rpacket_t r,int8_t *out,uint32_t size)
 		memcpy(out,r->readbuf->buf + r->rpos,copy_size);
 		size -= copy_size;
 		r->rpos += copy_size;
-		r->data_remain -= copy_size;
+		packet_dataremain(r) -= copy_size;
 		out += copy_size;
-		if(r->rpos >= r->readbuf->size && r->data_remain)
+		if(r->rpos >= r->readbuf->size && packet_dataremain(r))
 		{
 			//当前buffer数据已经被读完,切换到下一个buffer
 			r->rpos = 0;
@@ -84,11 +84,11 @@ static inline int rpk_read(rpacket_t r,int8_t *out,uint32_t size)
 }
 
 static inline int rpk_peek(rpacket_t r,int8_t *out,uint32_t size){
-    if(unlikely(r->data_remain < size))
+    if(unlikely(packet_dataremain(r) < size))
         return -1;
     buffer_t buffer = r->readbuf;
     uint32_t pos = r->rpos;
-    uint32_t data_remain = r->data_remain;
+    uint32_t data_remain = packet_dataremain(r);
     while(likely(size>0))
     {
         uint32_t copy_size = buffer->size - pos;
@@ -111,10 +111,10 @@ static inline int rpk_peek(rpacket_t r,int8_t *out,uint32_t size){
 
 #define CHECK_READ(TYPE)\
                             ({int __result = 0;\
-		if(likely(r->readbuf->size - r->rpos >= sizeof(TYPE)) && r->data_remain >= sizeof(TYPE)){\
+		if(likely(r->readbuf->size - r->rpos >= sizeof(TYPE)) && packet_dataremain(r) >= sizeof(TYPE)){\
 			uint32_t pos = r->rpos;\
 			r->rpos += sizeof(TYPE);\
-			r->data_remain -= sizeof(TYPE);\
+			packet_dataremain(r) -= sizeof(TYPE);\
 			value = *(TYPE*)(r->readbuf->buf+pos);\
                                           __result = 1;\
 		};__result;})
@@ -161,7 +161,7 @@ static inline double rpk_read_double(rpacket_t r)
 
 #define CHECK_PEEK(TYPE)\
                             ({int __result = 0;\
-		if(likely(r->readbuf->size - r->rpos >= sizeof(TYPE) && r->data_remain >= sizeof(TYPE))){\
+		if(likely(r->readbuf->size - r->rpos >= sizeof(TYPE) && packet_dataremain(r) >= sizeof(TYPE))){\
 			value = *(TYPE*)(r->readbuf->buf+r->rpos);\
                                           __result = 1;\
 		};__result;})

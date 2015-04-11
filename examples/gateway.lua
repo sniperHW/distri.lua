@@ -13,7 +13,7 @@ local Timer = require "lua.timer"
 local Socket = require "lua.socket"
 
 --首先建立到127.0.0.1:8001的连接
-local toserver = Socket.New(CSocket.AF_INET)
+local toserver = Socket.Stream(CSocket.AF_INET)
 local socketmap = {}
 if toserver:Connect("127.0.0.1",8001) then
 	print("connect to 127.0.0.1:8000 error")

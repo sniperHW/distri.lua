@@ -130,7 +130,7 @@ function stream.Send(self,packet)
 	if not self.luasocket then
 		return "socket socket"
 	end
-	return CSocket.send(self.luasocket,packet)
+	return CSocket.stream_send(self.luasocket,packet)
 end
 
 function stream.process_c_disconnect_event(self,errno)
@@ -199,12 +199,7 @@ function stream.Establish(self,decoder,recvbuf_size)
 	self.__on_packet = stream.process_c_packet_event
 	self.__on_disconnected = stream.process_c_disconnect_event
 	self.block_recv = LinkQue.New()	
-	if not decoder then
-		decoder = CSocket.rawdecoder()
-	end
-	if not recvbuf_size then
-		recvbuf_size = 65535
-	end	
+	recvbuf_size = recvbuf_size or 65535	
 	CSocket.establish(self.luasocket,recvbuf_size,decoder)
 	self.Send = stream.Send
 	self.Recv = stream.Recv
@@ -216,11 +211,67 @@ end
 --function for datagram socket
 local datagram = {}
 
-function socket:new(domain,type,protocal)
+function datagram.Listen(self,ip,port)
+	if not self.luasocket then
+		return "socket close"
+	end
+	return CSocket.listen(self.luasocket,ip,port)
+end
+
+function datagram.Send(self,packet,to)
+	if not self.luasocket then
+		return "socket socket"
+	end
+	if not to then
+		return "need remote addr"
+	end
+	return CSocket.datagram_send(self.luasocket,packet,to)
+end
+
+function datagram.process_c_packet_event(self,packet,from)
+	self.packet:Push({packet,from})
+	local co = self.block_recv:Pop()
+	if co then
+	    	self.timeout = nil
+	    	co = co[1]
+		Sche.WakeUp(co)		
+	end
+end
+
+function datagram.Recv(self,timeout)
+	--[[
+	尝试从套接口中接收数据,如果成功返回数据,如果失败返回nil,错误描述
+	timeout参数如果为nil,则当socket没有数据可被接收时Recv调用将一直阻塞
+	直到有数据可返回或出现错误.否则在有数据可返回或出现错误之前Recv最少阻塞
+	timeout毫秒
+	]]--		
+	while true do--not self.closing do	
+		local packet = self.packet:Pop()
+		if packet then
+			return packet[1],packet[2],nil
+		elseif not self.luasocket then
+			return nil,nil,self.errno
+		end		
+		local co = Sche.Running()
+		co = {co}	
+		self.block_recv:Push(co)		
+		self.timeout = timeout
+		Sche.Block(timeout)
+		self.block_recv:Remove(co) --remove from block_recv
+		if self.timeout then
+			self.timeout = nil
+			return nil,nil,"recv timeout"
+		end
+	end	
+end
+
+
+function socket:new(domain,type,recvbuf_size,decoder)
 	local o = {}
 	self.__index = self      
 	setmetatable(o,self)
-	o.luasocket = CSocket.new1(o,domain,type,protocal)
+	recvbuf_size = recvbuf_size or 1024
+	o.luasocket = CSocket.new1(o,domain,type,recvbuf_size,decoder)
 	if not o.luasocket then
 	return nil
 	end
@@ -228,6 +279,13 @@ function socket:new(domain,type,protocal)
 	if type == CSocket.SOCK_STREAM then
 		o.Listen = stream.Listen
 		o.Connect = stream.Connect
+	else
+		o.Listen = datagram.Listen
+		o.Send = datagram.Send
+		o.Recv = datagram.Recv
+		o.packet = LinkQue.New()
+		o.block_recv = LinkQue.New()
+		o.__on_packet = datagram.process_c_packet_event
 	end
 	return o   
 end
@@ -258,6 +316,7 @@ function socket:tostring()
 end
 
 return {
-	New = function (domain) return socket:new(domain,CSocket.SOCK_STREAM) end,
+	Stream = function (domain) return socket:new(domain,CSocket.SOCK_STREAM) end,
+	Datagram = function (domain,recvbuf_size,decoder) return socket:new(domain,CSocket.SOCK_DGRAM,recvbuf_size,decoder) end,
 }
 

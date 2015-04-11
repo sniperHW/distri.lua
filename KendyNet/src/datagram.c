@@ -13,7 +13,7 @@ static void datagram_destroy(void *ptr)
 	free(c);				
 }
 
-datagram_t new_datagram(handle_t sock,uint32_t buffersize,decoder *_decoder)
+static inline datagram_t _new_datagram(handle_t sock,uint32_t buffersize,decoder *_decoder)
 {
 	buffersize = size_of_pow2(buffersize);
     	if(buffersize < 1024) buffersize = 1024;	
@@ -27,6 +27,12 @@ datagram_t new_datagram(handle_t sock,uint32_t buffersize,decoder *_decoder)
 	return c;
 }
 
+datagram_t new_datagram(int domain,uint32_t buffersize,decoder *_decoder){
+	handle_t l = kn_new_sock(domain,SOCK_DGRAM,IPPROTO_UDP);
+	if(!l) 
+		return NULL;
+	return 	_new_datagram(l,buffersize,_decoder);	
+}
 
 static inline void prepare_recv(datagram_t c){
 	buffer_t buf = buffer_create(c->recv_bufsize);
@@ -43,17 +49,6 @@ static inline void PostRecv(datagram_t c){
 	c->doing_recv = 1;	
 }
 
-/*static inline int Recv(datagram_t c,int32_t* err_code){
-	prepare_recv(c);
-	int ret = kn_sock_recv(c->handle,&c->recv_overlap);
-	if(err_code) *err_code = errno;
-	if(ret == 0){
-		c->doing_recv = 1;
-		return 0;
-	}
-	return ret;
-}*/
-
 static int raw_unpack(decoder *_,void* _1){
 	((void)_);
 	datagram_t c = (datagram_t)_1;
@@ -64,22 +59,20 @@ static int raw_unpack(decoder *_,void* _1){
 }
 
 static int rpk_unpack(decoder *_,void *_1){
-	/*((void)_);
+	((void)_);
 	datagram_t c = (datagram_t)_1;
-	if(c->unpack_size <= sizeof(uint32_t))
+	if(c->recv_buf->size <= sizeof(uint32_t))
 		return 0;	
 	uint32_t pk_len = 0;
 	uint32_t pk_hlen;
-
-	buffer_read(c->next_recv_buf,c->next_recv_pos,(int8_t*)&pk_len,sizeof(pk_len));
+	buffer_read(c->recv_buf,0,(int8_t*)&pk_len,sizeof(pk_len));
 	pk_hlen = kn_ntoh32(pk_len);
 	uint32_t pk_total_size = pk_hlen+sizeof(pk_len);
-	if(c->unpack_size != pk_total_size)
-		return 0;
-	packet_t r = (packet_t)rpk_create(c->next_recv_buf,c->next_recv_pos,pk_hlen);
+	if(c->recv_buf->size < pk_total_size)
+		return 0;	
+	packet_t r = (packet_t)rpk_create(c->recv_buf,0,pk_len);
 	c->on_packet(c,r,&c->recv_overlap.addr); 
-	destroy_packet(r);
-	*/
+	destroy_packet(r);	
 	return 0;
 }	
 
@@ -162,4 +155,18 @@ decoder* new_datagram_rawpk_decoder(){
 
 void datagram_close(datagram_t c){
 	refobj_dec((refobj*)c); 	
+}
+
+datagram_t datagram_listen(kn_sockaddr *local,uint32_t buffersize,decoder *_decoder){
+	do{
+		if(!local) break;
+		handle_t l = kn_new_sock(local->addrtype,SOCK_DGRAM,IPPROTO_UDP);
+		if(!l) break;
+		if(0 != kn_sock_listen(l,local)){
+			kn_close_sock(l);
+			break;
+		}
+		return _new_datagram(l,buffersize,_decoder);
+	}while(0);
+	return NULL;
 }

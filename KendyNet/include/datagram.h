@@ -30,9 +30,12 @@ typedef struct datagram
 
 typedef void  (*DCCB_PROCESS_PKT)(datagram_t,packet_t,kn_sockaddr*);
 
-datagram_t new_datagram(handle_t sock,uint32_t buffersize,decoder *_decoder);
+datagram_t new_datagram(int domain,uint32_t buffersize,decoder *_decoder);
+
 void              datagram_close(datagram_t c);
 int                 datagram_send(datagram_t c,packet_t,kn_sockaddr*);
+
+datagram_t datagram_listen(kn_sockaddr*,uint32_t buffersize,decoder *_decoder);
 
 static inline handle_t datagram_gethandle(datagram_t c){
     return c->handle;

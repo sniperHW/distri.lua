@@ -2,11 +2,15 @@
 #define _LUASOCKET_H
 #include "kendynet.h"
 #include "connection.h"
+#include "datagram.h"
 #include "lua_util.h"
 
 typedef struct {
 	handle_t      sock;
-	connection_t streamconn;
+	union{
+		connection_t streamconn;
+		datagram_t   datagram;
+	};
 	int                type;
 	luaRef_t      luaObj;
 	int                listening;

@@ -187,7 +187,7 @@ local function RunDaemonServer()
 		sock:Close()
 	end
 
-	local server = Socket.New(CSocket.AF_INET)
+	local server = Socket.Stream(CSocket.AF_INET)
 	if not server:Listen("127.0.0.1",8800) then
 			print("DaemonServer listen on 127.0.0.1 8800")
 			while true do

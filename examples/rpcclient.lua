@@ -7,7 +7,7 @@ local rpcclient = App.New()
 
 for i=1,10 do
 	Sche.Spawn(function () 
-		local client = Socket.New(CSocket.AF_INET)
+		local client = Socket.Stream(CSocket.AF_INET)
 		if client:Connect("127.0.0.1",8000) then
 			print("connect to 127.0.0.1:8000 error")
 			return
