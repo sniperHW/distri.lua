@@ -68,7 +68,7 @@ to-do list
 * WebSocket
 * debuger
 
-test httpserver
+http test
 ----------
 
     local Http = require "lua/http"
@@ -79,3 +79,129 @@ test httpserver
 
     print("create server on 127.0.0.1 8001")
 
+udp test
+-----------
+
+server
+
+	local Socket = require "lua.socket"
+	local Timer = require "lua.timer"
+	local Sche = require "lua.sche"
+
+	local count = 0
+	local s = Socket.Datagram.New(CSocket.AF_INET,1024,Socket.Datagram.RDecoder())
+	s:Listen("127.0.0.1",8010)
+
+
+	Sche.Spawn(function ()
+		while true do
+			local rpk,from = s:Recv()
+			--print(from[1],from[2],from[3])
+			count = count + 1
+			s:Send(Socket.WPacket(rpk),from)
+		end
+	end)
+
+	local last = C.GetSysTick()
+	local timer = Timer.New():Register(function ()
+		local now = C.GetSysTick()
+		print(string.format("count:%d",count*1000/(now-last)))
+		count = 0
+		last = now
+	end,1000):Run()
+
+client
+
+	local Socket = require "lua.socket"
+
+	local s = Socket.Datagram.New(CSocket.AF_INET,1024,Socket.Datagram.RDecoder())
+	for i = 1,3 do
+		local wpk = Socket.WPacket(1024)
+		wpk:Write_string("hello")
+		s:Send(wpk,{CSocket.AF_INET,"127.0.0.1",8010})
+	end
+
+	while true do
+		local rpk,from = s:Recv()
+		s:Send(Socket.WPacket(rpk),from)
+	end
+
+RPC test
+-----------
+
+server
+
+	local TcpServer = require "lua.tcpserver"
+	local App = require "lua.application"
+	local RPC = require "lua.rpc"
+	local Timer = require "lua.timer"
+	local Sche = require "lua.sche"
+	local Socket = require "lua.socket"
+
+
+	local count = 0
+
+	local rpcserver = App.New()
+
+	rpcserver:RPCService("Plus",function (_,a,b)
+		count = count + 1 
+		return a+b 
+	end)
+
+	local success
+
+	local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
+				print("on new client")		
+				rpcserver:Add(client:Establish(Socket.Stream.RDecoder()))		
+		end)
+
+
+	if success then
+		print("server start on 127.0.0.1:8000")
+		local last = C.GetSysTick()
+		local timer = Timer.New():Register(function ()
+			local now = C.GetSysTick()
+			print(string.format("cocount:%d,rpccount:%d,elapse:%d",Sche.GetCoCount(),count*1000/(now-last),now-last))
+			count = 0
+			last = now
+		end,1000):Run()
+	else
+		print("server start error")
+	end
+
+client
+
+	local Socket = require "lua.socket"
+	local App = require "lua.application"
+	local RPC = require "lua.rpc"
+	local Sche = require "lua.sche"
+
+	local rpcclient = App.New()
+
+	for i=1,10 do
+		Sche.Spawn(function () 
+			local client = Socket.Stream.New(CSocket.AF_INET)
+			if client:Connect("127.0.0.1",8000) then
+				print("connect to 127.0.0.1:8000 error")
+				return
+			end		
+			rpcclient:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)
+			local rpcHandler = RPC.MakeRPC(client,"Plus")
+			for j=1,100 do
+				Sche.Spawn(function (client)
+					while true do			
+						local err,ret = rpcHandler:Call(1,2)
+						if err then
+							print("rpc error:" .. err)
+							client:Close()
+							return
+						end
+					end
+				end,client)
+			end
+		end)	
+	end
+
+demo of online game 
+-----------
+see [Survive](https://github.com/sniperHW/Survive)
