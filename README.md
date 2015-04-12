@@ -15,6 +15,7 @@ Features include:
 * SSL Connection
 * WebSocket
 * local and remote debug of lua
+* integrate redis client interface(Synchronous and asynchronous) 
 
 distri.lua is licensed under GPL license.
 
@@ -202,6 +203,52 @@ client
 			end
 		end)	
 	end
+
+
+test redis client
+-----------
+
+	local Redis = require "lua.redis"
+	local Sche = require "lua.sche"
+	local Timer = require "lua.timer"
+
+
+	local count = 0
+	local toredis
+
+	local function connect_to_redis()
+		print("here")
+	    if toredis then
+			print("to redis disconnected")
+	    end
+	    toredis = nil
+		Sche.Spawn(function ()
+			while true do
+				local err
+				err,toredis = Redis.Connect("127.0.0.1",6379,connect_to_redis)
+				if toredis then
+					break
+				end
+				print("try to connect after 1 sec")
+				Sche.Sleep(1000)
+			end
+		end)	
+	end
+
+	connect_to_redis()
+
+	while not toredis do
+		Sche.Yield()
+	end
+
+	local err,result = toredis:CommandSync("hmget test nickname")
+
+	if result then
+		for k,v in pairs(result) do
+			print(k,v)
+		end
+	end
+
 
 demo of online game 
 -----------
