@@ -28,7 +28,7 @@ typedef struct connection
 	buffer_t next_recv_buf;
 	buffer_t unpack_buf;
 	kn_list  send_list;//待发送的包
-	kn_list  send_call_back;
+	//kn_list  send_call_back;
 	uint32_t recv_bufsize;
 	void     (*on_packet)(struct connection*,packet_t);
 	void     (*on_disconnected)(struct connection*,int err);
@@ -37,10 +37,10 @@ typedef struct connection
 	uint8_t  doing_send:1;
 	uint8_t  doing_recv:1;
 	uint8_t  close_step:2;
-	uint8_t  processing:1;		   
+	//uint8_t  processing:1;		   
 }connection,*connection_t;
 
-typedef void (*CCB_SEND_FINISH)(connection_t,void*);
+/*typedef void (*CCB_SEND_FINISH)(connection_t,void*);
 
 typedef struct{
 	kn_list_node list;
@@ -48,7 +48,7 @@ typedef struct{
 	void *ud;
 	packet_t pk;
 }st_send_finish_callback;
-
+*/
 /*
  *   返回1：process_packet调用后rpacket_t自动销毁
  *   否则,将由使用者自己销毁
@@ -59,7 +59,7 @@ typedef void (*CCB_DISCONNECTD)(connection_t,int err);
 /*packet_type:RPACKET/RAWPACKET*/
 connection_t new_connection(handle_t sock,uint32_t buffersize,decoder *_decoder);
 void    connection_close(connection_t c);
-int      connection_send(connection_t c,packet_t p,CCB_SEND_FINISH,void *);
+int      connection_send(connection_t c,packet_t p);//,CCB_SEND_FINISH,void *);
 static inline handle_t connection_gethandle(connection_t c){
 	return c->handle;
 } 

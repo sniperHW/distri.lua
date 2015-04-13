@@ -322,7 +322,7 @@ static int luasocket_stream_send(lua_State *L){
 		lua_pushstring(L,"invaild data");
 		return 1;				
 	}
-	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet,NULL,NULL))
+	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet))//,NULL,NULL))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);

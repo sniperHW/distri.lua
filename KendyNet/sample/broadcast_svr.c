@@ -14,7 +14,7 @@ void  on_packet(connection_t c,packet_t p){
 	int i = 0;
 	for(; i < MAX_CLIENTS; ++i){
 		if(clients[i]){
-			connection_send(clients[i],(packet_t)make_writepacket(p),NULL,NULL);
+			connection_send(clients[i],(packet_t)make_writepacket(p));//,NULL,NULL);
 			++packet_count;
 		}
 	}

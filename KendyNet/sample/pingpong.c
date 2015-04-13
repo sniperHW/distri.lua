@@ -13,7 +13,7 @@ void  on_packet(connection_t c,packet_t p){
 		printf("error\n");
 		exit(0);
 	}
-	connection_send(c,(packet_t)make_writepacket(p),NULL,NULL);
+	connection_send(c,(packet_t)make_writepacket(p));//,NULL,NULL);
 }
 
 void on_disconnected(connection_t c,int err){
@@ -29,7 +29,7 @@ void on_connect(handle_t s,void *_1,int _2,int err)
 		connection_associate(p,conn,on_packet,on_disconnected);		
 		wpacket_t wpk = wpk_create(64);
 		wpk_write_string(wpk,"hello");		
-		connection_send(conn,(packet_t)wpk,NULL,NULL);		
+		connection_send(conn,(packet_t)wpk);//,NULL,NULL);		
 	}else{
 		printf("connect failed\n");
 	}	
@@ -56,7 +56,7 @@ int main(int argc,char **argv){
 			connection_associate(p,conn,on_packet,on_disconnected);		
 			wpacket_t wpk = wpk_create(64);
 			wpk_write_string(wpk,"hello");		
-			connection_send(conn,(packet_t)wpk,NULL,NULL);	
+			connection_send(conn,(packet_t)wpk);//,NULL,NULL);	
 		}else if(ret == 0){
 			kn_engine_associate(p,c,on_connect);
 		}else{
