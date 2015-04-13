@@ -80,7 +80,8 @@ sample-source = sample/broadcast_svr.c\
 		 sample/ssl_client.c\
 		 sample/testpacket.c\
 		 sample/udpserver.c\
-		 sample/udpclient.c
+		 sample/udpclient.c\
+		 sample/testrefobj.c
 	   
 release:$(source)
 	$(CC) $(SHARED) -O2 $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE)
@@ -91,7 +92,7 @@ debug:$(source)
 	ar -rc $(LIBNAME) *.o
 
 sample:$(LIBNAME) $(sample-source)
-	$(CC) $(CFLAGS) -c $(sample-source) $(INCLUDE) $(DEFINE)
+	$(CC) $(CFLAGS) -c  $(sample-source) $(INCLUDE) $(DEFINE)
 	$(CC) $(CFLAGS) -o broadcast_svr broadcast_svr.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o broadcast_cli broadcast_cli.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o tcpserver tcpserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a $(INCLUDE) $(LDFLAGS) $(DEFINE)
@@ -117,6 +118,7 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o testpacket testpacket.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o udpserver udpserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o udpclient udpclient.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o testrefobj testrefobj.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 
 clean:
 	rm *.o

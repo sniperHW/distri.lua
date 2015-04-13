@@ -31,7 +31,9 @@ typedef  void (*refobj_destructor)(void*);
 typedef struct refobj
 {
         volatile uint32_t refcount;
-        volatile uint32_t flag;        
+        uint32_t               pad1;
+        volatile uint32_t flag;  
+        uint32_t               pad2;      
         union{
             struct{
                 volatile uint32_t low32; 
@@ -54,8 +56,8 @@ uint32_t refobj_dec(refobj *r);
 typedef struct{
     union{  
         struct{ 
-            volatile uint64_t identity;    
-            volatile refobj   *ptr;
+            uint64_t identity;    
+            refobj   *ptr;
         };
         uint32_t _data[4];
     };
@@ -68,16 +70,15 @@ static inline ident make_ident(refobj *ptr)
     return (ident){.identity=ptr->identity,.ptr=ptr};
 }
 
+static const ident empty_ident = {.identity=0,.ptr=NULL};
+
 static inline void make_empty_ident(ident *_ident)
 {
-    _ident->identity = 0;
-    _ident->ptr = NULL;
+    *_ident = empty_ident;
 }
 
-static inline int is_empty_ident(ident ident){
-    return ident.ptr == NULL ? 1 : 0;
+static inline int is_empty_ident(ident _ident){
+    return _ident.ptr == NULL ? 1 : 0;
 }
-
-static const ident empty_ident = {.identity=0,.ptr=NULL};
 
 #endif

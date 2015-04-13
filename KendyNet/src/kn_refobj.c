@@ -15,18 +15,17 @@ void refobj_init(refobj *r,void (*destructor)(void*))
 uint32_t refobj_dec(refobj *r)
 {
     volatile uint32_t count;
-    int c;
+    uint32_t c;
     struct timespec ts;
     assert(r->refcount > 0);
-    if(unlikely((count = ATOMIC_DECREASE(&r->refcount)) == 0)){
-        r->identity = 0;
-        c = 0;
-        for(;;){
+    if((count = ATOMIC_DECREASE(&r->refcount)) == 0){
+        for(c = 0,r->identity = 0;;){
             if(COMPARE_AND_SWAP(&r->flag,0,1))
                 break;
             if(++c < 4000){
                 __asm__("pause");
             }else{
+                c = 0;
                 ts.tv_sec = 0;
                 ts.tv_nsec = 500000;
                 nanosleep(&ts, NULL);
@@ -43,33 +42,29 @@ refobj *cast2refobj(ident _ident)
     if(unlikely(!_ident.ptr)) return NULL;
     TRY{
               refobj *o = (refobj*)_ident.ptr;
-              int c = 0;
-    	struct timespec ts;              
-              do{
-                    volatile uint64_t identity = o->identity; 
-                    if(_ident.identity == identity){
-                        if(COMPARE_AND_SWAP(&o->flag,0,1)){
-                            identity = o->identity;
-                            if(_ident.identity == identity){                
-                                if(refobj_inc(o) > 1)
+              uint32_t c = 0;
+    	struct timespec ts;
+              while(_ident.identity == o->identity){
+                    if(COMPARE_AND_SWAP(&o->flag,0,1)){
+                        if(_ident.identity == o->identity){
+                                if(__sync_fetch_and_add(&o->refcount,1) > 0)
                                     ptr = o;
                                 else
-                                    ATOMIC_DECREASE(&o->refcount);
-                            }
-                            o->flag = 0;
-                            break;
+                                    o->refcount = 0;
                         }
-                    }else
+                        o->flag = 0;
                         break;
-                    if(++c < 4000){
-                	__asm__("pause");
-            	       }else{
-            	       	c = 0;
-                	ts.tv_sec = 0;
-                	ts.tv_nsec = 500000;
-                	nanosleep(&ts, NULL);
-            	       }    
-              }while(1);
+                    }else{                     
+                     if(++c < 4000){
+                         __asm__("pause");
+                     }else{
+                        c = 0;
+                        ts.tv_sec = 0;
+                        ts.tv_nsec = 500000;
+                        nanosleep(&ts, NULL);
+                    }
+                }                
+              }
     }CATCH_ALL{
             ptr = NULL;      
     }ENDTRY;
