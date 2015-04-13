@@ -17,7 +17,7 @@ void  on_packet(connection_t c,packet_t p){
 		exit(0);
 	}
 	++packet_count;
-	connection_send(c,(packet_t)make_writepacket(p));	
+	connection_send(c,(packet_t)make_writepacket(p),NULL,NULL);	
 }
 
 void on_disconnected(connection_t c,int err){

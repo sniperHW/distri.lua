@@ -23,7 +23,7 @@ if not server:Listen("127.0.0.1",8001) then
 			print("new client")
 			Sche.Spawn(function ()
 				while true do
-					local packet,err = client:Recv()
+					local packet,err = client:Recv(1000)
 					if err then
 						print("client disconnected err:" .. err)			
 						client:Close()

@@ -46,6 +46,7 @@ local function _block(ms,stat)
 	        co.timeout = 0		
 	        sche.timer:Change(co)
 	        sche.timer:PopMin()
+	        return "timeout"
 	end
 end
 
@@ -56,7 +57,7 @@ local function Sleep(ms)
 	else
 		stat = stat_yield
 	end
-	_block(ms,stat)
+	return _block(ms,stat)
 end
 
 local function Yield()
@@ -64,7 +65,7 @@ local function Yield()
 end
 
 local function Block(ms)
-	_block(ms,stat_block)
+	return _block(ms,stat_block)
 end
 
 local function WakeUp(co)

@@ -177,7 +177,11 @@ static int luasocket_establish(lua_State *L){
 	recvbuf_size = size_of_pow2(recvbuf_size);
     	if(recvbuf_size < 1024) recvbuf_size = 1024;
 	connection_t conn = new_connection(luasock->sock,recvbuf_size,_decoder);
-	connection_associate(g_engine,conn,_decoder->mask == mask_http_decode?on_http_cb:on_packet,on_disconnected);	
+	
+	if(_decoder && _decoder->mask == mask_http_decode)
+		connection_associate(g_engine,conn,on_http_cb,on_disconnected);
+	else
+		connection_associate(g_engine,conn,on_packet,on_disconnected);
 	refobj_inc((refobj*)conn);
 	luasock->type = _STREAM_CONN;
 	luasock->streamconn = conn;
@@ -318,7 +322,7 @@ static int luasocket_stream_send(lua_State *L){
 		lua_pushstring(L,"invaild data");
 		return 1;				
 	}
-	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet))
+	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet,NULL,NULL))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);

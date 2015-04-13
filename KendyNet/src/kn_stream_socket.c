@@ -53,7 +53,7 @@ int stream_socket_close(handle_t h){
 	if(h->status != SOCKET_CLOSE){
 		if(s->e){
 			h->status = SOCKET_CLOSE;
-			//shutdown(h->fd,SHUT_WR);
+			shutdown(h->fd,SHUT_WR);
 			kn_push_destroy(s->e,h);
 		}else
 			on_destroy(s);				

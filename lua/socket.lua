@@ -133,6 +133,19 @@ function stream.Send(self,packet)
 	return CSocket.stream_send(self.luasocket,packet)
 end
 
+--[[
+function stream.SendSync(self,packet)
+	if not self.luasocket then
+		return "socket socket"
+	end
+	local ret = CSocket.stream_send_sync(self.luasocket,packet)
+	if not ret then
+		
+	else
+		return ret
+	end
+end]]--
+
 function stream.process_c_disconnect_event(self,errno)
 	self.errno = errno
 	local co
@@ -232,7 +245,7 @@ function datagram.process_c_packet_event(self,packet,from)
 	self.packet:Push({packet,from})
 	local co = self.block_recv:Pop()
 	if co then
-	    	self.timeout = nil
+	    	--self.timeout = nil
 	    	co = co[1]
 		Sche.WakeUp(co)		
 	end
@@ -255,13 +268,12 @@ function datagram.Recv(self,timeout)
 		local co = Sche.Running()
 		co = {co}	
 		self.block_recv:Push(co)		
-		self.timeout = timeout
-		Sche.Block(timeout)
+		--self.timeout = timeout
+		local ret = Sche.Block(timeout)
 		self.block_recv:Remove(co) --remove from block_recv
-		if self.timeout then
-			self.timeout = nil
+		if ret == "timeout" then
 			return nil,nil,"recv timeout"
-		end
+		end 
 	end	
 end
 
