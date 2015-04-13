@@ -20,7 +20,7 @@ int main(int argc,char **argv){
 	engine_t p = kn_new_engine();
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
-	datagram_t d = datagram_listen(&local,1024,NULL);
+	datagram_t d = datagram_listen(&local,2048,NULL);
 	datagram_associate(p,d,on_packet);
 	kn_reg_timer(p,1000,timer_callback,NULL);		
 	kn_engine_run(p);

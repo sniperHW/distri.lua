@@ -18,7 +18,8 @@ typedef struct
     void*                  ud;
     struct                  iovec *iovec;
     int32_t                iovec_count;
-    kn_sockaddr      addr; //for datagram socket
+    kn_sockaddr      addr;     	//use by datagram socket
+    int32_t                recvflags;	//use by datagram socket
 }st_io;
 
 engine_t kn_new_engine();

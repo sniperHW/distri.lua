@@ -154,10 +154,12 @@ static inline int datagam_socket_recv(handle_t h,st_io *req){
 		.msg_flags = 0,
 		.msg_control = NULL,
 		.msg_controllen = 0
-	};		
+	};
+	req->recvflags = 0;		
 	int bytes_transfer = TEMP_FAILURE_RETRY(recvmsg(s->comm_head.fd,&_msghdr,0));					
+	req->recvflags = _msghdr.msg_flags;
 	if(bytes_transfer < 0 && errno == EAGAIN)
-		return kn_sock_post_recv(h,req);				
+		return kn_sock_post_recv(h,req);					
 	return bytes_transfer > 0 ? bytes_transfer:-1;	
 } 
 

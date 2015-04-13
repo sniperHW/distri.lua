@@ -87,7 +87,9 @@ static void process_read(kn_socket *s){
 			.msg_control = NULL,
 			.msg_controllen = 0
 		};
+		io_req->recvflags = 0;
 		bytes_transfer = TEMP_FAILURE_RETRY(recvmsg(s->comm_head.fd,&_msghdr,0));	
+		io_req->recvflags = _msghdr.msg_flags;
 		if(bytes_transfer < 0 && errno == EAGAIN){
 				//将请求重新放回到队列
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);

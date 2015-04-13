@@ -82,7 +82,7 @@ static void IoFinish(handle_t sock,void *_,int32_t bytestransfer,int32_t err_cod
 	datagram_t c = kn_sock_getud(sock);
 	c->doing_recv = 0;	
 	refobj_inc((refobj*)c);
-	if(bytestransfer > 0){
+	if(bytestransfer > 0 && ((st_io*)_)->recvflags != MSG_TRUNC){
 		c->recv_buf->size = bytestransfer;
 		c->_decoder->unpack(c->_decoder,c);
 	}
