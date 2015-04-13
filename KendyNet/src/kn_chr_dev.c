@@ -80,15 +80,19 @@ static void on_destroy(void *_){
 static void on_events(handle_t h,int events){
 	kn_chr_dev *r = (kn_chr_dev*)h;
 	do{
+		h->inloop = 1;
 		if(events & EVENT_READ){
 			process_read(r);
-			if(r->comm_head.status == KN_CHRDEV_RELEASE)
+			if(h->status == KN_CHRDEV_RELEASE)
 				break;
 		}		
 		if(events & EVENT_WRITE){
 			process_write(r);
 		}
-	}while(0);	
+		h->inloop = 0;
+	}while(0);
+	if(h->status == KN_CHRDEV_RELEASE)
+		on_destroy(r);	
 }
 
 static int chrdev_associate(engine_t e,
@@ -121,7 +125,7 @@ handle_t kn_new_chrdev(int fd){
 	kn_set_noblock(fd,0);
 	((handle_t)r)->type = KN_CHRDEV;
 	((handle_t)r)->on_events = on_events;
-	((handle_t)r)->on_destroy = on_destroy;
+	//((handle_t)r)->on_destroy = on_destroy;
 	((handle_t)r)->associate = chrdev_associate;
 	return (handle_t)r;
 }
@@ -133,9 +137,9 @@ int kn_release_chrdev(handle_t h,int beclose){
 	if(((handle_t)h)->status == KN_CHRDEV_RELEASE) return -1;
 	kn_chr_dev *r = (kn_chr_dev*)h;
 	if(beclose) close(r->comm_head.fd);
-	if(r->e){
+	if(h->inloop){
 		r->comm_head.status = KN_CHRDEV_RELEASE;
-		kn_push_destroy(r->e,(handle_t)r);
+		//kn_push_destroy(r->e,(handle_t)r);
 	}else
 		on_destroy(r);
 	return 0;	

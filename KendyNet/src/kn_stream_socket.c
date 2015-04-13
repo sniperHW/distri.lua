@@ -51,10 +51,10 @@ int stream_socket_close(handle_t h){
 		return -1;
 	kn_socket *s = (kn_socket*)h;
 	if(h->status != SOCKET_CLOSE){
-		if(s->e){
+		if(h->inloop){
 			h->status = SOCKET_CLOSE;
-			shutdown(h->fd,SHUT_WR);
-			kn_push_destroy(s->e,h);
+			//shutdown(h->fd,SHUT_WR);
+			//kn_push_destroy(s->e,h);
 		}else
 			on_destroy(s);				
 		return 0;
@@ -118,7 +118,7 @@ handle_t new_stream_socket(int fd,int domain){
 	((kn_socket*)ss)->domain = domain;
 	((kn_socket*)ss)->type = SOCK_STREAM;
 	((handle_t)ss)->on_events = on_events;
-	((handle_t)ss)->on_destroy = on_destroy;
+	//((handle_t)ss)->on_destroy = on_destroy;
 	((handle_t)ss)->associate = stream_socket_associate;
 	return (handle_t)ss; 
 }
@@ -296,6 +296,7 @@ static void on_events(handle_t h,int events){
 	if(h->status == SOCKET_CLOSE)
 		return;
 	do{
+		h->inloop = 1;
 		if(h->status == SOCKET_LISTENING){
 			process_accept(s);
 		}else if(h->status == SOCKET_CONNECTING){
@@ -314,7 +315,10 @@ static void on_events(handle_t h,int events){
 			if(events & EVENT_WRITE)
 				process_write(s);			
 		}
+		h->inloop = 0;
 	}while(0);
+	if(h->status == SOCKET_CLOSE)
+		on_destroy(s);
 }
 
 static int _bind(int fd,kn_sockaddr *addr_local){

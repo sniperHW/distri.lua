@@ -17,10 +17,11 @@ typedef struct handle{
 		};
 	};
 	int   (*associate)(engine_t,
-			  handle_t,
-			  void (*callback)(handle_t,void*,int,int));		
+			handle_t,
+			void (*callback)(handle_t,void*,int,int));		
 	void (*on_events)(handle_t,int events);
-	void (*on_destroy)(void*);
+	//void (*on_destroy)(void*);
+	uint8_t inloop;
 }handle;
 
 
