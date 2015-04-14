@@ -92,10 +92,13 @@ function application:Add(socket,on_packet,on_disconnected,recvtimeout,pinginterv
 		--改变conn.sock.__on_packet的行为
 		socket.__on_packet = function (socket,packet)
 			socket.packet:Push({packet})
-			local co = socket.block_recv:Front()
+			local co = socket.recv_wakeup
+			if not co then
+				co = socket.block_recv:Pop()
+				socket.recv_wakeup = co
+			end
 			if co then
 				co = co[1]
-				socket.timeout = nil
 				Sche.WakeUp(co)
 			elseif socket.recver_count < app.max_recver_per_socket then
 				Sche.SpawnAndRun(recver,app,socket)

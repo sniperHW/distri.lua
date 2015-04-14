@@ -101,21 +101,27 @@ function stream.Recv(self,timeout)
 	timeout参数如果为nil,则当socket没有数据可被接收时Recv调用将一直阻塞
 	直到有数据可返回或出现错误.否则在有数据可返回或出现错误之前Recv最少阻塞
 	timeout毫秒
-	]]--		
-	while true do--not self.closing do	
+	]]--
+	if not self.luasocket then
+		return nil,"socket close"
+	end 		
+	while true do	
 		local packet = self.packet:Pop()
 		if packet then
 			return packet[1],nil
-		elseif not self.luasocket then
-			return nil,self.errno
 		end		
 		local co = Sche.Running()
 		co = {co}	
 		self.block_recv:Push(co)		
-		if "timeout" == Sche.Block(timeout) then
+		local ret = Sche.Block(timeout)
+		self.recv_wakeup = nil
+		if ret == "timeout" then
 			self.block_recv:Remove(co)
 			return nil,"recv timeout"
+		elseif not self.luasocket then
+			return nil,(self.errno == nil or self.errno == 0) and "socket close" or self.errno
 		end
+
 	end	
 end
 
@@ -198,7 +204,6 @@ function stream.process_c_disconnect_event(self,errno)
 			Sche.Schedule(v)
 		end					
 	end
-	print(Sche.Running())
 	if self.on_disconnected then
 		self.on_disconnected(self,errno)
 	end
@@ -209,9 +214,12 @@ end
 
 function stream.process_c_packet_event(self,packet)
 	self.packet:Push({packet})
-	local co = self.block_recv:Pop()
+	local co = self.recv_wakeup
+	if not co then
+		co = self.block_recv:Pop()
+		self.recv_wakeup = co
+	end
 	if co then
-	    	self.timeout = nil
 	    	co = co[1]
 		Sche.WakeUp(co)		
 	end
@@ -254,9 +262,12 @@ end
 
 function datagram.process_c_packet_event(self,packet,from)
 	self.packet:Push({packet,from})
-	local co = self.block_recv:Pop()
+	local co = self.recv_wakeup
+	if not co then
+		co = self.block_recv:Pop()
+		self.recv_wakeup = co
+	end
 	if co then
-	    	--self.timeout = nil
 	    	co = co[1]
 		Sche.WakeUp(co)		
 	end
@@ -268,23 +279,26 @@ function datagram.Recv(self,timeout)
 	timeout参数如果为nil,则当socket没有数据可被接收时Recv调用将一直阻塞
 	直到有数据可返回或出现错误.否则在有数据可返回或出现错误之前Recv最少阻塞
 	timeout毫秒
-	]]--		
-	while true do--not self.closing do	
+	]]--
+	if not self.luasocket then
+		return nil,"socket close"
+	end 				
+	while true do	
 		local packet = self.packet:Pop()
 		if packet then
 			return packet[1],packet[2],nil
-		elseif not self.luasocket then
-			return nil,nil,self.errno
 		end		
 		local co = Sche.Running()
 		co = {co}	
 		self.block_recv:Push(co)		
-		--self.timeout = timeout
 		local ret = Sche.Block(timeout)
-		self.block_recv:Remove(co) --remove from block_recv
+		self.recv_wakeup = nil
 		if ret == "timeout" then
+			self.block_recv:Remove(co)
 			return nil,nil,"recv timeout"
-		end 
+		elseif not self.luasocket then
+			return nil,nil, (self.errno == nil or self.errno == 0) and "socket close" or self.errno
+		end		
 	end	
 end
 
