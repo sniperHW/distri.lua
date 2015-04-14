@@ -9,7 +9,7 @@ void  on_packet(connection_t c,packet_t p){
 	rpacket_t rpk = (rpacket_t)p;
 	uint64_t id = rpk_read_uint64(rpk);
 	if(id == (uint64_t)c) 
-		connection_send(c,make_writepacket(p));//,NULL,NULL);	
+		connection_send(c,make_writepacket(p),NULL);	
 }
 
 void on_disconnected(connection_t c,int err){
@@ -24,7 +24,7 @@ void on_connect(handle_t s,void *_1,int _2,int err)
 		connection_associate(p,conn,on_packet,on_disconnected);		
 		wpacket_t wpk = wpk_create(64);
 		wpk_write_uint64(wpk,(uint64_t)conn);		
-		connection_send(conn,(packet_t)wpk);//,NULL,NULL);		
+		connection_send(conn,(packet_t)wpk,NULL);		
 	}else{
 		kn_close_sock(s);
 		printf("connect failed\n");
@@ -52,7 +52,7 @@ int main(int argc,char **argv){
 			connection_associate(p,conn,on_packet,on_disconnected);		
 			wpacket_t wpk = wpk_create(64);
 			wpk_write_uint64(wpk,(uint64_t)conn);		
-			connection_send(conn,(packet_t)wpk);//,NULL,NULL);	
+			connection_send(conn,(packet_t)wpk,NULL);	
 		}else if(ret == 0){
 			kn_engine_associate(p,c,on_connect);
 		}else{

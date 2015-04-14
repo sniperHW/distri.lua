@@ -50,10 +50,7 @@ static  inline int stream_socket_send(handle_t h,st_io *req){
 		return kn_sock_post_send(h,req);			
 	int bytes_transfer = 0;
 
-	if(((kn_stream_socket*)s)->ssl){
-		assert(req->iovec_count == 1);
-		if(req->iovec_count != 1)
-			return -1;			
+	if(((kn_stream_socket*)s)->ssl){			
 		bytes_transfer = TEMP_FAILURE_RETRY(SSL_write(((kn_stream_socket*)s)->ssl,req->iovec[0].iov_base,req->iovec[0].iov_len));
 		int ssl_error = SSL_get_error(((kn_stream_socket*)s)->ssl,bytes_transfer);
 		if(bytes_transfer < 0 && (ssl_error == SSL_ERROR_WANT_WRITE ||
@@ -117,9 +114,6 @@ static inline int stream_socket_recv(handle_t h,st_io *req){
 	int bytes_transfer = 0;
 
 	if(((kn_stream_socket*)s)->ssl){
-		assert(req->iovec_count == 1);
-		if(req->iovec_count != 1)
-			return -1;
 		bytes_transfer = TEMP_FAILURE_RETRY(SSL_read(((kn_stream_socket*)s)->ssl,req->iovec[0].iov_base,req->iovec[0].iov_len));
 		int ssl_error = SSL_get_error(((kn_stream_socket*)s)->ssl,bytes_transfer);
 		if(bytes_transfer < 0 && (ssl_error == SSL_ERROR_WANT_WRITE ||
@@ -179,12 +173,7 @@ static inline int stream_socket_post_send(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || h->status != SOCKET_ESTABLISH){
 		return -1;
-	 }
-	if(((kn_stream_socket*)s)->ssl){
-		assert(req->iovec_count == 1);
-		if(req->iovec_count != 1)
-			return -1;
-	}			 
+	 }			 
 	if(!is_set_write(h)){
 	 	if(0 != kn_enable_write(s->e,h))
 	 		return -1;
@@ -222,11 +211,6 @@ static inline int stream_socket_post_recv(handle_t h,st_io *req){
 	kn_socket *s = (kn_socket*)h;
 	if(!s->e || h->status != SOCKET_ESTABLISH){
 		return -1;
-	}
-	if(((kn_stream_socket*)s)->ssl){
-		assert(req->iovec_count == 1);
-		if(req->iovec_count != 1)
-			return -1;
 	}	
 	 if(!is_set_read(h)){
 	 	if(0 != kn_enable_read(s->e,h))

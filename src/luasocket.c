@@ -6,7 +6,7 @@
 #include "kn_thread_mailbox.h"
 
 extern engine_t g_engine;
-//static __thread lua_State *g_L;
+
 enum{
 	_SOCKET = 1,
 	_STREAM_CONN = 2,
@@ -69,7 +69,6 @@ static void on_datagram(struct datagram *d,packet_t p,kn_sockaddr *from){
 	st2.base.Push = PushAddr;
 
 	const char *error = push_obj_callback(obj->L,"srff","__on_packet",*obj,&st1,&st2);
-	//const char *error = push_obj_callback(obj->L,"srf","__on_packet",*obj,&st1);
 	if(error){
 		SYS_LOG(LOG_ERROR,"error on __on_packet:%s\n",error);	
 	}	
@@ -131,7 +130,7 @@ static void  on_packet(connection_t c,packet_t p){
 	luasocket_t luasock = (luasocket_t)connection_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
 	stPushPacket st;
-	st.p = clone_packet(p);//(packet_t)rpk_copy_create(p);
+	st.p = clone_packet(p);
 	st.base.Push = PushPacket;
 	const char *error = push_obj_callback(obj->L,"srf","__on_packet",*obj,&st);
 	if(error){
@@ -159,7 +158,7 @@ static int luasocket_close(lua_State *L){
 }
 
 static void on_disconnected(connection_t c,int err){
-	printf("on_disconnected\n");
+	//printf("on_disconnected\n");
 	luasocket_t luasock = (luasocket_t)connection_getud(c);
 	luaRef_t  *obj = &luasock->luaObj;
 	const char *error = push_obj_callback(obj->L,"sri","__on_disconnected",*obj,err);
@@ -194,7 +193,7 @@ static void cb_connect(handle_t s,void *remoteaddr,int _ ,int err)
 	((void)_);
 	luasocket_t luasock = kn_sock_getud(s);
 	luaRef_t  *obj = &luasock->luaObj;
-	const char *error = push_obj_callback(obj->L,"srpi","___cb_connect",*obj,luasock->sock,err);
+	const char *error = push_obj_callback(obj->L,"sri","___cb_connect",*obj,err);
 	if(error){
 		SYS_LOG(LOG_ERROR,"error on ___cb_connect:%s\n",error);	
 	}
@@ -221,7 +220,7 @@ static int luasocket_connect(lua_State *L){
 	kn_sockaddr host;
 	kn_addr_init_in(&host,ip,port);
 	int ret = kn_sock_connect(luasock->sock,&host,NULL);
-	if(ret > 0){//kn_sock_connect(p,c,&remote,NULL)){
+	if(ret > 0){
 		lua_pushnil(L);
 		lua_pushinteger(L,ret);
 	}else if(ret == 0){
@@ -309,7 +308,16 @@ static int lua_getaddr(lua_State *L,int idx,kn_sockaddr *addr){
 	return 0;
 }
 
-static int luasocket_stream_send(lua_State *L){
+static void send_complete_callback(connection_t c){
+	luasocket_t luasock = (luasocket_t)connection_getud(c);
+	luaRef_t  *obj = &luasock->luaObj;
+	const char *error = push_obj_callback(obj->L,"sr","__send_complete",*obj);
+	if(error){
+		SYS_LOG(LOG_ERROR,"error on __send_complete:%s\n",error);	
+	}
+} 
+
+static  int _luasocket_stream_send(lua_State *L,void (*complete_callback)(connection_t)){
 	luasocket_t luasock = lua_touserdata(L,1);
 	int type = luasock->type;
 	if(type != _STREAM_CONN){
@@ -322,12 +330,20 @@ static int luasocket_stream_send(lua_State *L){
 		lua_pushstring(L,"invaild data");
 		return 1;				
 	}
-	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet))//,NULL,NULL))
+	if(0 != connection_send(luasock->streamconn,(packet_t)pk->_packet,complete_callback))
 		lua_pushstring(L,"send error");
 	else
 		lua_pushnil(L);
 	pk->_packet = NULL;
 	return 1;	
+}
+
+static int luasocket_stream_send(lua_State *L){
+	return _luasocket_stream_send(L,NULL);
+}
+
+static int luasocket_stream_syncsend(lua_State *L){
+	return _luasocket_stream_send(L,send_complete_callback);
 }
 
 static int luasocket_datagram_send(lua_State *L){
@@ -395,8 +411,6 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 	if(_msg->_msg_type == MSG_CLOSED){
 		luasocket_t luasock = (luasocket_t)_msg->luasock;
 		destroy_luasocket(luasock);
-		//kn_close_sock(luasock->sock);
-		//send2main(new_msg(MSG_CLOSED,_msg->ud));
 	}else if(_msg->_msg_type == MSG_CONNECTION){
 		luasocket_t luasock = (luasocket_t)_msg->luasock;
 		luaRef_t  *obj = &luasock->luaObj;
@@ -423,6 +437,7 @@ void reg_luasocket(lua_State *L){
 	REGISTER_FUNCTION("establish",luasocket_establish);	
 	REGISTER_FUNCTION("close",luasocket_close);	
 	REGISTER_FUNCTION("stream_send",luasocket_stream_send);
+	REGISTER_FUNCTION("stream_syncsend",luasocket_stream_syncsend);	
 	REGISTER_FUNCTION("datagram_send",luasocket_datagram_send);
 	REGISTER_FUNCTION("listen",luasocket_listen);	
 	REGISTER_FUNCTION("connect",luasocket_connect);
@@ -435,11 +450,6 @@ void reg_luasocket(lua_State *L){
 	lua_setglobal(L,"CSocket");
 	reg_luapacket(L);
 	kn_setup_mailbox(g_engine,on_mail);
-
-
-
-
-	//g_L = L;
 }
 
 

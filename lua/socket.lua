@@ -33,17 +33,16 @@ function stream.Listen(self,ip,port)
 	return CSocket.listen(self.luasocket,ip,port)
 end
 
-function stream.cb_connect (self,s,err)
-	if not s or err ~= 0 then
+function stream.cb_connect (self,err)
+	if err ~= 0 then
 		self.errno = err
 	else
-		self.luasocket = CSocket.new2(self,s)
 		self.Establish = stream.Establish
 	end
 	local co = self.connect_co
 	if co then
 		self.connect_co = nil
-		Sche.WakeUp(co)--Schedule(co)
+		Sche.WakeUp(co)
 	end
 end
 
@@ -58,13 +57,14 @@ function stream.Connect(self,ip,port)
 			self.connect_co = Sche.Running()
 			self.___cb_connect = stream.cb_connect
 			Sche.Block()
+			if not self.luasocket then
+				return "socket close"
+			elseif self.errno ~= 0 then
+				return "connect error"
+			end
 		elseif ret == 1 then
-			--success immediately
-		end
-		if not self.luasocket or  self.errno ~= 0 then
-			return self.errno
-		else
-			return nil
+			print("success immediately")
+			self.Establish = stream.Establish			
 		end				
 	end
 end
@@ -112,11 +112,8 @@ function stream.Recv(self,timeout)
 		local co = Sche.Running()
 		co = {co}	
 		self.block_recv:Push(co)		
-		self.timeout = timeout
-		Sche.Block(timeout)
-		self.block_recv:Remove(co) --remove from block_recv
-		if self.timeout then
-			self.timeout = nil
+		if "timeout" == Sche.Block(timeout) then
+			self.block_recv:Remove(co)
 			return nil,"recv timeout"
 		end
 	end	
@@ -128,40 +125,58 @@ function stream.Send(self,packet)
 	(此函数不会阻塞,立即返回)
 	]]--	
 	if not self.luasocket then
-		return "socket socket"
+		return "socket close"
 	end
 	return CSocket.stream_send(self.luasocket,packet)
 end
 
---[[
-function stream.SendSync(self,packet)
-	if not self.luasocket then
-		return "socket socket"
+function stream.__send_complete(self)
+	local callback_index = self.block_send.callback_index
+	local co = self.block_send.coros[callback_index]
+	if co then
+		self.block_send.count = self.block_send.count - 1
+		self.block_send.coros[callback_index] = nil
+		Sche.WakeUp(co)
 	end
-	local ret = CSocket.stream_send_sync(self.luasocket,packet)
+	self.block_send.callback_index = self.block_send.callback_index + 1	
+	if self.block_send.count == 0 then
+		self.block_send.coros = {}
+		self.block_send.callback_index = 1
+		self.block_send.sync_send_idx = 1				
+	end
+end
+
+function stream.SendSync(self,packet,timeout)
+	if not self.luasocket then
+		return "socket close"
+	end
+	local ret = CSocket.stream_syncsend(self.luasocket,packet)
 	if not ret then
-		
+		self.__send_complete = self.__send_complete or stream.__send_complete
+		local co = Sche.Running()
+		local idx = self.block_send.sync_send_idx
+		self.block_send.sync_send_idx = self.block_send.sync_send_idx + 1
+		self.block_send.count = self.block_send.count + 1
+		self.block_send.coros[idx] = co		
+		if "timeout" == Sche.Block(timeout) then
+			self.block_send.coros[idx] = nil
+			self.block_send.count = self.block_send.block_count - 1
+			if self.block_send.count == 0 then
+				self.block_send.coros = {}
+				self.block_send.callback_index = 1
+				self.block_send.sync_send_idx = 1				
+			end
+			return "send timeout"
+		elseif not self.luasocket then
+			return "socket close"
+		end	
 	else
 		return ret
 	end
-end]]--
+end
 
 function stream.process_c_disconnect_event(self,errno)
 	self.errno = errno
-	local co
-	while self.block_noaccept do
-		co = self.block_onaccept:Pop()
-		if co then
-			Sche.WakeUp(co)--Schedule(co)
-		else
-			self.block_noaccept = nil
-		end
-	end
-
-	if self.connect_co then
-		Sche.WakeUp(self.connect_co)--Schedule(self.connect_co)
-	end
-
 	while true do
 		co = self.block_recv:Pop()
 		if co then
@@ -171,7 +186,11 @@ function stream.process_c_disconnect_event(self,errno)
 			break
 		end
 	end
-	
+
+	for k,v in pairs(self.block_send.coros) do
+		Sche.WakeUp(v)		
+	end
+
 	if self.pending_rpc then
 		--唤醒所有等待响应的rpc调用
 		for k,v in pairs(self.pending_rpc) do
@@ -179,19 +198,9 @@ function stream.process_c_disconnect_event(self,errno)
 			Sche.Schedule(v)
 		end					
 	end
+	print(Sche.Running())
 	if self.on_disconnected then
-		if Sche.Running() then
-			self.on_disconnected(self,errno)
-		else
-			local s = self
-			Sche.Spawn(function ()
-					s.on_disconnected(s,errno)
-					if s.luasocket then 
-						s:Close()
-					end
-				         end)
-			return			
-		end
+		self.on_disconnected(self,errno)
 	end
 	if self.luasocket then
 		self:Close()
@@ -215,6 +224,8 @@ function stream.Establish(self,decoder,recvbuf_size)
 	recvbuf_size = recvbuf_size or 65535	
 	CSocket.establish(self.luasocket,recvbuf_size,decoder)
 	self.Send = stream.Send
+	self.SendSync = stream.SendSync
+	self.block_send = {callback_index = 1,sync_send_idx = 1,count = 0,coros={}}
 	self.Recv = stream.Recv
 	self.Establish = nil
 	self.packet = LinkQue.New()
@@ -233,7 +244,7 @@ end
 
 function datagram.Send(self,packet,to)
 	if not self.luasocket then
-		return "socket socket"
+		return "socket close"
 	end
 	if not to then
 		return "need remote addr"
@@ -318,6 +329,20 @@ end
 function socket:Close()
 	local luasocket = self.luasocket
 	if luasocket then
+		
+		while self.block_onaccept do
+			local co = self.block_onaccept:Pop()
+			if co then
+				Sche.WakeUp(co)
+			else
+				break
+			end
+		end
+
+		if self.connect_co then
+			Sche.WakeUp(self.connect_co)
+		end
+
 		self.luasocket = nil
 		CSocket.close(luasocket)
 	end	

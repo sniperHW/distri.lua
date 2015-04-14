@@ -37,7 +37,7 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 				break;
 			}
 			case MSG_PACKET:{
-				connection_send(conn,_msg->_packet);//,NULL,NULL);
+				connection_send(conn,_msg->_packet,NULL);
 				_msg->_packet = NULL;
 				break;
 			}

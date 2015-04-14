@@ -160,12 +160,12 @@ static inline void update_send_list(connection_t c,int32_t _bytestransfer)
 			kn_list_pop(&c->send_list);
 			//assert(c->send_list.size > 0 && c->head != NULL);
 			bytestransfer -= w->data_size;
-			/*st_send_finish_callback *st = (st_send_finish_callback*)kn_list_head(&c->send_call_back);
+			st_send_finish_callback *st = (st_send_finish_callback*)kn_list_head(&c->send_call_back);
 			if(st && st->pk == w){
-				st->callback(c,st->ud);
+				st->callback(c);
 				free(st);
 				kn_list_pop(&c->send_call_back);
-			}*/
+			}
 			destroy_packet(w);
 		}else{
 			while(bytestransfer)
@@ -191,11 +191,11 @@ static void connection_destroy(void *ptr)
 {
 	connection_t c = (connection_t)ptr;
 	packet_t w;
-	//st_send_finish_callback *st;
+	st_send_finish_callback *st;
 	while((w = (packet_t)kn_list_pop(&c->send_list))!=NULL)
 		destroy_packet(w);
-	//while((st = (st_send_finish_callback*)kn_list_pop(&c->send_call_back))!=NULL)
-	//	free(st);
+	while((st = (st_send_finish_callback*)kn_list_pop(&c->send_call_back))!=NULL)
+		free(st);
 	if(c->sendtimer) kn_del_timer(c->sendtimer);
 	buffer_release(c->unpack_buf);
 	buffer_release(c->next_recv_buf);
@@ -330,7 +330,7 @@ static void RecvFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 			c->unpack_size += bytestransfer;
 			int ret; 
 			if((ret = c->_decoder->unpack(c->_decoder,c)) == decode_packet_too_big){
-				_force_close(c,err_code);	
+				_force_close(c,EMSGSIZE);	
 				return;
 			}
 			if(ret != 0) return;
@@ -389,7 +389,7 @@ static void IoFinish(handle_t sock,void *_,int32_t bytestransfer,int32_t err_cod
 	refobj_dec((refobj*)c);
 }
 
-int connection_send(connection_t c,packet_t w)//,CCB_SEND_FINISH callback,void *ud)
+int connection_send(connection_t c,packet_t w,CCB_SEND_FINISH callback)
 {	
 	if(packet_type(w) != WPACKET && packet_type(w) != RAWPACKET){
 		destroy_packet(w);
@@ -401,13 +401,12 @@ int connection_send(connection_t c,packet_t w)//,CCB_SEND_FINISH callback,void *
 	}
 	st_io *O;
 	if(w){
-		/*if(callback){
-			st_send_finish_callback *st = calloc(1,sizeof(st));
+		if(callback){
+			st_send_finish_callback *st = calloc(1,sizeof(*st));
 			st->callback = callback;
-			st->ud = ud;
 			st->pk = w;
-			kn_list_pushback(&c->send_call_back,(kn_list_node*)w);
-		}*/
+			kn_list_pushback(&c->send_call_back,(kn_list_node*)st);
+		}
 		kn_list_pushback(&c->send_list,(kn_list_node*)w);
 	}
 	if(!c->doing_send){
