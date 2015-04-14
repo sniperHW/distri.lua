@@ -213,7 +213,7 @@ int kn_sock_post_send(handle_t h,st_io *req){
 	if(((kn_socket*)h)->type == SOCK_STREAM)
 		return stream_socket_post_send(h,req);
 	else if(((kn_socket*)h)->type == SOCK_DGRAM)
-		return -1;//datagram should do send immediate
+		return datagram_socket_post_send(h,req);
 	else
 		return -1;
 }

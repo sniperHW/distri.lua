@@ -138,37 +138,43 @@ kn_msgque_writer_t kn_open_writer(kn_msgque_t _msgque){
 
 
 static inline int write_nobuff(kn_msgque*  msgque,struct msg *msg){
+	int ret = 0;
 	errno = 0;
 	kn_mutex_lock(msgque->mtx);
-	kn_list_pushback(&msgque->shareque,(kn_list_node*)msg);	
-	if(msgque->closing){
-		kn_mutex_lock(msgque->mtx);
-		errno = MSGQUE_CLOSE;
-		return -1;
-	}
-	//检查是否有wait的线程
-	kn_msgque_reader_t reader = (kn_msgque_reader_t)kn_dlist_pop(&msgque->waits);
-	if(reader) kn_condition_signal(reader->cond);
+	do{
+		kn_list_pushback(&msgque->shareque,(kn_list_node*)msg);	
+		if(msgque->closing){
+			errno = MSGQUE_CLOSE;
+			ret = -1;
+			break;
+		}
+		//检查是否有wait的线程
+		kn_msgque_reader_t reader = (kn_msgque_reader_t)kn_dlist_pop(&msgque->waits);
+		if(reader) kn_condition_signal(reader->cond);
+	}while(0);
 	kn_mutex_unlock(msgque->mtx);
-	return 0;
+	return ret;
 }
 
 
 static inline int msgque_flush(kn_msgque_writer_t writer){
+	int ret = 0;
 	errno = 0;
 	kn_msgque*  msgque = writer->msgque;
 	kn_mutex_lock(msgque->mtx);
-	if(msgque->closing){
-		kn_mutex_lock(msgque->mtx);
-		errno = MSGQUE_CLOSE;
-		return -1;
-	}	
-	kn_list_swap(&msgque->shareque,&writer->writebuff);
-	//检查是否有wait的线程
-	kn_msgque_reader_t reader = (kn_msgque_reader_t)kn_dlist_pop(&msgque->waits);
-	if(reader) kn_condition_signal(reader->cond);		
+	do{
+		if(msgque->closing){
+			errno = MSGQUE_CLOSE;
+			ret = -1;
+			break;
+		}	
+		kn_list_swap(&msgque->shareque,&writer->writebuff);
+		//检查是否有wait的线程
+		kn_msgque_reader_t reader = (kn_msgque_reader_t)kn_dlist_pop(&msgque->waits);
+		if(reader) kn_condition_signal(reader->cond);	
+	}while(0);	
 	kn_mutex_unlock(msgque->mtx);
-	return 0;
+	return ret;
 }
 
 static inline int write_buff(kn_msgque_writer_t writer,struct msg *msg){
