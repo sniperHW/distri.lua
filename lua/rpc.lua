@@ -8,7 +8,25 @@ local Timer = require "lua.timer"
 
 local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
-local g_counter = 1
+
+local function gen_rpc_identity()
+	local g_counter = 0
+	return function ()
+		g_counter = g_counter + 1
+		if g_counter < 0 then
+			g_counter = 1
+		end
+		return {h=os.time(),l=g_counter} 
+	end	
+end
+
+gen_rpc_identity = gen_rpc_identity()
+
+local function identity_to_string(identity)
+	return string.format("%d:%d",identity.h,identity.l)
+end
+
+
 local minheap =  CMinHeap.New()
 local timeout_checker
 
@@ -26,25 +44,31 @@ end
 
 local function RPC_Process_Call(app,s,rpk)
 	local request = rpk:Read_table()
-	local funname = request.f
-	local func = app._RPCService[funname]
-	local response = {identity = request.identity}
-	if not func then
-		response.err = funname .. " not found"
-	else	
-		local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
-		if ret[1] then
-			table.remove(ret,1)			
-			response.ret = {table.unpack(ret)}
-		else
-			response.err = ret[2]
-			CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+	local identity = request.identity
+	s.rpc_record = s.rpc_record or {0,0}
+	if identity.l > s.rpc_record[2] or identity.h >  s.rpc_record[1] then
+		s.rpc_record[1] = identity.h
+		s.rpc_record[2] = identity.l
+		local funname = request.f
+		local func = app._RPCService[funname]
+		local response = {identity = identity}
+		if not func then
+			response.err = funname .. " not found"
+		else	
+			local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
+			if ret[1] then
+				table.remove(ret,1)			
+				response.ret = {table.unpack(ret)}
+			else
+				response.err = ret[2]
+				CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+			end
 		end
+		local wpk = CPacket.NewWPacket(512)
+		wpk:Write_uint32(CMD_RPC_RESP)
+		wpk:Write_table(response)
+		s:Send(wpk)
 	end
-	local wpk = CPacket.NewWPacket(512)
-	wpk:Write_uint32(CMD_RPC_RESP)
-	wpk:Write_table(response)
-	s:Send(wpk)
 end
 
 local function RPC_Process_Response(s,rpk)
@@ -53,13 +77,16 @@ local function RPC_Process_Response(s,rpk)
 		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc read table error"))		
 		return
 	end
-
-	local context = s.pending_call[response.identity]
+	local id_string = identity_to_string(response.identity)
+	local context = s.pending_call[id_string]
 	if context then
-		s.pending_call[response.identity] = nil
+		s.pending_call[id_string] = nil
 		minheap:Remove(context)		
 		if context.callback then			
-			context.callback(response)
+			local ret = table.pack(pcall(context.callback,response))
+			if not ret[1] then
+				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s",ret[2]))
+			end			
 		elseif context.co then
 			context.co.response = response
 			Sche.WakeUp(context.co)
@@ -80,13 +107,18 @@ function rpcCaller:new(s,funcname)
 	return o
 end
 
-function rpcCaller:CallAsync(callback,timeout,...)
+function rpcCaller:CallAsync(callback,...)
+
+	if not callback then
+		return "need a callback function"
+	end
+
 	local request = {}
 	local co = Sche.Running()
 	request.f = self.funcname
 	local socket = self.s	
-	request.identity = socket:tostring() .. g_counter
-	g_counter = g_counter + 1
+	request.identity = gen_rpc_identity()
+	local id_string = identity_to_string(request.identity)
 	request.arg = {...}
 	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
@@ -98,18 +130,32 @@ function rpcCaller:CallAsync(callback,timeout,...)
 	end
 
 	local context = {callback=callback}
-	socket.pending_call[request.identity]  = context
-
-	if timeout then
-		if not timeout_checker then
-			init_timeout_checker()
-		end
-		context.on_timeout = function()
-			callback({err="timeout"})
-			socket.pending_call[request.identity] = nil
-		end
-		minheap:Insert(context,C.GetSysTick() + timeout)
+	socket.pending_call[id_string]  = context
+	if not timeout_checker then
+		init_timeout_checker()
 	end
+	local trycount = 1
+	context.on_timeout = function()
+		if trycount <= 2 then
+			local wpk = CPacket.NewWPacket(512)
+			wpk:Write_uint32(CMD_RPC_CALL)
+			wpk:Write_table(request)			
+			ret = socket:Send(wpk)
+			if ret then
+				return "socket error"
+			end			
+			trycount= trycount + 1			
+			minheap:Insert(context,C.GetSysTick() + 5000)		
+		else
+			ret = table.pack(pcall(callback,{err="timeout"}))
+			if not ret[1] then
+				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s",ret[2]))
+			end
+			socket.pending_call[id_string] = nil
+			return
+		end
+	end
+	minheap:Insert(context,C.GetSysTick() + 5000)	
 end
 
 function rpcCaller:CallSync(...)
@@ -117,8 +163,8 @@ function rpcCaller:CallSync(...)
 	local co = Sche.Running()
 	local socket = self.s
 	request.f = self.funcname
-	request.identity = socket:tostring() .. g_counter
-	g_counter = g_counter + 1	
+	request.identity = gen_rpc_identity()
+	local id_string = identity_to_string(request.identity)
 	request.arg = {...}
 	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
@@ -130,14 +176,21 @@ function rpcCaller:CallSync(...)
 	end
 	local trycount = 1
 	local context = {co = co}
-	socket.pending_call[request.identity]  = context	
+	socket.pending_call[id_string]  = context	
 	context.on_timeout = function()
 		if trycount <= 2 then
-			trycount= trycount + 1
+			local wpk = CPacket.NewWPacket(512)
+			wpk:Write_uint32(CMD_RPC_CALL)
+			wpk:Write_table(request)			
+			ret = socket:Send(wpk)
+			if ret then
+				return "socket error"
+			end			
+			trycount= trycount + 1			
 			minheap:Insert(context,C.GetSysTick() + 5000)		
 		else
 			co.response = {err="timeout"}
-			socket.pending_call[request.identity] = nil
+			socket.pending_call[id_string] = nil
 			Sche.Schedule(co)
 			return
 		end

@@ -7,7 +7,7 @@
 static int count = 0;
 static kn_CURLM_t curlm;
 static size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp){
-	return 0;
+	return size*nmemb;
 }
 
 void cb_curl(kn_CURL_t curl,CURLMsg *message,void *ud){

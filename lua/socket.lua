@@ -204,7 +204,10 @@ function stream.process_c_disconnect_event(self,errno)
 				v.co.response = {err="remote connection lose"}
 				Sche.Schedule(v.co)				
 			elseif v.callback then
-				v.callback({err="remote connection lose"})
+				local ret = table.pack(pcall(v.callback,{err="remote connection lose"}))
+				if not ret[1] then
+					CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s",ret[2]))
+				end				
 			end
 		end
 		self.pending_call = nil		

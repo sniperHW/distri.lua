@@ -16,11 +16,14 @@ for i=1,10 do
 		local rpcHandler = RPC.MakeRPC(client,"Plus")
 		local function callback(response)
 			if not response.err then
-				rpcHandler:CallAsync(callback,1000,1,2)
+				rpcHandler:CallAsync(callback,1,2)
+			else
+				print(response.err)
+				client:Close()
 			end
 		end		
 		for j=1,100 do			
-			rpcHandler:CallAsync(callback,1000,1,2)	
+			rpcHandler:CallAsync(callback,1,2)	
 		end
 	end)	
 end
