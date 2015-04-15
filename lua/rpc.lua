@@ -51,23 +51,35 @@ local function RPC_Process_Call(app,s,rpk)
 		s.rpc_record[2] = identity.l
 		local funname = request.f
 		local func = app._RPCService[funname]
-		local response = {identity = identity}
-		if not func then
-			response.err = funname .. " not found"
-		else	
-			local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
-			if ret[1] then
-				table.remove(ret,1)			
-				response.ret = {table.unpack(ret)}
-			else
-				response.err = ret[2]
-				CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+
+		if request.noret then
+			if not func then
+				CLog.SysLog(CLog.LOG_ERROR,funname .. " not found")
+			else	
+				local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
+				if not ret[1] then
+					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+				end
 			end
+		else
+			local response = {identity = identity}
+			if not func then
+				response.err = funname .. " not found"
+			else	
+				local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
+				if ret[1] then
+					table.remove(ret,1)			
+					response.ret = {table.unpack(ret)}
+				else
+					response.err = ret[2]
+					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+				end
+			end
+			local wpk = CPacket.NewWPacket(512)
+			wpk:Write_uint32(CMD_RPC_RESP)
+			wpk:Write_table(response)
+			s:Send(wpk)
 		end
-		local wpk = CPacket.NewWPacket(512)
-		wpk:Write_uint32(CMD_RPC_RESP)
-		wpk:Write_table(response)
-		s:Send(wpk)
 	end
 end
 
@@ -156,6 +168,43 @@ function rpcCaller:CallAsync(callback,...)
 		end
 	end
 	minheap:Insert(context,C.GetSysTick() + 5000)	
+end
+
+function rpcCaller:CallNoRet(...)
+	local request = {}
+	local co = Sche.Running()
+	local socket = self.s
+	request.f = self.funcname
+	request.identity = gen_rpc_identity()
+	request.arg = {...}
+	request.noret = true
+	local wpk = CPacket.NewWPacket(512)
+	wpk:Write_uint32(CMD_RPC_CALL)
+	wpk:Write_table(request)
+	
+	local ret = socket:Send(wpk)
+	if ret then
+		return "socket error"
+	end
+	local trycount = 1
+	local context = {}
+	context.on_timeout = function()
+		if trycount <= 2 then
+			local wpk = CPacket.NewWPacket(512)
+			wpk:Write_uint32(CMD_RPC_CALL)
+			wpk:Write_table(request)			
+			ret = socket:Send(wpk)
+			if ret then
+				return
+			end			
+			trycount= trycount + 1			
+			minheap:Insert(context,C.GetSysTick() + 5000)		
+		end
+	end
+	minheap:Insert(context,C.GetSysTick() + 5000)
+	if not timeout_checker then
+		init_timeout_checker()
+	end	
 end
 
 function rpcCaller:CallSync(...)
