@@ -55,15 +55,14 @@ local function RPC_Process_Response(s,rpk)
 
 	local context = s.pending_call[response.identity]
 	if context then
-		s.pending_call[response.identity] = nil		
-		if context.callback then
+		s.pending_call[response.identity] = nil
+		context.disable = true	
+		minheap:Remove(context)		
+		if context.callback then			
 			context.callback(response)
 		elseif context.co then
 			context.co.response = response
 			Sche.WakeUp(context.co)
-		end
-		if context.index then
-			minheap:Remove(context)
 		end
 	end
 end
@@ -106,7 +105,6 @@ function rpcCaller:CallAsync(callback,timeout,...)
 			init_timeout_checker()
 		end
 		context.timeout = C.GetSysTick() + timeout
-		context.index = 0
 		context.on_timeout = function()
 			callback({err="timeout"})
 			socket.pending_call[request.identity] = nil
@@ -135,7 +133,6 @@ function rpcCaller:CallSync(...)
 	local context = {co = co}
 	socket.pending_call[request.identity]  = context	
 	context.timeout = C.GetSysTick() + 5000
-	context.index = 0
 	context.on_timeout = function()
 		context.timeout = C.GetSysTick() + 5000
 		if trycount <= 2 then

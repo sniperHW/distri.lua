@@ -209,7 +209,7 @@ function stream.process_c_disconnect_event(self,errno)
 		end
 		self.pending_call = nil		
 	end
-	
+
 	if self.on_disconnected then
 		self.on_disconnected(self,errno)
 	end

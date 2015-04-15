@@ -63,7 +63,7 @@ end
 
 function minheap:Change(co)
     local index = co.index
-    if index == 0 then
+    if not index or index == 0 then
         return
     end
     self:Down(index)
@@ -73,7 +73,8 @@ function minheap:Change(co)
 end
 
 function minheap:Insert(co)
-    if co.index ~= 0 then
+    co.index = co.index or 0
+    if co.index > 0 then
         return
     end
     self.m_size = self.m_size + 1
@@ -120,7 +121,7 @@ function minheap:Clear()
 end
 
 function minheap:Remove(co)
-    if co.index > 0 then
+    if co.index and co.index > 0 then
         if self.m_size > 1 then
             local index = co.index
             local other = self.m_data[self.m_size]
