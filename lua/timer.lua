@@ -45,20 +45,21 @@ function timer:Run()
 	local timer = self.minheap
 	self.stop = false
 	while true do
-		local now = C.GetSysTick()
 		while not self.stop do
-			local t = timer:Pop(now)
-			if not t then
+			local timeouts = timer:Pop(C.GetSysTick())
+			if not timeouts then
 				break
 			end
-			if not t.invaild then
-				local status,ret = pcall(t.callback,table.unpack(t.arg))
-				if not status then
-					local err = ret
-					CLog.SysLog(CLog.LOG_ERROR,"timer error:" .. err)
-				else
-					if ret == nil then
-						self:Register(t.callback,t.ms,table.unpack(t.arg))
+			for k,v in pairs(timeouts) do
+				if not v.invaild then
+					local status,ret = pcall(v.callback,table.unpack(v.arg))
+					if not status then
+						local err = ret
+						CLog.SysLog(CLog.LOG_ERROR,"timer error:" .. err)
+					else
+						if ret == nil then
+							self:Register(v.callback,v.ms,table.unpack(v.arg))
+						end
 					end
 				end
 			end

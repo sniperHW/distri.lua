@@ -14,13 +14,10 @@ local timeout_checker
 
 local function init_timeout_checker()
 	timeout_checker = Timer.New():Register(function ()
-		      		local now = C.GetSysTick()
-				while true do
-					local context = minheap:Pop(C.GetSysTick())
-					if context then
-						context.on_timeout()
-					else
-						return
+				local contexts = minheap:Pop(C.GetSysTick())
+				if contexts then
+					for k,v in pairs(contexts) do
+						v.on_timeout()
 					end
 				end
 		     	       end,1)

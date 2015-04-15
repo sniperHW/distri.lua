@@ -63,23 +63,20 @@ function alarmclock:SetAlarm(alarmtime,onAlarm,...)
 end
 
 function alarmclock:CheckAlarm()
-	local now = os.time()
-	local minheap = self.minheap
-	while true do
-		local t = minheap:Pop(now)
-		if not t then
-			break
-		end
-		local alarms = t.alarms
-		while not alarms:IsEmpty() do
-			local alarm = alarms:Pop()
-			local status,err = pcall(alarm.onAlarm,alarm,table.unpack(alarm.arg))
-			if not status then
-				CLog.SysLog(CLog.LOG_ERROR,"alarmclock error:" .. err)
+	local timeouts = self.minheap:Pop(os.time())
+	if timeouts then
+		for k,v in pairs(timeouts) do
+			local alarms = v.alarms
+			while not alarms:IsEmpty() do
+				local alarm = alarms:Pop()
+				local status,err = pcall(alarm.onAlarm,alarm,table.unpack(alarm.arg))
+				if not status then
+					CLog.SysLog(CLog.LOG_ERROR,"alarmclock error:" .. err)
+				end
+				alarms.isVaild = false
 			end
-			alarms.isVaild = false
+			self.slot[v.timeout] = nil
 		end
-		self.slot[t.timeout] = nil
 	end
 	return true
 end

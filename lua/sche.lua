@@ -105,14 +105,10 @@ local function Schedule(co)
 			end			
 			co = readylist:Pop()
 		end
-		local now = C.GetSysTick()
-		local timer = sche.timer
-		while true do
-			co = timer:Pop(now)
-			if co then
-				add2Ready(co)
-			else
-				break
+		local timeouts = sche.timer:Pop(C.GetSysTick())
+		if timeouts then
+			for k,v in pairs(timeouts) do
+				add2Ready(v)
 			end
 		end		
 		for k,v in pairs(yields) do

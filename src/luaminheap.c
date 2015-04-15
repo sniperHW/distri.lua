@@ -124,13 +124,19 @@ static int _pop(lua_State *L){
 	if(lua_type(L,2) != LUA_TNUMBER)
 		return luaL_error(L,"invaild arg2");	
 	uint64_t n = lua_tointeger(L,2);
+	int i = 1;
 	struct stluaheap_ele* min = (struct stluaheap_ele*)minheap_min(m->m);
 	if(min && min->n <= n){
-		LuaRef_Set(min->luaObj,"sp","heapele",NULL);
-		minheap_popmin(m->m);
-		push_LuaRef(L,min->luaObj);
-		release_luaRef(&min->luaObj);
-		free(min);
+		lua_newtable(L);
+		while(min && min->n <= n){
+			LuaRef_Set(min->luaObj,"sp","heapele",NULL);
+			minheap_popmin(m->m);
+			push_LuaRef(L,min->luaObj);
+			release_luaRef(&min->luaObj);
+			free(min);
+			lua_rawseti(L,-2,i++);
+			min = (struct stluaheap_ele*)minheap_min(m->m);
+		}
 		return 1;
 	}
 	return 0;
