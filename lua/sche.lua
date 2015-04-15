@@ -1,10 +1,9 @@
-local MinHeap = require "lua.minheap"
 local LinkQue =  require "lua.linkque"
 
 
 local sche = {
 	ready_list = LinkQue.New(),
-	timer = MinHeap.New(),
+	timer = CMinHeap.New(),
 	allcos = {},
 	co_count = 0,
 	runningco = nil,
@@ -33,19 +32,17 @@ local function _block(ms,stat)
 		return
 	end
     	if ms and ms > 0 then
-        		co.timeout = C.GetSysTick() + ms
-        		if co.index == 0 then
-            			sche.timer:Insert(co)
+        		local timeout = C.GetSysTick() + ms
+        		if co.heapele then
+             			sche.timer:Change(co,timeout)       			
         		else
-            			sche.timer:Change(co)
+            			sche.timer:Insert(co,timeout)        			
         		end
     	end
 	co.status = stat
 	coroutine.yield(co.coroutine)
-	if co.index ~= 0 then
-	        co.timeout = 0		
-	        sche.timer:Change(co)
-	        sche.timer:PopMin()
+	if co.heapele then		
+	        sche.timer:Remove(co)
 	        return "timeout"
 	end
 end
@@ -110,12 +107,14 @@ local function Schedule(co)
 		end
 		local now = C.GetSysTick()
 		local timer = sche.timer
-		while timer:Min() ~=0 and timer:Min() <= now do
-			co = timer:PopMin()
-			--if co.status == stat_block or co.status == stat_sleep then
-			add2Ready(co)
-			--end
-		end
+		while true do
+			co = timer:Pop(now)
+			if co then
+				add2Ready(co)
+			else
+				break
+			end
+		end		
 		for k,v in pairs(yields) do
 			add2Ready(v)
 		end

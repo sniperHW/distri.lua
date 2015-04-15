@@ -1,7 +1,6 @@
 #include "kendynet.h"
 #include "lua_util.h"
 #include "luasocket.h"
-#include "luaredis.h"
 #include "lualog.h"
 #include "kn_timer.h"
 #include "kn_time.h"
@@ -209,8 +208,10 @@ static int lua_GetPid(lua_State *L){
 }
 
 void reg_luahttp(lua_State *L);
- void reg_luabase64(lua_State *L);
- void reg_timeutil(lua_State *L);
+void reg_luabase64(lua_State *L);
+void reg_timeutil(lua_State *L);
+void reg_luaredis(lua_State *L);
+void reg_luaminheap(lua_State *L);
 int main(int argc,char **argv)
 {
 	if(argc < 2){
@@ -256,6 +257,7 @@ int main(int argc,char **argv)
 	reg_lualog(L);
 	reg_luabase64(L);
 	reg_timeutil(L);
+	reg_luaminheap(L);
 	start(L,argc,argv);
 	return 0;
 } 

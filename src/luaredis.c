@@ -1,4 +1,6 @@
-#include "luaredis.h"
+#include "kendynet.h"
+#include "kn_redis.h"
+#include "lua_util.h"
 #include "push_callback.h"
 #include "log.h"
 

@@ -1,6 +1,5 @@
 local Sche = require "lua.sche"
 local Timer = require "lua.timer"
-local MinHeap = require "lua.minheap"
 local LinkQue =  require "lua.linkque"
 
 local alarmclock = {}
@@ -43,18 +42,16 @@ function alarmclock:SetAlarm(alarmtime,onAlarm,...)
  		arg = table.pack(...)
  	}
  	if not self.minheap then
- 		self.minheap = MinHeap.New()
+ 		self.minheap = CMinHeap.New()
  		startRun = true
  	end
  	local slot = self.slot[alarmstamp]
  	if not slot then
  		slot = {
-			index = 0,
-			timeout = alarmstamp,
 			alarms = LinkQue.New()
 		}
 		self.slot[alarmstamp] = slot    	
-		self.minheap:Insert(slot)
+		self.minheap:Insert(slot,alarmstamp)
  	end
  	slot.alarms:Push(alarm)
  	if not self.timer then
@@ -67,8 +64,12 @@ end
 
 function alarmclock:CheckAlarm()
 	local now = os.time()
-	while self.minheap:Min() ~= 0 and self.minheap:Min() <= now do
-		local t = self.minheap:PopMin()
+	local minheap = self.minheap
+	while true do
+		local t = minheap:Pop(now)
+		if not t then
+			break
+		end
 		local alarms = t.alarms
 		while not alarms:IsEmpty() do
 			local alarm = alarms:Pop()

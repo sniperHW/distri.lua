@@ -16,7 +16,7 @@ inline static lua_log_t lua_getlualog(lua_State *L, int index) {
 int lua_create_logfile(lua_State *L){
 	const char *filename = lua_tostring(L,1);
 	logfile_t f = create_logfile(filename);
-	lua_log_t l = (lua_log_t)lua_newuserdata(L, sizeof(lua_log_t));
+	lua_log_t l = (lua_log_t)lua_newuserdata(L, sizeof(*l));
 	l->_f = f;
 	luaL_getmetatable(L, LUALOG_METATABLE);
 	lua_setmetatable(L, -2);

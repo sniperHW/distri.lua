@@ -5,20 +5,24 @@ rpc连接只能发送和接收CSocket.rpkdecoder()格式的封包
 local cjson = require "cjson"
 local Sche = require "lua.sche"
 local Timer = require "lua.timer"
-local MinHeap = require "lua.minheap"
 
 local CMD_RPC_CALL =  0xABCDDBCA
 local CMD_RPC_RESP =  0xDBCAABCD
 local g_counter = 1
-local minheap = MinHeap.New()
+local minheap =  CMinHeap.New()
 local timeout_checker
 
 local function init_timeout_checker()
 	timeout_checker = Timer.New():Register(function ()
 		      		local now = C.GetSysTick()
-				while minheap:Min() ~=0 and minheap:Min() <= now do
-					minheap:PopMin().on_timeout()
-				end	
+				while true do
+					local context = minheap:Pop(C.GetSysTick())
+					if context then
+						context.on_timeout()
+					else
+						return
+					end
+				end
 		     	       end,1)
 	Sche.Spawn(function() timeout_checker:Run() end)	
 end
@@ -56,7 +60,6 @@ local function RPC_Process_Response(s,rpk)
 	local context = s.pending_call[response.identity]
 	if context then
 		s.pending_call[response.identity] = nil
-		context.disable = true	
 		minheap:Remove(context)		
 		if context.callback then			
 			context.callback(response)
@@ -104,12 +107,11 @@ function rpcCaller:CallAsync(callback,timeout,...)
 		if not timeout_checker then
 			init_timeout_checker()
 		end
-		context.timeout = C.GetSysTick() + timeout
 		context.on_timeout = function()
 			callback({err="timeout"})
 			socket.pending_call[request.identity] = nil
 		end
-		minheap:Insert(context)
+		minheap:Insert(context,C.GetSysTick() + timeout)
 	end
 end
 
@@ -132,12 +134,10 @@ function rpcCaller:CallSync(...)
 	local trycount = 1
 	local context = {co = co}
 	socket.pending_call[request.identity]  = context	
-	context.timeout = C.GetSysTick() + 5000
 	context.on_timeout = function()
-		context.timeout = C.GetSysTick() + 5000
 		if trycount <= 2 then
 			trycount= trycount + 1
-			minheap:Insert(context)		
+			minheap:Insert(context,C.GetSysTick() + 5000)		
 		else
 			co.response = {err="timeout"}
 			socket.pending_call[request.identity] = nil
@@ -145,7 +145,7 @@ function rpcCaller:CallSync(...)
 			return
 		end
 	end
-	minheap:Insert(context)
+	minheap:Insert(context,C.GetSysTick() + 5000)
 	if not timeout_checker then
 		init_timeout_checker()
 	end	

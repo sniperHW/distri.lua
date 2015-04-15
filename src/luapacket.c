@@ -185,7 +185,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 			size_t len = 0;
 			if(argtype == LUA_TNUMBER) len = size_of_pow2(lua_tointeger(L,1));
 			if(len < 64) len = 64;
-			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
 			p->_packet = (packet_t)wpk_create(len);
@@ -193,7 +193,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 		}else if(argtype == LUA_TSTRING){
 			size_t len;
 			char *data = (char*)lua_tolstring(L,1,&len);
-			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
 			p->_packet = (packet_t)wpk_create_by_bin((int8_t*)data,len);
@@ -204,7 +204,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 				return luaL_error(L,"invaild opration for arg1");
 			if(other->_packet->type == RAWPACKET)
 				return luaL_error(L,"invaild opration for arg1");
-			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
 			p->_packet = make_writepacket(other->_packet);//(packet_t)wpk_copy_create(other->_packet);
@@ -216,7 +216,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 				return luaL_error(L,"table should not hava metatable");	
 				//lua_pushnil(L);
 			}else{
-				lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+				lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 				luaL_getmetatable(L, LUAPACKET_METATABLE);
 				lua_setmetatable(L, -2);
 				p->_packet = (packet_t)wpk;		
@@ -230,7 +230,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 			//参数为string,构造一个函数数据data的rawpacket
 			size_t len;
 			char *data = (char*)lua_tolstring(L,1,&len);
-			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);				
 			p->_packet = (packet_t)rawpacket_create2(data,len);
@@ -241,7 +241,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 				return luaL_error(L,"invaild opration for arg1");
 			if(other->_packet->type != RAWPACKET)
 				return luaL_error(L,"invaild opration for arg1");
-			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
 			p->_packet = clone_packet(other->_packet);
@@ -255,7 +255,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 				return luaL_error(L,"invaild opration for arg1");
 			if(other->_packet->type == RAWPACKET)
 				return luaL_error(L,"invaild opration for arg1");
-			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+			lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 			luaL_getmetatable(L, LUAPACKET_METATABLE);
 			lua_setmetatable(L, -2);
 			p->_packet = make_readpacket(other->_packet);
@@ -267,7 +267,7 @@ static int lua_new_packet(lua_State *L,int packettype){
 }
 
 void push_luapacket(lua_State *L,packet_t pk){
-	lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(lua_packet_t));
+	lua_packet_t p = (lua_packet_t)lua_newuserdata(L, sizeof(*p));
 	luaL_getmetatable(L, LUAPACKET_METATABLE);
 	lua_setmetatable(L, -2);
 	p->_packet = pk;

@@ -1,5 +1,5 @@
 PLAT =
-CFLAGS = -g -Wall -fno-strict-aliasing
+CFLAGS = -O2 -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.2.3/src 
 DEFINE =
@@ -18,6 +18,7 @@ source = src/luasocket.c\
 	  src/timeutil.c\
 	  src/listener.c\
 	  src/top.c \
+	  src/luaminheap.c\
 	  src/distri.c
 
 # Platform-specific overrides
