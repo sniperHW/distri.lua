@@ -13,11 +13,21 @@ local g_counter = 1
 local minheap = MinHeap.New()
 local timeout_checker
 
+local function init_timeout_checker()
+	timeout_checker = Timer.New():Register(function ()
+		      		local now = C.GetSysTick()
+				while minheap:Min() ~=0 and minheap:Min() <= now do
+					minheap:PopMin().on_timeout()
+				end	
+		     	       end,1)
+	Sche.Spawn(function() timeout_checker:Run() end)	
+end
+
 local function RPC_Process_Call(app,s,rpk)
 	local request = rpk:Read_table()
 	local funname = request.f
 	local func = app._RPCService[funname]
-	local response = {co = request.co,identity = request.identity}
+	local response = {identity = request.identity}
 	if not func then
 		response.err = funname .. " not found"
 	else	
@@ -42,18 +52,18 @@ local function RPC_Process_Response(s,rpk)
 		CLog.SysLog(CLog.LOG_ERROR,string.format("rpc read table error"))		
 		return
 	end
-	if response.co then
-		local co = Sche.GetCoByIdentity(response.co)
-		if co then
-			co.response = response
-			s.pending_sync_call[co.identity] = nil
-			Sche.WakeUp(co)
+
+	local context = s.pending_call[response.identity]
+	if context then
+		s.pending_call[response.identity] = nil		
+		if context.callback then
+			context.callback(response)
+		elseif context.co then
+			context.co.response = response
+			Sche.WakeUp(context.co)
 		end
-	elseif response.identity then
-		local callback = s.pending_async_call[response.identity]
-		if callback then
-			callback(response)
-			s.pending_async_call[response.identity] = nil
+		if context.index then
+			minheap:Remove(context)
 		end
 	end
 end
@@ -61,75 +71,87 @@ end
 local rpcCaller = {}
 
 function rpcCaller:new(s,funcname)
-  local o = {}
-  self.__index = self      
-  setmetatable(o,self)
-  o.s = s
-  o.funcname = funcname
-  return o
+	local o = {}
+	self.__index = self      
+	setmetatable(o,self)
+	o.s = s
+	s.minheap = s.minheap or minheap
+	s.pending_call = s.pending_call or {}	
+	o.funcname = funcname
+	return o
 end
 
 function rpcCaller:CallAsync(callback,timeout,...)
 	local request = {}
 	local co = Sche.Running()
 	request.f = self.funcname
-	request.identity = self.s:tostring() .. g_counter
+	local socket = self.s	
+	request.identity = socket:tostring() .. g_counter
 	g_counter = g_counter + 1
 	request.arg = {...}
 	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
 	wpk:Write_table(request)	
 
-	local ret = self.s:Send(wpk)
+	local ret = socket:Send(wpk)
 	if ret then
 		return "socket error"
 	end
 
-	self.s.pending_async_call = self.s.pending_async_call or {}
-	self.s.pending_async_call[request.identity]  = callback
+	local context = {callback=callback}
+	socket.pending_call[request.identity]  = context
 
 	if timeout then
 		if not timeout_checker then
-			timeout_checker = Timer.New():Register(function ()
-				      		local now = C.GetSysTick()
-						while minheap:Min() ~=0 and minheap:Min() <= now do
-							minheap:PopMin().check()
-						end	
-				     	       end,1)
-			Sche.Spawn(function() timeout_checker:Run() end)
+			init_timeout_checker()
 		end
-		local checker = {timeout = C.GetSysTick() + timeout,index = 0}
-		checker.check = function()
-			if not self.s.pending_async_call then
-				return
-			end
-			local callback = self.s.pending_async_call[request.identity]
-			if callback then
-				callback({err="timeout"})
-				self.s.pending_async_call[request.identity] = nil
-			end			
+		context.timeout = C.GetSysTick() + timeout
+		context.index = 0
+		context.on_timeout = function()
+			callback({err="timeout"})
+			socket.pending_call[request.identity] = nil
 		end
-		minheap:Insert(checker)
+		minheap:Insert(context)
 	end
 end
 
 function rpcCaller:CallSync(...)
 	local request = {}
 	local co = Sche.Running()
+	local socket = self.s
 	request.f = self.funcname
-	request.co = co.identity
+	request.identity = socket:tostring() .. g_counter
+	g_counter = g_counter + 1	
 	request.arg = {...}
 	local wpk = CPacket.NewWPacket(512)
 	wpk:Write_uint32(CMD_RPC_CALL)
 	wpk:Write_table(request)
 	
-	local ret = self.s:Send(wpk)
+	local ret = socket:Send(wpk)
 	if ret then
 		return "socket error"
 	end
-
-	self.s.pending_sync_call = self.s.pending_sync_call or {}
-	self.s.pending_sync_call[co.identity]  = co
+	local trycount = 1
+	local context = {co = co}
+	socket.pending_call[request.identity]  = context	
+	context.timeout = C.GetSysTick() + 5000
+	context.index = 0
+	context.on_timeout = function()
+		context.timeout = C.GetSysTick() + 5000
+		if trycount <= 2 then
+			trycount= trycount + 1
+			minheap:Insert(context)		
+		else
+			co.response = {err="timeout"}
+			socket.pending_call[request.identity] = nil
+			Sche.Schedule(co)
+			return
+		end
+	end
+	minheap:Insert(context)
+	if not timeout_checker then
+		init_timeout_checker()
+	end	
 	Sche.Block()
 	local response = co.response
 	co.response = nil

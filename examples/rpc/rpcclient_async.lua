@@ -5,7 +5,7 @@ local Sche = require "lua.sche"
 
 local rpcclient = App.New()
 
-for i=1,1 do
+for i=1,10 do
 	Sche.Spawn(function () 
 		local client = Socket.Stream.New(CSocket.AF_INET)
 		if client:Connect("127.0.0.1",8000) then
@@ -15,9 +15,11 @@ for i=1,1 do
 		rpcclient:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)
 		local rpcHandler = RPC.MakeRPC(client,"Plus")
 		local function callback(response)
-			rpcHandler:CallAsync(callback,1000,1,2)
+			if not response.err then
+				rpcHandler:CallAsync(callback,1000,1,2)
+			end
 		end		
-		for j=1,1 do			
+		for j=1,100 do			
 			rpcHandler:CallAsync(callback,1000,1,2)	
 		end
 	end)	

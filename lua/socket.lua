@@ -197,22 +197,19 @@ function stream.process_c_disconnect_event(self,errno)
 		Sche.WakeUp(v)		
 	end
 
-	if self.pending_sync_call then
-		--唤醒所有等待响应的rpc调用
-		for k,v in pairs(self.pending_sync_call) do
-			v.response = {err="remote connection lose"}
-			Sche.Schedule(v)
+	if self.pending_call then
+		for k,v in pairs(self.pending_call) do
+			self.minheap:Remove(v)
+			if v.co then
+				v.co.response = {err="remote connection lose"}
+				Sche.Schedule(v.co)				
+			elseif v.callback then
+				v.callback({err="remote connection lose"})
+			end
 		end
-		self.pending_sync_call = nil					
+		self.pending_call = nil		
 	end
-
-	if self.pending_async_call then
-		for k,v in pairs(self.pending_async_call) do
-			v({err="remote connection lose"})
-		end
-		self.pending_async_call = nil		
-	end
-
+	
 	if self.on_disconnected then
 		self.on_disconnected(self,errno)
 	end
