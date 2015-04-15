@@ -197,13 +197,22 @@ function stream.process_c_disconnect_event(self,errno)
 		Sche.WakeUp(v)		
 	end
 
-	if self.pending_rpc then
+	if self.pending_sync_call then
 		--唤醒所有等待响应的rpc调用
-		for k,v in pairs(self.pending_rpc) do
-			v.response = {err="remote connection lose",ret=nil}
+		for k,v in pairs(self.pending_sync_call) do
+			v.response = {err="remote connection lose"}
 			Sche.Schedule(v)
-		end					
+		end
+		self.pending_sync_call = nil					
 	end
+
+	if self.pending_async_call then
+		for k,v in pairs(self.pending_async_call) do
+			v({err="remote connection lose"})
+		end
+		self.pending_async_call = nil		
+	end
+
 	if self.on_disconnected then
 		self.on_disconnected(self,errno)
 	end
@@ -363,7 +372,7 @@ function socket:Close()
 end
 
 function socket:tostring()
-	return CSocket.tostring(self.luasocket)
+	return string.format("%s",self)
 end
 
 return {

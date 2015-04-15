@@ -17,7 +17,7 @@ for i=1,10 do
 		for j=1,100 do
 			Sche.Spawn(function (client)
 				while true do			
-					local err,ret = rpcHandler:Call(1,2)
+					local err,ret = rpcHandler:CallSync(1,2)
 					if err then
 						print("rpc error:" .. err)
 						client:Close()
