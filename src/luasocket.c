@@ -211,7 +211,7 @@ static int luasocket_connect(lua_State *L){
 		return 1;
 	}
 	
-	if(!luaL_checkunsigned(L,3)){
+	if(!luaL_checkinteger(L,3)){
 		lua_pushstring(L,"invalid port");
 		return 1;		
 	}
@@ -242,7 +242,7 @@ static int luasocket_listen(lua_State *L){
 			lua_pushstring(L,"invalid ip");
 			return 1;
 		}	
-		if(!luaL_checkunsigned(L,3)){
+		if(!luaL_checkinteger(L,3)){
 			lua_pushstring(L,"invalid port");
 			return 1;		
 		}	
@@ -262,7 +262,7 @@ static int luasocket_listen(lua_State *L){
 			lua_pushstring(L,"invalid ip");
 			return 1;
 		}	
-		if(!luaL_checkunsigned(L,3)){
+		if(!luaL_checkinteger(L,3)){
 			lua_pushstring(L,"invalid port");
 			return 1;		
 		}	

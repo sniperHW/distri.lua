@@ -1,5 +1,14 @@
 local cjson = require "cjson"
 
+
+local t = {0xfffffffffffffff,2,3,4,5}
+local str = cjson.encode(t)
+print(str)
+t = cjson.decode(str)
+print(table.unpack(t))
+
+
+
 --[[a=1
 b=2
 c=3
@@ -21,7 +30,7 @@ t = cjson.decode(str)
 for i=1,4 do
 	print(t[i])
 end]]--
-
+--[[
 local ab = {
     person = {
         {
@@ -60,3 +69,4 @@ for i = 1,1000000 do
 end
 
 print(os.clock() - t)
+]]--

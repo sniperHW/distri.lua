@@ -26,7 +26,8 @@ static void sig_int(int sig){
 }
 
 static int  lua_getsystick(lua_State *L){
-	lua_pushnumber(L,kn_systemms64() & 0xFFFFFFFFFFF);
+	//lua_pushnumber(L,kn_systemms64() & 0xFFFFFFFFFFF);
+	lua_pushinteger(L,kn_systemms64());
 	return 1;
 }
 
@@ -163,8 +164,8 @@ static int lua_RunOnce(lua_State *L){
 	if(lua_gettop(L) < 1 || !lua_isnumber(L,1))
 		return luaL_error(L,"need a integer param");		
 	if(g_status){ 
-		uint32_t ms = (uint32_t)lua_tounsigned(L,1);
-		uint32_t max_process_time = (uint32_t)lua_tounsigned(L,2);
+		uint32_t ms = (uint32_t)lua_tointeger(L,1);
+		uint32_t max_process_time = (uint32_t)lua_tointeger(L,2);
 		kn_engine_runonce(g_engine,ms,max_process_time);
 	}
 	lua_pushboolean(L,g_status);

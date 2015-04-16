@@ -4,7 +4,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 SHARED   =   -fPIC
 DEPDIR = ../deps
-INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.2.3/src -I$(DEPDIR)/curl-7.38.0/include
+INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.3.0/src -I$(DEPDIR)/curl-7.38.0/include
 DEFINE =
 LIBNAME = libkendynet.a
 
@@ -101,7 +101,7 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o testtimer testtimer.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testmailbox testmailbox.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testlog testlog.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testlua testlua.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(DEPDIR)/lua-5.2.3/src/liblua.a -ldl $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o testlua testlua.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(DEPDIR)/lua-5.3.0/src/liblua.a -ldl $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o daemonserver daemonserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testcurl testcurl.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl
 	$(CC) $(CFLAGS) -o testlfstack testlfstack.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)

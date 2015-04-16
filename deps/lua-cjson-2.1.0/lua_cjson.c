@@ -87,6 +87,7 @@ typedef enum {
     T_ARR_END,
     T_STRING,
     T_NUMBER,
+    T_INTEGER,
     T_BOOLEAN,
     T_NULL,
     T_COLON,
@@ -104,6 +105,7 @@ static const char *json_token_type_name[] = {
     "T_ARR_END",
     "T_STRING",
     "T_NUMBER",
+    "T_INTEGER",
     "T_BOOLEAN",
     "T_NULL",
     "T_COLON",
@@ -149,6 +151,7 @@ typedef struct {
     union {
         const char *string;
         double number;
+        long long integer;
         int boolean;
     } value;
     int string_len;
@@ -1001,8 +1004,18 @@ static void json_next_number_token(json_parse_t *json, json_token_t *token)
 {
     char *endptr;
 
-    token->type = T_NUMBER;
-    token->value.number = fpconv_strtod(json->ptr, &endptr);
+
+    double number = fpconv_strtod(json->ptr, &endptr);
+
+    if((lua_Integer)number != number){
+        token->type = T_NUMBER;
+        token->value.number = number;        
+    }else{
+        token->type = T_INTEGER;
+        token->value.integer = (lua_Integer)number;
+    } 
+
+
     if (json->ptr == endptr)
         json_set_token_error(token, json, "invalid number");
     else
@@ -1235,6 +1248,9 @@ static void json_process_value(lua_State *l, json_parse_t *json,
     case T_NUMBER:
         lua_pushnumber(l, token->value.number);
         break;;
+    case T_INTEGER:
+        lua_pushinteger(l, token->value.integer);
+        break;;    
     case T_BOOLEAN:
         lua_pushboolean(l, token->value.boolean);
         break;;

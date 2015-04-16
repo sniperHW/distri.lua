@@ -29,7 +29,7 @@ if success then
 	local last = C.GetSysTick()
 	local timer = Timer.New():Register(function ()
 		local now = C.GetSysTick()
-		print(string.format("cocount:%d,rpccount:%d,elapse:%d",Sche.GetCoCount(),count*1000/(now-last),now-last))
+		print(string.format("cocount:%d,rpccount:%f,elapse:%d",Sche.GetCoCount(),count*1000/(now-last),now-last))
 		count = 0
 		last = now
 	end,1000):Run()

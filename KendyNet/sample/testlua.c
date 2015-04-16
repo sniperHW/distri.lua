@@ -19,7 +19,7 @@ int main(int argc,char **argv){
 	if(err) printf("error on fun0:%s\n",err);
 	
 	unsigned int iret1;
-	err = LuaCall(L,"fun1","u:u",0xFFFFFFFF,&iret1);
+	err = LuaCall(L,"fun1","i:i",0xFFFFFFFF,&iret1);
 	if(err) printf("error on fun1:%s\n",err);
 	else printf("ret1=%u\n",iret1);
 	
