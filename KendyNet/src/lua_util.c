@@ -29,8 +29,7 @@ const char *luacall(lua_State *L,const char *fmt,...){
 	//压入参数
 	for(narg=0; narg < size; ++narg){
 		switch(*fmt++){
-			case 'i':{lua_pushinteger(L,va_arg(vl,int64_t));break;}
-			//case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,lua_Integer));break;}
 			case 's':{
 						char *str = va_arg(vl,char*);
 						if(str) lua_pushstring(L,str);
@@ -43,8 +42,7 @@ const char *luacall(lua_State *L,const char *fmt,...){
 				lua_pushlstring(L,str,va_arg(vl,size_t));
 				break;
 			}
-			case 'b':{lua_pushboolean(L,va_arg(vl,int));break;}
-			case 'n':{lua_pushnumber(L,va_arg(vl,double));break;}
+			case 'n':{lua_pushnumber(L,va_arg(vl,lua_Number));break;}
 			case 'p':{
 						void *ptr = va_arg(vl,void*);
 						if(ptr) lua_pushlightuserdata(L,ptr);
@@ -85,13 +83,9 @@ arg_end:
 		for(;nres > 0; --nres,++i){
 			switch(*fmt++){
 				case 'i':{
-					*va_arg(vl,int64_t*) = lua_tointeger(L,i);
+					*va_arg(vl,lua_Integer*) = lua_tointeger(L,i);
 					break;
 				}
-				//case 'u':{
-				//	*va_arg(vl,unsigned int*) = lua_tounsigned(L,i);
-				//	break;
-				//}
 				case 's':{
 					*va_arg(vl,char**) = (char*)lua_tostring(L,i);
 					break;
@@ -102,12 +96,8 @@ arg_end:
 					*va_arg(vl,size_t*) = l;
 					break;
 				}
-				case 'b':{
-					*va_arg(vl,int*) = (int)lua_toboolean(L,i);
-					break;
-				}
 				case 'n':{
-					*va_arg(vl,double*) = lua_tonumber(L,i);
+					*va_arg(vl,lua_Number*) = lua_tonumber(L,i);
 					break;
 				}
 				case 'p':{					
@@ -117,9 +107,7 @@ arg_end:
 				case 'r':{
 					lua_pushvalue(L,i);					
 					luaRef_t* ref = va_arg(vl,luaRef_t*);
-					//保证ref-L是主线程的lua_State
 					ref->rindex = luaL_ref(L,LUA_REGISTRYINDEX);  
-					//ref->L = L;
 					lua_rawgeti(L,  LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 					ref->L = lua_tothread(L,-1);
 					lua_pop(L,1);
@@ -165,16 +153,14 @@ const char *LuaRef_Get(luaRef_t tab,const char *fmt,...){
 	for(i = 0; i < size; i += 2){	
 		int k = i;	
 		switch(fmt[k]){
-			case 'i':{lua_pushinteger(L,va_arg(vl,int64_t));break;}
-			//case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,lua_Integer));break;}
 			case 's':{lua_pushstring(L,va_arg(vl,char*));break;}
 			case 'S':{
 				char *str = va_arg(vl,char*);
 				lua_pushlstring(L,str,va_arg(vl,size_t));
 				break;
 			}
-			case 'b':{lua_pushboolean(L,va_arg(vl,int));break;}
-			case 'n':{lua_pushnumber(L,va_arg(vl,double));break;}
+			case 'n':{lua_pushnumber(L,va_arg(vl,lua_Number));break;}
 			case 'p':{lua_pushlightuserdata(L,va_arg(vl,void*));break;}
 			case 'r':{
 				luaRef_t ref = va_arg(vl,luaRef_t);
@@ -193,13 +179,9 @@ const char *LuaRef_Get(luaRef_t tab,const char *fmt,...){
 		int v = k + 1;
 		switch(fmt[v]){
 			case 'i':{
-				*va_arg(vl,int64_t*) = lua_tointeger(L,-1);
+				*va_arg(vl,lua_Integer*) = lua_tointeger(L,-1);
 				break;
 			}
-			//case 'u':{
-			//	*va_arg(vl,unsigned int*) = lua_tounsigned(L,-1);
-			//	break;
-			//}
 			case 's':{
 				*va_arg(vl,char**) = (char*)lua_tostring(L,-1);
 				break;
@@ -210,12 +192,8 @@ const char *LuaRef_Get(luaRef_t tab,const char *fmt,...){
 				*va_arg(vl,size_t*) = l;
 				break;
 			}
-			case 'b':{
-				*va_arg(vl,int*) = (int)lua_toboolean(L,-1);
-				break;
-			}
 			case 'n':{
-				*va_arg(vl,double*) = lua_tonumber(L,-1);
+				*va_arg(vl,lua_Number*) = lua_tonumber(L,-1);
 				break;
 			}
 			case 'p':{					
@@ -225,7 +203,6 @@ const char *LuaRef_Get(luaRef_t tab,const char *fmt,...){
 			case 'r':{
 				lua_pushvalue(L,-1);					
 				luaRef_t* ref = va_arg(vl,luaRef_t*);
-				//保证ref-L是主线程的lua_State
 				ref->rindex = luaL_ref(L,LUA_REGISTRYINDEX);
 				lua_rawgeti(L,  LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 				ref->L = lua_tothread(L,-1);
@@ -272,15 +249,13 @@ const char *LuaRef_Set(luaRef_t tab,const char *fmt,...){
 	   	//push key
 	   	int k = i;	
 		switch(fmt[k]){
-			case 'i':{lua_pushinteger(L,va_arg(vl,int64_t));break;}
-			//case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,lua_Integer));break;}
 			case 's':{lua_pushstring(L,va_arg(vl,char*));break;}
 			case 'S':{
 				char *str = va_arg(vl,char*);
 				lua_pushlstring(L,str,va_arg(vl,size_t));
 				break;
 			}
-			case 'b':{lua_pushboolean(L,va_arg(vl,int));break;}
 			case 'n':{lua_pushnumber(L,va_arg(vl,double));break;}
 			case 'p':{
 					void *lud = va_arg(vl,void*);
@@ -304,16 +279,14 @@ const char *LuaRef_Set(luaRef_t tab,const char *fmt,...){
 		//push value
 		int v = k + 1;
 		switch(fmt[v]){
-			case 'i':{lua_pushinteger(L,va_arg(vl,int64_t));break;}
-			//case 'u':{lua_pushunsigned(L,va_arg(vl,unsigned int));break;}
+			case 'i':{lua_pushinteger(L,va_arg(vl,lua_Integer));break;}
 			case 's':{lua_pushstring(L,va_arg(vl,char*));break;}
 			case 'S':{
 				char *str = va_arg(vl,char*);
 				lua_pushlstring(L,str,va_arg(vl,size_t));
 				break;
 			}
-			case 'b':{lua_pushboolean(L,va_arg(vl,int));break;}
-			case 'n':{lua_pushnumber(L,va_arg(vl,double));break;}
+			case 'n':{lua_pushnumber(L,va_arg(vl,lua_Number));break;}
 			case 'p':{
 					void *lud = va_arg(vl,void*);
 					if(lud)

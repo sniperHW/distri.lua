@@ -472,6 +472,33 @@ static int _read_uint32(lua_State *L){
 	return 1;	
 }
 
+static int _read_int8(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != RPACKET)
+		return luaL_error(L,"invaild opration");
+	rpacket_t rpk = (rpacket_t)p->_packet;
+	lua_pushinteger(L,(int8_t)rpk_read_uint8(rpk));
+	return 1;	
+}
+
+static int _read_int16(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != RPACKET)
+		return luaL_error(L,"invaild opration");
+	rpacket_t rpk = (rpacket_t)p->_packet;
+	lua_pushinteger(L,(int16_t)rpk_read_uint16(rpk));
+	return 1;	
+}
+
+static int _read_int32(lua_State *L){
+	lua_packet_t p = lua_getluapacket(L,1);
+	if(p->_packet->type != RPACKET)
+		return luaL_error(L,"invaild opration");
+	rpacket_t rpk = (rpacket_t)p->_packet;
+	lua_pushinteger(L,(int32_t)rpk_read_uint32(rpk));
+	return 1;	
+}
+
 
 static int _read_double(lua_State *L){
 	lua_packet_t p = lua_getluapacket(L,1);
@@ -776,11 +803,6 @@ static int _get_write_pos(lua_State *L){
 	return 1;		
 }
 
-
-
-
-
-
 void reg_luapacket(lua_State *L){
     luaL_Reg packet_mt[] = {
         {"__gc", destroy_luapacket},
@@ -791,14 +813,15 @@ void reg_luapacket(lua_State *L){
         {"Read_uint8", _read_uint8},
         {"Read_uint16", _read_uint16},
         {"Read_uint32", _read_uint32},
+        {"Read_int8", _read_int8},
+        {"Read_int16", _read_int16},
+        {"Read_int32", _read_int32},        
         {"Read_double", _read_double},        
         {"Read_string", _read_string},
         {"Read_table", _read_table},
         {"Read_rawbin", _read_rawbin},
         {"Reverse_read_uint16", _reverse_read_uint16},
         {"Reverse_read_uint32", _reverse_read_uint32},
-        
-        
         
         {"Peek_uint8", _peek_uint8},
         {"Peek_uint16", _peek_uint16},

@@ -2,9 +2,9 @@ function fun0()
 	print("fun0")
 end
 
-function fun1(arg1)
+function fun1(arg1,arg2)
 	print("fun1")
-	print(arg1)
+	print(arg1,arg2)
 	return 10
 end
 

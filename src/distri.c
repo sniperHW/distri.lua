@@ -26,7 +26,6 @@ static void sig_int(int sig){
 }
 
 static int  lua_getsystick(lua_State *L){
-	//lua_pushnumber(L,kn_systemms64() & 0xFFFFFFFFFFF);
 	lua_pushinteger(L,kn_systemms64());
 	return 1;
 }
@@ -181,12 +180,6 @@ static int lua_Top(lua_State *L){
 	kn_string_t str = get_top(g_top);
 	lua_pushstring(L,kn_to_cstr(str));
 	return 1;
-/*#ifdef _LINUX	
-	lua_pushstring(L,top());
-#else
-	lua_pushnil(L);
-#endif	
-	return 1;*/
 }
 
 static int lua_AddTopFilter(lua_State *L){

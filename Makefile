@@ -1,11 +1,11 @@
 PLAT =
 CFLAGS = -O2 -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
-INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.2.3/src 
+INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.3.0/src 
 DEFINE =
 BIN = distrilua
-LIB = KendyNet/libkendynet.a deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.2.3/src/liblua.a
-DEPENDENCY = KendyNet/libkendynet.a  deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.2.3/src/liblua.a  cjson.so
+LIB = KendyNet/libkendynet.a deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.3.0/src/liblua.a
+DEPENDENCY = KendyNet/libkendynet.a  deps/hiredis/libhiredis.a deps/http-parser/libhttp_parser.a deps/lua-5.3.0/src/liblua.a  cjson.so
 MAKE = 
 
 source = src/luasocket.c\
@@ -54,8 +54,8 @@ deps/hiredis/libhiredis.a:
 deps/http-parser/libhttp_parser.a:		
 		cd deps/http-parser/;make package
 		
-deps/lua-5.2.3/src/liblua.a:		
-		cd deps/lua-5.2.3/;make $(PLAT)							
+deps/lua-5.3.0/src/liblua.a:		
+		cd deps/lua-5.3.0/;make $(PLAT)							
 cjson.so:
 		cd deps/lua-cjson-2.1.0;make
 		mv deps/lua-cjson-2.1.0/cjson.so ./
