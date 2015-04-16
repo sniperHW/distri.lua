@@ -32,7 +32,7 @@ if success then
 	local last = C.GetSysTick()
 	local timer = Timer.New():Register(function ()
 		local now = C.GetSysTick()
-		print(string.format("clientcount:%d,count:%d",clientcount,count*1000/(now-last)))
+		print(string.format("clientcount:%d,count:%f",clientcount,count*1000/(now-last)))
 		count = 0
 		size = 0
 		last = now

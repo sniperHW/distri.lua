@@ -19,7 +19,7 @@ end)
 local last = C.GetSysTick()
 local timer = Timer.New():Register(function ()
 	local now = C.GetSysTick()
-	print(string.format("count:%d",count*1000/(now-last)))
+	print(string.format("count:%f",count*1000/(now-last)))
 	count = 0
 	last = now
 end,1000):Run()

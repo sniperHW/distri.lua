@@ -30,7 +30,7 @@ if success then
 	local timer = Timer.New():Register(function ()
 		local now = C.GetSysTick()
 		--print("count:" .. count*1000/(now-last) .. " " .. now-last)
-		print(string.format("count:%d,size:%d MB",count*1000/(now-last),size*1000/(now-last)/1024/1024))
+		print(string.format("count:%d,size:%f MB",count*1000/(now-last),size*1000/(now-last)/1024/1024))
 		count = 0
 		size = 0
 		last = now
