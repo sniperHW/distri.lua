@@ -43,7 +43,6 @@ source =  src/kn_engine.c \
 	   src/minheap.c \
 	   src/tls.c \
 	   src/rbtree.c \
-	   src/kn_msgque.c \
 	   src/kn_daemonize.c \
 	   src/lua_util.c \
 	   src/kn_curl.c\
@@ -67,7 +66,6 @@ sample-source = sample/broadcast_svr.c\
 		 sample/testmailbox.c\
 		 sample/testlog.c\
 		 sample/testlua.c\
-		 sample/testmsgque.c\
 		 sample/daemonserver.c\
 		 sample/testcurl.c\
 		 sample/testlfstack.c\
@@ -104,7 +102,6 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o testmailbox testmailbox.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testlog testlog.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testlua testlua.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(DEPDIR)/lua-5.2.3/src/liblua.a -ldl $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testmsgque testmsgque.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o daemonserver daemonserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testcurl testcurl.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl
 	$(CC) $(CFLAGS) -o testlfstack testlfstack.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
