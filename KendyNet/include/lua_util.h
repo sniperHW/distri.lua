@@ -42,16 +42,12 @@ static inline void release_luaRef(luaRef_t *ref)
 }
 
 static inline luaRef_t toluaRef(lua_State *L,int idx){
-	luaRef_t ref = {.L = NULL,.rindex = LUA_REFNIL};
+	luaRef_t ref;
 	lua_pushvalue(L,idx);
-	if(!lua_istable(L,-1)){
-		lua_pop(L,1);
-	}else{
-		ref.rindex = luaL_ref(L,LUA_REGISTRYINDEX);
-		lua_rawgeti(L,  LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-		ref.L = lua_tothread(L,-1);
-		lua_pop(L,1);
-	}
+	ref.rindex = luaL_ref(L,LUA_REGISTRYINDEX);
+	lua_rawgeti(L,  LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
+	ref.L = lua_tothread(L,-1);
+	lua_pop(L,1);
 	return ref;
 }
 
@@ -145,6 +141,10 @@ const char *luacall(lua_State *L,const char *fmt,...);
 					while(0);\
 					if(!__result)lua_pop((TABREF).L,1);\
 					__result;});lua_pop((TABREF).L,1))
+
+//make a lua object by str and return the reference
+luaRef_t makeLuaObjByStr(lua_State *L,const char *);
+
 
 #endif
 

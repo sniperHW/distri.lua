@@ -314,3 +314,14 @@ end:
 	va_end(vl);
 	return errmsg;
 }
+
+luaRef_t makeLuaObjByStr(lua_State *L,const char *str){
+	if(0 != luaL_dostring(L,str)){
+		printf("%s\n",lua_tostring(L,-1));
+		lua_pop(L,1);
+		return (luaRef_t){.L=NULL,.rindex = LUA_REFNIL};
+	}
+	luaRef_t obj = toluaRef(L,-1);
+	lua_pop(L,1);
+	return obj;
+}

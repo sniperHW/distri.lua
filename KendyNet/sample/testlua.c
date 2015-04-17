@@ -14,7 +14,18 @@ int main(int argc,char **argv){
 		printf("%s\n",error);
 	}
 	const char *err;
-	
+	//dynamic build a lua table and return
+	luaRef_t tabRef = makeLuaObjByStr(L,"return {a=100}");
+	if(tabRef.L){
+		int a = 0;
+		err = LuaRef_Get(tabRef,"si","a",&a);
+		if(err) printf("%s\n",err);
+		else{
+			printf("a == %d\n",a);	
+		}
+		release_luaRef(&tabRef);
+	}
+
 	err = LuaCall(L,"fun0",NULL);
 	if(err) printf("error on fun0:%s\n",err);
 	
@@ -44,7 +55,6 @@ int main(int argc,char **argv){
 	LuaCallRefFunc(funRef,NULL);	
 	
 	
-	luaRef_t tabRef;
 	int num;
 	err = LuaCall(L,"fun6",":ri",&tabRef,&num);
 	if(err) printf("error on fun6:%s\n",err);
