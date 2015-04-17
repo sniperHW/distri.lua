@@ -1,6 +1,6 @@
 #include <time.h>
 #include <stdint.h>
-#include "lua_util.h"
+#include "lua/lua_util.h"
 
 //get timestamp at year:mon:day hour:min
 static int lua_GetTS(lua_State *L)

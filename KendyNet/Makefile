@@ -53,6 +53,7 @@ source =  src/kn_engine.c \
 	   src/kn_stream_socket.c\
 	   src/kn_datagram_socket.c\
 	   src/datagram.c\
+	   src/lua_util_packet.c\
 	   src/buffer.c
 
 sample-source = sample/broadcast_svr.c\

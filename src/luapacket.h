@@ -1,7 +1,7 @@
 #ifndef _LUAPACKET_H
 #define _LUAPACKET_H
 
-#include "lua_util.h"
+#include "lua/lua_util.h"
 #include "buffer.h"
 #include "kn_common_define.h"
 #include "packet.h"

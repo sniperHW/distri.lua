@@ -128,3 +128,16 @@ ttab4 = {
 	ip2 = "127.0.0.2",
 	ip3 = "127.0.0.3"	
 }
+
+function fun8(wpk)
+	print("fun8")
+	C.packet_pack(wpk,{1,2,3,4,5})
+end
+
+function fun9(rpk)
+	print("fun9")
+	local t = C.packet_unpack(rpk)
+	for k,v in pairs(t) do
+		print(v)
+	end
+end

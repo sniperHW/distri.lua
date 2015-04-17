@@ -3,7 +3,7 @@
 #include "kendynet.h"
 #include "connection.h"
 #include "datagram.h"
-#include "lua_util.h"
+#include "lua/lua_util.h"
 
 typedef struct {
 	handle_t      sock;

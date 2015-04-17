@@ -1,5 +1,18 @@
-#include "lua_util.h"
+#include "lua/lua_util.h"
+#include "lua/lua_util_packet.h"
 
+
+static int packet_pack(lua_State *L){
+	wpacket_t wpk = lua_touserdata(L,1);
+	lua_pack_table(wpk,L,2);
+	return 0;
+}
+
+static int packet_unpack(lua_State *L){
+	rpacket_t rpk = lua_touserdata(L,1);
+	lua_unpack_table(rpk,L);
+	return 1;
+}
 		
 int main(int argc,char **argv){
 	if(argc < 2){
@@ -87,5 +100,26 @@ int main(int argc,char **argv){
 		printf("%s,%s\n",key,val);
 	}
 
+	printf("here write/read table to/from packet in lua\n");
+	luaL_openlibs(L);
+    	luaL_Reg l[] = {
+        		{"packet_pack",packet_pack},
+        		{"packet_unpack",packet_unpack},    		              		                   
+        		{NULL, NULL}
+    	};
+    	luaL_newlib(L, l);
+	lua_setglobal(L,"C");	
+	wpacket_t wpk = wpk_create(128);
+	err = LuaCall(L,"fun8","p",wpk);
+	if(err){
+		printf("error on fun8:%s\n",err);
+	}else{
+		rpacket_t rpk = (rpacket_t)make_readpacket((packet_t)wpk);
+		err = LuaCall(L,"fun9","p",rpk);
+		if(err){
+			printf("error on fun9:%s\n",err);
+		}
+	}
+	printf("end\n");	
 	return 0;	
 }

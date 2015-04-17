@@ -2,7 +2,7 @@
 #include "luapacket.h"
 #include "luasocket.h"
 #include "http-parser/http_parser.h"
-#include "lua_util.h"
+#include "lua/lua_util.h"
 
 enum{ 
 	  ON_MESSAGE_BEGIN = 0,

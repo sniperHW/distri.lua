@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "lua_util.h"
+#include "lua/lua_util.h"
 #include "base64.h"
 
 

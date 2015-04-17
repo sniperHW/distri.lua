@@ -1,5 +1,5 @@
 #include "kendynet.h"
-#include "lua_util.h"
+#include "lua/lua_util.h"
 #include "luasocket.h"
 #include "lualog.h"
 #include "kn_timer.h"

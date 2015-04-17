@@ -1,6 +1,6 @@
 #ifndef _PUSH_CALLBACK_H
 #define _PUSH_CALLBACK_H
-#include "lua_util.h"
+#include "lua/lua_util.h"
 
 #ifndef push_callback
 #define push_callback(L,fmt,...) LuaCall(L,"push_c_callback",fmt,__VA_ARGS__)
