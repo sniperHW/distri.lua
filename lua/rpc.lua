@@ -12,10 +12,7 @@ local CMD_RPC_RESP =  0xDBCAABCD
 local function gen_rpc_identity()
 	local g_counter = 0
 	return function ()
-		g_counter = g_counter + 1
-		if g_counter < 0 then
-			g_counter = 1
-		end
+		g_counter = math.modf(g_counter + 1,0xffffffff)
 		return {h=os.time(),l=g_counter} 
 	end	
 end
