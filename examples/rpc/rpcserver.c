@@ -12,6 +12,10 @@ int  rpc_count = 0;
 
 static luaRef_t luaRPCHandle;
 
+struct rpc_record{
+	uint64_t h;
+	uint32_t l;
+};
 
 const char *str_lua_process_rpc_call = "\
 	local function process_rpc_call(rpk,c)\
@@ -19,8 +23,15 @@ const char *str_lua_process_rpc_call = "\
 		if not request then\
 			return\
 		end\
-		local error,ret = C.call_rpc_function(request.f,table.unpack(request.arg))\
-		C.rpc_response(c,{identity = request.identity,ret={ret},err=error})\
+		local identity = request.identity\
+		local error,func = C.check_and_get_function(c,request.f,identity.h,identity.l)\
+		if not error and not func then\
+			return\
+		elseif func then\
+			C.rpc_response(c,{identity = request.identity,ret={func(table.unpack(request.arg))}})\
+		else\
+			C.rpc_response(c,{identity = request.identity,err=error})\
+		end\
 	end\
 	return process_rpc_call" ;
 
@@ -28,20 +39,36 @@ const char *str_lua_process_rpc_call = "\
 int rpc_Plus(lua_State *L){
 	int a = lua_tointeger(L,1);
 	int b = lua_tointeger(L,2);
-	lua_pushnil(L);                         //no error
 	lua_pushinteger(L,a+b);         //result
 	++rpc_count;
-	return 2;
+	return 1;
 }
 
-int lua_call_rpc_function(lua_State *L){
-	const char *function_name = lua_tostring(L,1);
-	if(strcmp(function_name,"Plus") == 0){
-		return rpc_Plus(L);
-	}else{
-		lua_pushstring(L,"function not found");
-		return 1;
+int lua_check_and_get_function(lua_State *L){
+	connection_t c = lua_touserdata(L,1);
+	const char *function_name = lua_tostring(L,2);
+	struct rpc_record *r = (struct rpc_record*)connection_getud(c);
+	if(!r){
+		r = calloc(1,sizeof(*r));
+		r->h = 0;
+		r->l = 0;
+		connection_setud(c,r,NULL);
 	}
+	uint64_t h = lua_tointeger(L,3);
+	uint32_t l = lua_tointeger(L,4);
+	if(h > r->h || l > r->l){
+		r->h = h;
+		r->l = l;
+		if(strcmp(function_name,"Plus") == 0){
+			lua_pushnil(L);
+			lua_pushcfunction(L,rpc_Plus);
+			return 2;
+		}else{
+			lua_pushstring(L,"function not found");
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int lua_rpc_response(lua_State *L){
@@ -72,6 +99,8 @@ void  on_packet(connection_t c,packet_t p){
 }
 
 void on_disconnected(connection_t c,int err){
+	void *r = connection_getud(c);
+	if(r) free(r);
 	printf("on_disconnectd\n");
 	--client_count;
 }
@@ -109,7 +138,7 @@ int main(int argc,char **argv){
 	luaL_openlibs(L);
     	luaL_Reg lib[] = {
         		{"rpk_read_table",lua_rpk_read_table},
-        		{"call_rpc_function",lua_call_rpc_function},
+        		{"check_and_get_function",lua_check_and_get_function},
         		{"rpc_response",lua_rpc_response},       		              		                   
         		{NULL, NULL}
     	};

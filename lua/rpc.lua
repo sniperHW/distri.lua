@@ -66,7 +66,7 @@ local function RPC_Process_Call(app,s,rpk)
 				local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
 				if ret[1] then
 					table.remove(ret,1)			
-					response.ret = {table.unpack(ret)}
+					response.ret = ret
 				else
 					response.err = ret[2]
 					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
