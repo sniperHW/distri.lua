@@ -11,7 +11,7 @@ local t = {
 
 local wpk = CPacket.NewWPacket(512)
 
-wpk:Write_table(t)
+wpk:Write_table(1)
 local tt = CPacket.NewRPacket(wpk):Read_table()
 
 print(tt[1])

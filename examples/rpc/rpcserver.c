@@ -75,9 +75,10 @@ int lua_rpc_response(lua_State *L){
 	connection_t c = lua_touserdata(L,1);
 	wpacket_t wpk = wpk_create(512);
 	wpk_write_uint32(wpk,0xDBCAABCD);
-	if(0 == lua_pack_table(wpk,L,2)){
-		connection_send(c,(packet_t)wpk,NULL);
-	}
+	const char *errmsg = lua_pack_table(wpk,L,2));
+	if(errmsg)
+		luaL_error(L,errmsg);
+	connection_send(c,(packet_t)wpk,NULL);
 	return 0;
 }
 
