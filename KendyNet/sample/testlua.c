@@ -20,7 +20,6 @@ int main(int argc,char **argv){
 		return 0;
 	}
 	lua_State *L = luaL_newstate();
-	luaL_openlibs(L);
 	if (luaL_dofile(L,argv[1])) {
 		const char * error = lua_tostring(L, -1);
 		lua_pop(L,1);

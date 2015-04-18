@@ -345,5 +345,7 @@ int lua_unpack_table(rpacket_t rpk,lua_State *L){
 			break;
 		ret = 0;
 	}while(0);
+	if(ret != 0)
+		lua_pushnil(L);
 	return ret;
 }

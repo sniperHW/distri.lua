@@ -14,11 +14,11 @@ for i=1,10 do
 		end		
 		rpcclient:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)
 		local rpcHandler = RPC.MakeRPC(client,"Plus")
-		local function callback(response)
-			if not response.err then
+		local function callback(err,result)
+			if not err then
 				rpcHandler:CallAsync(callback,1,2)
 			else
-				print(response.err)
+				print(err)
 				client:Close()
 			end
 		end		

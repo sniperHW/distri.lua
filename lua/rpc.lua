@@ -92,7 +92,7 @@ local function RPC_Process_Response(s,rpk)
 		s.pending_call[id_string] = nil
 		minheap:Remove(context)		
 		if context.callback then			
-			local ret = table.pack(pcall(context.callback,response))
+			local ret = table.pack(pcall(context.callback,response.err,table.unpack(response.ret)))
 			if not ret[1] then
 				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s",ret[2]))
 			end			

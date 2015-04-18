@@ -43,6 +43,9 @@ endif
 all: $(DEPENDENCY) $(source)	
 	$(CC) $(CFLAGS)  -o $(BIN) $(source) $(LIB) $(INCLUDE) $(LDFLAGS) $(DEFINE) -rdynamic
 
+rpcserver:examples/rpc/rpcserver.c
+	$(CC) $(CFLAGS)  -o rpcserver examples/rpc/rpcserver.c $(LIB) $(INCLUDE) $(LDFLAGS) $(DEFINE) -rdynamic
+
 
 KendyNet/libkendynet.a:
 		cd KendyNet;$(MAKE) release
