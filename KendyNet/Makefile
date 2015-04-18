@@ -80,7 +80,8 @@ sample-source = sample/broadcast_svr.c\
 		 sample/testpacket.c\
 		 sample/udpserver.c\
 		 sample/udpclient.c\
-		 sample/testrefobj.c
+		 sample/testrefobj.c\
+		 sample/testexception.c
 	   
 release:$(source)
 	$(CC) $(SHARED) -O2 $(CFLAGS) -c $(source) $(INCLUDE) $(DEFINE)
@@ -117,6 +118,8 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o udpserver udpserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o udpclient udpclient.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testrefobj testrefobj.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	$(CC) $(CFLAGS) -o testexception testexception.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
+	
 
 clean:
 	rm *.o

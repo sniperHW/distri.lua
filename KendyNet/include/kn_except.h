@@ -77,17 +77,18 @@ static inline void print_call_stack(struct kn_exception_frame *frame)
     kn_list_node *node = kn_list_head(&frame->call_stack);
     int f = 0;
     if(frame->exception == except_segv_fault)
-	    size += snprintf(ptr,MAX_LOG_SIZE,"%s[invaild access addr:%p]\n",kn_exception_description(frame->exception),frame->addr);
+	    size += snprintf(ptr,MAX_LOG_SIZE," exception\n %s (invaild access addr:%p)\n",kn_exception_description(frame->exception),frame->addr);
     else
-	    size += snprintf(ptr,MAX_LOG_SIZE,"%s\n",kn_exception_description(frame->exception));
+	    size += snprintf(ptr,MAX_LOG_SIZE," exception\n %s\n",kn_exception_description(frame->exception));
     ptr = buf+size;
     while(node != NULL && size < MAX_LOG_SIZE)
     {
         struct kn_callstack_frame *cf = (struct kn_callstack_frame*)node;
-        size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s",++f,cf->info);
+        size += snprintf(ptr,MAX_LOG_SIZE-size,"        % 2d: %s",++f,cf->info);
         ptr = buf+size;
         node = node->next;
     }
+    printf("%s",buf);
     SYS_LOG(LOG_ERROR,"%s",buf);
 }
 

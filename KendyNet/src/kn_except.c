@@ -101,7 +101,7 @@ static inline kn_callstack_frame * get_csf(kn_list *pool)
 	return  (kn_callstack_frame*)kn_list_pop(pool);
 }
 
-
+/*
 static int addr2line(const char *addr,char *output,int size){		
 	char path[256]={0};
 	readlink("/proc/self/exe", path, 256);	
@@ -117,10 +117,10 @@ static int addr2line(const char *addr,char *output,int size){
 		ch = fgetc(pipe);
 	}		
 	pclose(pipe);
-	output[i] = '\n';	
+	output[i] = '\0';	
 	return 0;
 }
-
+*/
 
 void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t line,siginfo_t* info)
 {
@@ -141,22 +141,25 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 		sz = backtrace(bt, 64);
 		strings = backtrace_symbols(bt, sz);
 		epst = (kn_exception_perthd_st*)pthread_getspecific(g_exception_key);
-		for(i = 0; i < sz; ++i){
-			if(strstr(strings[i],"exception_throw+")){
-				if(code == except_segv_fault ||
-						code == except_sigbus     ||
-						code == except_arith) i+=2;
+		if(code == except_segv_fault || code == except_sigbus || code == except_arith) 
+			i = 2;
+		else{
+			i = 1;
+		}
+		for(; i < sz; ++i){
+			if(strstr(strings[i],"exception_throw")){
 				continue;
 			}
 			call_frame = get_csf(&epst->csf_pool);
-			char *str = strstr(strings[i],"[");
+			/*char *str = strstr(strings[i],"[");
 			str = str+1;
 			str[strlen(str)-1] = '\0'; 		
 			if(0 == addr2line(str,call_frame->info,1024)){
 				printf("%s\n",call_frame->info);
 			}else{
 				snprintf(call_frame->info,1024,"%s\n",strings[i]);
-			}
+			}*/
+			snprintf(call_frame->info,1024,"%s\n",strings[i]);
 			kn_list_pushback(&frame->call_stack,&call_frame->node);
 			if(strstr(strings[i],"main+"))
 				break;
@@ -183,22 +186,25 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 	    		size += snprintf(ptr,MAX_LOG_SIZE,"%s\n",kn_exception_description(code));
 		ptr = logbuf + size;	    		    		
  		int f = 0;   			
-		for(i = 0; i < sz; ++i){
-			if(strstr(strings[i],"exception_throw+")){
-				if(code == except_segv_fault ||
-						code == except_sigbus     ||
-						code == except_arith) i+=2;
-				continue;
-			}
-			char *str = strstr(strings[i],"[");
+		if(code == except_segv_fault || code == except_sigbus || code == except_arith) 
+			i = 2;
+		else{
+			i = 1;
+		}
+		for(; i < sz; ++i){
+			//if(strstr(strings[i],"exception_throw+")){
+			//	continue;
+			//}
+			/*char *str = strstr(strings[i],"[");
 			str = str+1;
 			str[strlen(str)-1] = '\0'; 				
 			char buf[1024];
 			if(0 == addr2line(str,buf,1024)){
-        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s",++f,buf);
+        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s\n",++f,buf);
 			}else{
-        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s",++f,strings[i]);
-			}
+        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s\n",++f,strings[i]);
+			}*/
+        			size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s\n",++f,strings[i]);
 			ptr = logbuf + size;
 			if(strstr(strings[i],"main+"))
 				break;

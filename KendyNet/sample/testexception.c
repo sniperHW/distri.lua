@@ -113,14 +113,10 @@ void entry2()
 {
     TRY{
         func2();
-    }CATCH(except_arith)
-    {
-        //printf("catch:%s stack below\n",exception_description(EXPNO));
+    }CATCH(except_arith){
         PRINT_CALL_STACK;
-    }CATCH_ALL
-    {
+    }CATCH_ALL{
         PRINT_CALL_STACK;
-        //printf("catch all: %s\n",exception_description(EXPNO));
     }ENDTRY;
     
     return;
@@ -135,9 +131,7 @@ void *Routine1(void *arg)
 {
     TRY{
         func3();
-    }CATCH_ALL
-    {
-        printf("catch all: %s\n",kn_exception_description(EXPNO));
+    }CATCH_ALL{
         PRINT_CALL_STACK;
     }ENDTRY;
     
@@ -164,15 +158,8 @@ void setup_signal_handler()
 int main()
 {
     setup_signal_handler();
-    //entry1();
     entry2();
-    //printf("here\n");
-    //while(!stop)
-    //   sleepms(100);
-    //setup_sigsegv();
-    entry2();
-    //thread_t t1 = create_thread(0);
-    //thread_start_run(t1,Routine1,NULL);
+    Routine1(NULL);
     getchar();
     printf("main end\n");
     return 0;
