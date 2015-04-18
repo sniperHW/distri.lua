@@ -179,6 +179,7 @@ static int lua_Top(lua_State *L){
 	if(!g_top) g_top = new_top();
 	kn_string_t str = get_top(g_top);
 	lua_pushstring(L,kn_to_cstr(str));
+	kn_release_string(str);
 	return 1;
 }
 
