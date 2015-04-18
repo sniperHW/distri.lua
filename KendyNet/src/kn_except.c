@@ -101,26 +101,26 @@ static inline kn_callstack_frame * get_csf(kn_list *pool)
 	return  (kn_callstack_frame*)kn_list_pop(pool);
 }
 
-/*
 static int addr2line(const char *addr,char *output,int size){		
 	char path[256]={0};
 	readlink("/proc/self/exe", path, 256);	
 	char cmd[1024];
-	int i = 0;
 	snprintf(cmd,1024,"addr2line -fCse %s %s", path, addr);
 	FILE *pipe = popen(cmd, "r");
 	if(!pipe) return -1;
-	char ch = fgetc(pipe);
-	while(ch != EOF && i < size){
-		if(ch == '\n') ch = ' ';
-		output[i++] = ch;
-		ch = fgetc(pipe);
-	}		
+	int i = fread(output,1,size-1,pipe);	
 	pclose(pipe);
-	output[i] = '\0';	
-	return 0;
+	output[i+1] = '\0';
+	if(strstr(output,".c")){
+		int j = 0;
+		for(; j<=i; ++j){ 
+			if(output[j] == '\n') output[j] = ' ';	
+		}
+		return 0;
+	}
+
+	return -1;
 }
-*/
 
 void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t line,siginfo_t* info)
 {
@@ -142,7 +142,7 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 		strings = backtrace_symbols(bt, sz);
 		epst = (kn_exception_perthd_st*)pthread_getspecific(g_exception_key);
 		if(code == except_segv_fault || code == except_sigbus || code == except_arith) 
-			i = 2;
+			i = 3;
 		else{
 			i = 1;
 		}
@@ -151,15 +151,21 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
 				continue;
 			}
 			call_frame = get_csf(&epst->csf_pool);
-			/*char *str = strstr(strings[i],"[");
-			str = str+1;
-			str[strlen(str)-1] = '\0'; 		
-			if(0 == addr2line(str,call_frame->info,1024)){
-				printf("%s\n",call_frame->info);
-			}else{
+			char *str1 = strstr(strings[i],"[");
+			char *str2 = strstr(str1,"]");
+			if(str1 && str2 && str2 - str1 < 128){
+				int len = str2 - str1 - 1;
+				char addr[128];
+				strncpy(addr,str1+1,len);
+				addr[len] = '\0';
+				char buf[1024];
+				if(0 == addr2line(addr,buf,1024)){
+					snprintf(call_frame->info,1024,"%s %s\n",strings[i],buf);
+				}else{
+					snprintf(call_frame->info,1024,"%s\n",strings[i]);
+				}				
+			}else
 				snprintf(call_frame->info,1024,"%s\n",strings[i]);
-			}*/
-			snprintf(call_frame->info,1024,"%s\n",strings[i]);
 			kn_list_pushback(&frame->call_stack,&call_frame->node);
 			if(strstr(strings[i],"main+"))
 				break;
@@ -181,30 +187,32 @@ void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t l
     		if(info)
     			addr = info->si_addr;
     		if(code == except_segv_fault)
-	    		size += snprintf(ptr,MAX_LOG_SIZE,"%s[invaild access addr:%p]\n",kn_exception_description(code),addr);
+	    		size += snprintf(ptr,MAX_LOG_SIZE," %s [invaild access addr:%p]\n",kn_exception_description(code),addr);
     		else
-	    		size += snprintf(ptr,MAX_LOG_SIZE,"%s\n",kn_exception_description(code));
+	    		size += snprintf(ptr,MAX_LOG_SIZE," %s\n",kn_exception_description(code));
 		ptr = logbuf + size;	    		    		
  		int f = 0;   			
 		if(code == except_segv_fault || code == except_sigbus || code == except_arith) 
-			i = 2;
+			i = 3;
 		else{
 			i = 1;
 		}
 		for(; i < sz; ++i){
-			//if(strstr(strings[i],"exception_throw+")){
-			//	continue;
-			//}
-			/*char *str = strstr(strings[i],"[");
-			str = str+1;
-			str[strlen(str)-1] = '\0'; 				
-			char buf[1024];
-			if(0 == addr2line(str,buf,1024)){
-        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s\n",++f,buf);
-			}else{
-        				size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s\n",++f,strings[i]);
-			}*/
-        			size += snprintf(ptr,MAX_LOG_SIZE-size,"% 2d: %s\n",++f,strings[i]);
+			char *str1 = strstr(strings[i],"[");
+			char *str2 = strstr(str1,"]");
+			if(str1 && str2 && str2 - str1 < 128){
+				int len = str2 - str1 - 1;
+				char addr[128];
+				strncpy(addr,str1+1,len);
+				addr[len] = '\0';	
+				char buf[1024];
+				if(0 == addr2line(addr,buf,1024)){
+	        				size += snprintf(ptr,MAX_LOG_SIZE-size,"    % 2d: %s %s\n",++f,strings[i],buf);
+				}else{
+	        				size += snprintf(ptr,MAX_LOG_SIZE-size,"    % 2d: %s\n",++f,strings[i]);
+				}
+			}else
+        				size += snprintf(ptr,MAX_LOG_SIZE-size,"    % 2d: %s\n",++f,strings[i]);						
 			ptr = logbuf + size;
 			if(strstr(strings[i],"main+"))
 				break;
