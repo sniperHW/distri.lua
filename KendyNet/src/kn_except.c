@@ -111,15 +111,11 @@ static int addr2line(const char *addr,char *output,int size){
 	int i = fread(output,1,size-1,pipe);	
 	pclose(pipe);
 	output[i] = '\0';
-	if(strstr(output,".c")){
-		int j = 0;
-		for(; j<=i; ++j){ 
-			if(output[j] == '\n') output[j] = ' ';	
-		}
-		return 0;
+	int j = 0;
+	for(; j<=i; ++j){ 
+		if(output[j] == '\n') output[j] = ' ';	
 	}
-
-	return -1;
+	return 0;
 }
 
 void kn_exception_throw(int32_t code,const char *file,const char *func,int32_t line,siginfo_t* info)
