@@ -110,7 +110,7 @@ static int addr2line(const char *addr,char *output,int size){
 	if(!pipe) return -1;
 	int i = fread(output,1,size-1,pipe);	
 	pclose(pipe);
-	output[i+1] = '\0';
+	output[i] = '\0';
 	if(strstr(output,".c")){
 		int j = 0;
 		for(; j<=i; ++j){ 

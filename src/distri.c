@@ -178,9 +178,12 @@ static int lua_Break(lua_State *L){
 static int lua_Top(lua_State *L){
 	if(!g_top) g_top = new_top();
 	kn_string_t str = get_top(g_top);
-	lua_pushstring(L,kn_to_cstr(str));
-	kn_release_string(str);
-	return 1;
+	if(str){
+		lua_pushstring(L,kn_to_cstr(str));
+		kn_release_string(str);
+		return 1;
+	}
+	return 0;
 }
 
 static int lua_AddTopFilter(lua_State *L){
