@@ -6,23 +6,39 @@ local Sche = require "lua.sche"
 local Socket = require "lua.socket"
 
 
+local name_ip = "127.0.0.1"
+local name_port = 8080
+
 local count = 0
 
 local rpcserver = App.New()
 
-rpcserver:RPCService("Plus",function (_,a,b)
+local toname = Socket.Stream.New(CSocket.AF_INET)
+if toname:Connect(name_ip,name_port) then
+	print("connect to name error")
+	Exit()
+end
+
+rpcserver:Add(toname:Establish(Socket.Stream.RDecoder(1024),1024))
+
+local rpcHandler = RPC.MakeRPC(toname,"Register")
+local err = rpcHandler:CallSync("Plus","127.0.0.1",8000)
+if err then
+	print("register to name error")	
+	Exit()
+end
+
+rpcserver:RPCService("Plus",function (a,b)
 	count = count + 1 
 	return a+b 
 end)
 
 local success
 
---rpcserver:Run(function ()
 local success = not TcpServer.Listen("127.0.0.1",8000,function (client)
 			print("on new client")		
 			rpcserver:Add(client:Establish(Socket.Stream.RDecoder()))		
 	end)
---end)
 
 if success then
 	print("server start on 127.0.0.1:8000")

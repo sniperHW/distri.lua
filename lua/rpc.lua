@@ -48,12 +48,12 @@ local function RPC_Process_Call(app,s,rpk)
 		s.rpc_record[2] = identity.l
 		local funname = request.f
 		local func = app._RPCService[funname]
-
+		table.insert(request.arg,s)
 		if request.noret then
 			if not func then
 				CLog.SysLog(CLog.LOG_ERROR,funname .. " not found")
 			else	
-				local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
+				local ret = table.pack(pcall(func,table.unpack(request.arg)))
 				if not ret[1] then
 					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
 				end
@@ -63,7 +63,7 @@ local function RPC_Process_Call(app,s,rpk)
 			if not func then
 				response.err = funname .. " not found"
 			else	
-				local ret = table.pack(pcall(func,s,table.unpack(request.arg)))
+				local ret = table.pack(pcall(func,table.unpack(request.arg)))
 				if ret[1] then
 					table.remove(ret,1)			
 					response.ret = ret
