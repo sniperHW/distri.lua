@@ -20,12 +20,26 @@ local function FindService()
 	local to_name_handler = RPC.MakeRPC(toname,"FindService")
 	local service_remote_handlers = {}
 	local lock = Lock.New()
+
+	local function on_disconnected(socket)
+		lock:Lock()
+		for k,v in pairs(service_remote_handlers) do
+			if v.s == socket then
+				service_remote_handlers[k] = nil
+			end
+		end
+		lock:Unlock()
+	end
+
 	return function (name)
 		lock:Lock()
 		local handler = service_remote_handlers[name]
 		if not handler then
 			local err,ret = to_name_handler:CallSync(name)
-			if err then
+			if err or not ret then
+				if not ret then
+					print("no server service for " .. name)
+				end
 				lock:Unlock()
 				return nil
 			end
@@ -36,7 +50,7 @@ local function FindService()
 				print(string.format("connect to %:%d error",ip,port))
 				return nil
 			end
-			rpcclient:Add(client:Establish(Socket.Stream.RDecoder()))
+			rpcclient:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)
 			handler = RPC.MakeRPC(client,name)
 			service_remote_handlers[name] = handler		
 		end
@@ -55,9 +69,12 @@ for i=1,10 do
 				Sche.Spawn(function ()
 					while true do			
 						local err,ret = rpcHandler:CallSync(1,2)
-						if err then
-							print("rpc error:" .. err)
-							return
+						if err == "socket error" then
+							--print(err)
+							rpcHandler = FindService("Plus")
+							if not rpcHandler then
+								return
+							end
 						end
 					end
 				end)

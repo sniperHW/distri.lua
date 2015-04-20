@@ -192,17 +192,15 @@ function stream.process_c_disconnect_event(self,errno)
 			break
 		end
 	end
-
 	for k,v in pairs(self.block_send.coros) do
 		Sche.WakeUp(v)		
 	end
-
 	if self.pending_call then
 		for k,v in pairs(self.pending_call) do
 			self.minheap:Remove(v)
 			if v.co then
 				v.co.response = {err="remote connection lose"}
-				Sche.Schedule(v.co)				
+				Sche.WakeUp(v.co)				
 			elseif v.callback then
 				local ret = table.pack(pcall(v.callback,{err="remote connection lose"}))
 				if not ret[1] then
@@ -212,7 +210,6 @@ function stream.process_c_disconnect_event(self,errno)
 		end
 		self.pending_call = nil		
 	end
-
 	if self.on_disconnected then
 		self.on_disconnected(self,errno)
 	end
