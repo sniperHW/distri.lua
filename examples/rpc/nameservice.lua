@@ -27,6 +27,7 @@ name_service:RPCService("Register",function (name,ip,port,socket)
 	end
 	print(string.format("%s:%d register %s",ip,port,name))
 	server[socket] = {ip,port}
+	return true
 end)
 
 local function on_disconnected(socket)
@@ -37,5 +38,5 @@ local function on_disconnected(socket)
 end
 
 local success = not TcpServer.Listen("127.0.0.1",8080,function (client)		
-			name_service:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)		
+			name_service:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected,30000)		
 	end)
