@@ -40,7 +40,7 @@ local function FindService()
 				print(string.format("connect to %:%d error",ip,port))
 				return nil
 			end
-			app:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)
+			app:Add(client:Establish(Socket.Stream.RDecoder(65535),65535),nil,on_disconnected)
 			handler = RPC.MakeRPC(client,name)
 			service_remote_handlers[name] = handler		
 		end

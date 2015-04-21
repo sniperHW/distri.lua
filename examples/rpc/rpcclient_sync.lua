@@ -6,32 +6,28 @@ local Lock = require "lua.lock"
 local NameService = require "examples.rpc.toname"
 local RpcHandle = require "examples.rpc.rpchandle"
 
-local name_ip = "127.0.0.1"
-local name_port = 8080
+NameService.Init("127.0.0.1",8080)
 
-local rpcclient = App.New()
-NameService.Init(name_ip,name_port)
+local function client_routine()
+	local rpc = RpcHandle.FindService("Plus")
+	if not rpc then
+		print("no Plus service")
+		return
+	end
+	while true do			
+		local err,ret = rpc:CallSync(1,2)
+		if err == "socket error" then
+			rpc = RpcHandle.FindService("Plus")
+			if not rpc then
+				return
+			end
+		end
+	end	
+end
 
 if NameService.Connect() then
-	for i=1,10 do
-		Sche.Spawn(function () 
-			local rpcHandler = RpcHandle.FindService("Plus")
-			if rpcHandler then
-				for j=1,100 do
-					Sche.Spawn(function ()
-						while true do			
-							local err,ret = rpcHandler:CallSync(1,2)
-							if err == "socket error" then
-								rpcHandler = RpcHandle.FindService("Plus")
-								if not rpcHandler then
-									return
-								end
-							end
-						end
-					end)
-				end
-			end
-		end)	
+	for i=1,1000 do
+		Sche.Spawn(client_routine)
 	end
 else
 	print("connect to name error")

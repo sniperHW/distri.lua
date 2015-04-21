@@ -26,7 +26,7 @@ end
 
 if not TcpServer.Listen("127.0.0.1",8000,function (client)
 			print("on new client")		
-			rpcserver:Add(client:Establish(Socket.Stream.RDecoder()))		
+			rpcserver:Add(client:Establish(Socket.Stream.RDecoder(),65535))		
 	end) then
 	print("server start on 127.0.0.1:8000")
 	local last = C.GetSysTick()
