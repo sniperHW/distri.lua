@@ -1,8 +1,4 @@
-local Socket = require "lua.socket"
-local App = require "lua.application"
-local RPC = require "lua.rpc"
 local Sche = require "lua.sche"
-local Lock = require "lua.lock"
 local NameService = require "examples.rpc.toname"
 local RpcHandle = require "examples.rpc.rpchandle"
 

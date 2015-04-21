@@ -1,6 +1,5 @@
 local TcpServer = require "lua.tcpserver"
 local App = require "lua.application"
-local RPC = require "lua.rpc"
 local Timer = require "lua.timer"
 local Sche = require "lua.sche"
 local Socket = require "lua.socket"
