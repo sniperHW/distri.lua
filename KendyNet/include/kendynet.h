@@ -39,29 +39,21 @@ handle_t kn_new_sock(int domain,int type,int protocal);
 int      kn_close_sock(handle_t);
 
 int      kn_sock_listen(handle_t,
-		         kn_sockaddr*);//*,
-		         //void (*cb_accept)(handle_t,void*),
-		         //void*);
+		         kn_sockaddr*);
 						
-int      kn_sock_connect(//engine_t,
-		             handle_t,
+int      kn_sock_connect(handle_t,
 		             kn_sockaddr *remote,
 		             kn_sockaddr *local);
 
 void   kn_sock_set_clearfunc(handle_t,void (*)(void*));
 
-//void   kn_sock_set_connect_cb(handle_t,void (*cb_connect)(handle_t,int,void*,kn_sockaddr*),void*);
-
 int      kn_sock_ssllisten(handle_t,
 		             kn_sockaddr*,
-		             //void (*cb_accept)(handle_t,void*),
-		             //void*,
 		             const char *certificate,
 		             const char *privatekey
 		             );
 
-int      kn_sock_sslconnect(//engine_t,
-			   handle_t,
+int      kn_sock_sslconnect(handle_t,
 		                 kn_sockaddr *remote,
 		                 kn_sockaddr *local);
 

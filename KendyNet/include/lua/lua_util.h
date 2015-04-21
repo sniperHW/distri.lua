@@ -120,13 +120,7 @@ const char *luacall(lua_State *L,const char *fmt,...);
 			lua_pushstring(__L,__FIELD);\
 			lua_gettable(__L,-2);\
 			lua_remove(__L,-2);\
-			const char *__fmt = __FMT;\
-			if(__fmt){char __tmp[32];\
-				snprintf(__tmp,32,"r%s",(const char*)__fmt);\
-				__result = luacall(__L,__tmp,__TABREF,##__VA_ARGS__);\
-			}else{\
-				__result = luacall(__L,"r",__TABREF);\
-			}\
+			__result = luacall(__L,__FMT,##__VA_ARGS__);\
 			lua_settop(__L,__oldtop);\
 		__result;})	
 

@@ -36,7 +36,7 @@ const char *str_lua_process_rpc_call = "\
 	return process_rpc_call" ;
 
 
-int rpc_Plus(lua_State *L){
+static int rpc_Plus(lua_State *L){
 	int a = lua_tointeger(L,1);
 	int b = lua_tointeger(L,2);
 	lua_pushinteger(L,a+b);         //result
@@ -44,7 +44,7 @@ int rpc_Plus(lua_State *L){
 	return 1;
 }
 
-int lua_check_and_get_function(lua_State *L){
+static int lua_check_and_get_function(lua_State *L){
 	connection_t c = lua_touserdata(L,1);
 	const char *function_name = lua_tostring(L,2);
 	struct rpc_record *r = (struct rpc_record*)connection_getud(c);
@@ -71,18 +71,18 @@ int lua_check_and_get_function(lua_State *L){
 	return 0;
 }
 
-int lua_rpc_response(lua_State *L){
+static int lua_rpc_response(lua_State *L){
 	connection_t c = lua_touserdata(L,1);
 	wpacket_t wpk = wpk_create(512);
 	wpk_write_uint32(wpk,0xDBCAABCD);
-	const char *errmsg = lua_pack_table(wpk,L,2));
+	const char *errmsg = lua_pack_table(wpk,L,2);
 	if(errmsg)
 		luaL_error(L,errmsg);
 	connection_send(c,(packet_t)wpk,NULL);
 	return 0;
 }
 
-int lua_rpk_read_table(lua_State *L){
+static int lua_rpk_read_table(lua_State *L){
 	rpacket_t rpk = lua_touserdata(L,1);
 	lua_unpack_table(rpk,L);
 	return 1;
@@ -121,9 +121,23 @@ int timer_callback(kn_timer_t timer){
 	return 1;
 }
 
+int toname_init(engine_t engine,const char *ip,uint16_t port);
+int toname_register_service(const char *func,const char *ip,uint16_t port);
+
 int main(int argc,char **argv){
 	signal(SIGPIPE,SIG_IGN);
 	engine_t p = kn_new_engine();
+
+	if(0 != toname_init(p,"127.0.0.1",8080)){
+		printf("toname_init failed\n");
+		exit(0);
+	}
+
+	if(0 != toname_register_service("Plus",argv[1],atoi(argv[2]))){
+		printf("register Plus failed\n");
+		exit(0);
+	}
+
 	kn_sockaddr local;
 	kn_addr_init_in(&local,argv[1],atoi(argv[2]));
 	handle_t l = kn_new_sock(AF_INET,SOCK_STREAM,IPPROTO_TCP);

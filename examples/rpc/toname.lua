@@ -93,7 +93,7 @@ end
 
 function public.Find(name)
 	if not sock_toname then
-		if not private.connect() then
+		if not public.Connect() then
 			return false
 		end
 	end

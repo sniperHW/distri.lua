@@ -1,29 +1,30 @@
-local Socket = require "lua.socket"
-local App = require "lua.application"
-local RPC = require "lua.rpc"
 local Sche = require "lua.sche"
+local NameService = require "examples.rpc.toname"
+local RpcHandle = require "examples.rpc.rpchandle"
 
-local rpcclient = App.New()
+NameService.Init("127.0.0.1",8080)
 
 for i=1,10 do
 	Sche.Spawn(function () 
-		local client = Socket.Stream.New(CSocket.AF_INET)
-		if client:Connect("127.0.0.1",8000) then
-			print("connect to 127.0.0.1:8000 error")
+		local rpc = RpcHandle.FindService("Plus")
+		if not rpc then
+			print("no Plus service")
 			return
-		end		
-		rpcclient:Add(client:Establish(Socket.Stream.RDecoder()),nil,on_disconnected)
-		local rpcHandler = RPC.MakeRPC(client,"Plus")
+		end
 		local function callback(err,result)
 			if not err then
-				rpcHandler:CallAsync(callback,1,2)
+				rpc:CallAsync(callback,1,2)
 			else
-				print(err)
-				client:Close()
+				if err == "socket error" then
+					rpc = RpcHandle.FindService("Plus")
+					if not rpc then
+						return
+					end
+				end
 			end
 		end		
 		for j=1,100 do			
-			rpcHandler:CallAsync(callback,1,2)	
+			rpc:CallAsync(callback,1,2)	
 		end
 	end)	
 end
