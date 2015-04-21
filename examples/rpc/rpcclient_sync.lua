@@ -1,20 +1,20 @@
 local Sche = require "lua.sche"
 local NameService = require "examples.rpc.toname"
-local RpcHandle = require "examples.rpc.rpchandle"
+local RPC = require "examples.rpc.rpchandle"
 
 NameService.Init("127.0.0.1",8080)
 
 local function client_routine()
-	local rpc = RpcHandle.FindService("Plus")
-	if not rpc then
+	local Plus = RPC.SynCaller(RPC.Get("Plus"))
+	if not Plus then
 		print("no Plus service")
 		return
 	end
 	while true do			
-		local err,ret = rpc:CallSync(1,2)
+		local err,ret = Plus(1,2)
 		if err == "socket error" then
-			rpc = RpcHandle.FindService("Plus")
-			if not rpc then
+			Plus = RPC.SynCaller(RPC.Get("Plus"))
+			if not Plus then
 				return
 			end
 		end

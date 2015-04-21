@@ -7,6 +7,25 @@ local NameService = require "examples.rpc.toname"
 
 local app = App.New()
 
+
+local function MakeSynCaller(handle)
+	if not handle then
+		return
+	end
+	return function(...)
+		return handle:CallSync(...)
+	end
+end
+
+local function MakeAsynCaller(handle)
+	if not handle then
+		return
+	end
+	return function(callback,...)
+		return handle:CallAsync(callback,...)
+	end	
+end
+
 local function FindService()
 	local service_remote_handlers = {}
 	local lock = Lock.New()
@@ -50,7 +69,9 @@ local function FindService()
 end
 
 local public ={
-	FindService = FindService()
+	Get = FindService(),
+	SynCaller = MakeSynCaller,
+	AsynCaller = MakeAsynCaller,
 }
 
 return public

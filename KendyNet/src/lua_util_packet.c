@@ -234,6 +234,6 @@ static int _lua_unpack_table(rpacket_t rpk,lua_State *L){
 
 int lua_unpack_table(rpacket_t rpk,lua_State *L){
 	if(rpk_read_uint8(rpk) == L_TABLE && 0 == _lua_unpack_table(rpk,L))
-		return 1;
-	return 0;
+		return 0;
+	return -1;
 }
