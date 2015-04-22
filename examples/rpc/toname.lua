@@ -22,7 +22,7 @@ function private.reconnect()
 	Sche.Spawn(function ()
 		Sche.Sleep(5000)
 		print("reconnect to nameserver")
-		if not private.Connect() then
+		if not public.Connect() then
 			private.reconnect()
 		end
 	end)
