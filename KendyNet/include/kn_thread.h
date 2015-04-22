@@ -39,7 +39,11 @@ enum
 kn_thread_t kn_create_thread(int32_t);
 void        kn_thread_destroy(kn_thread_t);
 void*       kn_thread_join(kn_thread_t);
-void        kn_thread_start_run(kn_thread_t,kn_thread_routine,void*);
+void        kn_thread_start(kn_thread_t,kn_thread_routine,void*);
+
+//return until the new thread running
+void        kn_thread_start_wait(kn_thread_t,kn_thread_routine,void*);
+
 static inline pthread_t   kn_thread_getid(kn_thread_t t){
 	return t->threadid;
 }
@@ -47,7 +51,13 @@ static inline pthread_t   kn_thread_getid(kn_thread_t t){
 #define RUN_THREAD(TYPE,ROUTINE,PTR)\
                     ({kn_thread_t ___thread = kn_create_thread(TYPE);\
                        if(___thread)\
-                             kn_thread_start_run(___thread,ROUTINE,PTR);\
+                             kn_thread_start(___thread,ROUTINE,PTR);\
+                         ___thread;})
+
+#define RUN_THREAD_WAIT(TYPE,ROUTINE,PTR)\
+                    ({kn_thread_t ___thread = kn_create_thread(TYPE);\
+                       if(___thread)\
+                             kn_thread_start_wait(___thread,ROUTINE,PTR);\
                          ___thread;})
 
 #endif

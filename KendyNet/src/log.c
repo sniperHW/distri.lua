@@ -143,7 +143,7 @@ static void log_once_routine(){
 	g_log_engine = kn_new_engine();
 	g_log_thd = kn_create_thread(THREAD_JOINABLE);
 	g_log_flush_timer = kn_reg_timer(g_log_engine,1000,flush_timer_callback,NULL);//flush every 1000 ms
-	kn_thread_start_run(g_log_thd,log_routine,NULL);
+	kn_thread_start(g_log_thd,log_routine,NULL);
 	atexit(on_process_end);
 }
 

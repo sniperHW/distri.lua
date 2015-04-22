@@ -67,7 +67,7 @@ int    listener_listen(luasocket_t lsock,kn_sockaddr *addr){
 		g_listener->engine = kn_new_engine();
 		g_listener->thread = kn_create_thread(THREAD_JOINABLE);
 		g_listener->mainmailbox = kn_self_mailbox();//get mailbox of main thread
-		kn_thread_start_run(g_listener->thread,routine,NULL);
+		kn_thread_start(g_listener->thread,routine,NULL);
 	}
 	if(0 == kn_sock_listen(lsock->sock,addr)){
 		kn_sock_setud(lsock->sock,lsock);

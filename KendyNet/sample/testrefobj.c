@@ -68,9 +68,9 @@ int main(){
 		kn_thread_t t1 = kn_create_thread(THREAD_JOINABLE);
 		kn_thread_t t2 = kn_create_thread(THREAD_JOINABLE);	
 		kn_thread_t t3 = kn_create_thread(THREAD_JOINABLE);	
-		kn_thread_start_run(t1,_thread_fn[i%3][0],NULL);
-		kn_thread_start_run(t3,_thread_fn[i%3][1],NULL);
-		kn_thread_start_run(t2,_thread_fn[i%3][2],NULL);			
+		kn_thread_start(t1,_thread_fn[i%3][0],NULL);
+		kn_thread_start(t3,_thread_fn[i%3][1],NULL);
+		kn_thread_start(t2,_thread_fn[i%3][2],NULL);			
 		kn_thread_join(t1);
 		kn_thread_join(t2);
 		kn_thread_join(t3);

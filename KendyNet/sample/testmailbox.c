@@ -103,8 +103,8 @@ int main(){
 
 	kn_thread_t t1 = kn_create_thread(THREAD_JOINABLE);
 	kn_thread_t t2 = kn_create_thread(THREAD_JOINABLE);	
-	kn_thread_start_run(t1,routine11,NULL);
-	kn_thread_start_run(t2,routine22,NULL);		
+	kn_thread_start_wait(t1,routine11,NULL);
+	kn_thread_start_wait(t2,routine22,NULL);		
 
 	while(1){
 		kn_sleepms(1000);		
