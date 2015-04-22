@@ -131,7 +131,8 @@ hash_node*     hash_map_remove(hash_map_t h,void *key)
 {
 	uint64_t hash_code = h->hash_function(key);
 	uint64_t snd_hash_code = 0;
-	if(h->snd_hash_function) h->snd_hash_function(key);
+	if(h->snd_hash_function) 
+		snd_hash_code = h->snd_hash_function(key);
 	uint64_t index = hash_code % h->slot_size;
 	hash_node *n = slot_remove(&h->slots[index],key,h->key_cmp_function,hash_code,snd_hash_code);
 	
