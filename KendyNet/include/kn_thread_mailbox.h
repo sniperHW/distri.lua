@@ -17,6 +17,6 @@ int  kn_send_mail(kn_thread_mailbox_t,void*,void (*fn_destroy)(void*));
 kn_thread_mailbox_t kn_self_mailbox();
 
 //根据线程id查询mailbox
-kn_thread_mailbox_t kn_query_mailbox(pthread_t);
+//kn_thread_mailbox_t kn_query_mailbox(pthread_t);
 
 #endif

@@ -1,14 +1,11 @@
 #define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <fcntl.h>              /* Obtain O_* constant definitions */
 #include <unistd.h>
-//#include <sys/eventfd.h>
 #include "kn_thread_mailbox.h"
 #include "kn_thread_sync.h"
 #include "spinlock.h"
 #include "kn_list.h"
 #include "kn_type.h"
-#include "hash_map.h"
-#include "common_hash_function.h"
 #include "kendynet_private.h"
 #include "kn_event.h"
 
@@ -29,14 +26,12 @@
 typedef struct kn_thread_mailbox{
 	handle         comm_head;
 	refobj         refobj;
-	hash_node      hash;
 	LOCK_TYPE      mtx;
 	kn_list        global_queue;
 	kn_list        private_queue;
 	int            wait;
 	int            emptytry;
 	int            notifyfd;
-	pthread_t      tid;
 	engine_t       e;
 	void (*cb_on_mail)(kn_thread_mailbox_t *from,void*);          
 }kn_thread_mailbox;
@@ -54,20 +49,6 @@ static pthread_key_t  g_mailbox_key;
 static pthread_once_t g_mailbox_key_once = PTHREAD_ONCE_INIT;
 #endif
 
-static kn_mutex_t     g_mtx;
-
-static uint64_t hash(void *key)
-{
-	pthread_t tid = (pthread_t)key;
-	return burtle_hash((uint8_t*)&tid,sizeof(pthread_t),0);
-}
-
-static int key_cmp_function(void *key1,void *key2){
-	return (pthread_t)key1 == (pthread_t)key2 ? 0:1;
-}
-
-static hash_map_t h = NULL;
-
 static void key_destructor(void *ptr){
 	kn_thread_mailbox* mailbox  = (kn_thread_mailbox*)ptr;
 	refobj_dec(&mailbox->refobj); 
@@ -79,8 +60,6 @@ static void mailbox_once_routine(){
 __attribute__((constructor(102))) static void mailbox_init(){
 #endif
 	pthread_key_create(&g_mailbox_key,key_destructor);
-	h = hash_map_create(64,hash,key_cmp_function,NULL);
-	g_mtx = kn_mutex_create();
 }
 
 static void mailbox_destroctor(void *ptr){
@@ -97,12 +76,7 @@ static void mailbox_destroctor(void *ptr){
 	kn_event_del(mailbox->e,(handle_t)mailbox);
 	LOCK_DESTROY(mailbox->mtx);	
 	close(mailbox->comm_head.fd);
-	close(mailbox->notifyfd);
-
-	kn_mutex_lock(g_mtx);
-	hash_map_remove(h,(void*)mailbox->tid);
-	kn_mutex_unlock(g_mtx);	
-	
+	close(mailbox->notifyfd);	
 	free(mailbox);			
 }
 
@@ -151,16 +125,7 @@ static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){
 	}		
 	kn_thread_mailbox *mailbox = calloc(1,sizeof(*mailbox));
 	mailbox->comm_head.fd = tmp[0];
-	mailbox->notifyfd = tmp[1];
-	/*kn_set_noblock(tmp[0],0);
-	kn_set_noblock(tmp[1],0);
-	int evfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-	if (evfd < 0) {
-		return NULL;
-	}
-	kn_thread_mailbox *mailbox = calloc(1,sizeof(*mailbox));
-	mailbox->comm_head.fd = evfd;
-	mailbox->notifyfd = evfd;*/		
+	mailbox->notifyfd = tmp[1];	
 	refobj_init(&mailbox->refobj,mailbox_destroctor);
 #ifdef _LINUX	
 	if(kn_event_add(e,(handle_t)mailbox,EPOLLIN) != 0){
@@ -169,14 +134,11 @@ static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){
 #endif
 		close(tmp[0]);
 		close(tmp[1]);
-		//close(evfd);
 		free(mailbox);
 		return NULL;	
 	}
 	mailbox->comm_head.type = KN_MAILBOX;
 	mailbox->comm_head.on_events = on_events;
-	mailbox->tid = pthread_self();
-	mailbox->hash.key = (void*)mailbox->tid;
 	mailbox->mtx = LOCK_CREATE();
 	mailbox->wait = 1;
 	mailbox->cb_on_mail = cb;
@@ -185,9 +147,6 @@ static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){
 	kn_list_init(&mailbox->global_queue);
 	kn_list_init(&mailbox->private_queue);
 
-	kn_mutex_lock(g_mtx);
-	hash_map_insert(h,&mailbox->hash);
-	kn_mutex_unlock(g_mtx);
 	return mailbox;	
 }
 
@@ -279,7 +238,7 @@ kn_thread_mailbox_t kn_self_mailbox(){
 	}	
 }
 
-kn_thread_mailbox_t kn_query_mailbox(pthread_t tid){
+/*kn_thread_mailbox_t kn_query_mailbox(pthread_t tid){
 	if(tid == pthread_self()){
 		return kn_self_mailbox();
 	}else{
@@ -298,4 +257,4 @@ kn_thread_mailbox_t kn_query_mailbox(pthread_t tid){
 			return ident;			
 		}
 	}
-}
+}*/

@@ -5,9 +5,7 @@
 
 volatile int count = 0;
 
-volatile pthread_t pid = 0;
-
-//echo
+kn_thread_mailbox_t mailbox2;
 
 static void on_mail1(kn_thread_mailbox_t *from,void *mail){
 		static uint32_t tick = 0;
@@ -35,15 +33,13 @@ void *routine1(void *arg)
 	printf("routine1\n");
 	engine_t p = kn_new_engine();
 	kn_setup_mailbox(p,on_mail1);
-	while(!pid)kn_sleepms(1);
-	kn_thread_mailbox_t mailbox = kn_query_mailbox(pid);
-	if(is_empty_ident((ident)mailbox)){
-		printf("error\n");
-		exit(0);
+	while(is_empty_ident(mailbox2)){
+		FENCE();
+		kn_sleepms(1);
 	}
 	int i = 0;
 	for(; i < 10000; ++i){
-		kn_send_mail(mailbox,(void*)1,NULL);
+		kn_send_mail(mailbox2,(void*)1,NULL);
 	}
 	kn_engine_run(p);
     return NULL;
@@ -54,7 +50,7 @@ void *routine2(void *arg)
 	printf("routine2\n");
 	engine_t p = kn_new_engine();
 	kn_setup_mailbox(p,on_mail2);
-	pid = pthread_self();
+	mailbox2 = kn_self_mailbox();
 	kn_engine_run(p);
     return NULL;
 }
@@ -63,16 +59,14 @@ void *routine2(void *arg)
 void *routine11(void *arg)
 {
 	printf("routine11\n");
-	while(!pid)kn_sleepms(1);
-	kn_thread_mailbox_t mailbox = kn_query_mailbox(pid);
-	if(is_empty_ident((ident)mailbox)){
-		printf("error\n");
-		exit(0);
+	while(is_empty_ident(mailbox2)){
+		FENCE();
+		kn_sleepms(1);
 	}	
 	int i;
 	while(1){
 		for(i = 0; i < 50000; ++i){
-			kn_send_mail(mailbox,(void*)1,NULL);
+			kn_send_mail(mailbox2,(void*)1,NULL);
 		}
 		//kn_sleepms(100);
 	}
@@ -99,7 +93,7 @@ void *routine22(void *arg)
 	printf("routine22\n");
 	engine_t p = kn_new_engine();
 	kn_setup_mailbox(p,on_mail22);
-	pid = pthread_self();
+	mailbox2 = kn_self_mailbox();	
 	kn_engine_run(p);
     return NULL;
 }

@@ -34,7 +34,6 @@ source =  src/kn_engine.c \
 	   src/connection.c \
 	   src/kn_thread.c \
 	   src/kn_thread_mailbox.c \
-	   src/hash_map.c \
 	   src/kn_except.c \
 	   src/lookup8.c \
 	   src/spinlock.c \
@@ -46,7 +45,6 @@ source =  src/kn_engine.c \
 	   src/kn_daemonize.c \
 	   src/lua_util.c \
 	   src/kn_curl.c\
-	   src/uthread.c\
 	   src/kn_objpool.c\
 	   src/kn_chr_dev.c\
 	   src/kendynet.c\
@@ -71,7 +69,6 @@ sample-source = sample/broadcast_svr.c\
 		 sample/testcurl.c\
 		 sample/testlfstack.c\
 		 sample/testminheap.c\
-		 sample/ccoroutine.c\
 		 sample/objpool.c\
 		 sample/testchrdev.c\
 		 sample/testatomicst.c\
@@ -108,7 +105,6 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o testcurl testcurl.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl
 	$(CC) $(CFLAGS) -o testlfstack testlfstack.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testminheap testminheap.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o ccoroutine ccoroutine.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o objpool objpool.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testchrdev testchrdev.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testatomicst testatomicst.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
