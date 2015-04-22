@@ -49,8 +49,7 @@ void *routine2(void *arg)
 {
 	printf("routine2\n");
 	engine_t p = kn_new_engine();
-	kn_setup_mailbox(p,on_mail2);
-	mailbox2 = kn_self_mailbox();
+	mailbox2 = kn_setup_mailbox(p,on_mail2);
 	kn_engine_run(p);
     return NULL;
 }
@@ -92,8 +91,7 @@ void *routine22(void *arg)
 {
 	printf("routine22\n");
 	engine_t p = kn_new_engine();
-	kn_setup_mailbox(p,on_mail22);
-	mailbox2 = kn_self_mailbox();	
+	mailbox2 = kn_setup_mailbox(p,on_mail22);
 	kn_engine_run(p);
     return NULL;
 }

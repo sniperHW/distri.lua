@@ -151,21 +151,23 @@ static kn_thread_mailbox* create_mailbox(engine_t e,cb_on_mail cb){
 }
 
 
-void kn_setup_mailbox(engine_t e,cb_on_mail cb){
+kn_thread_mailbox_t kn_setup_mailbox(engine_t e,cb_on_mail cb){
 	assert(e);
 	assert(cb);
-	if(!e || !cb) return;
+	kn_thread_mailbox_t mailbox = {.identity =0,.ptr=NULL};
+	if(!e || !cb) return mailbox;
 #ifndef __GNUC__
 	pthread_once(&g_mailbox_key_once,mailbox_once_routine);
 #endif	
-	kn_thread_mailbox *mailbox = (kn_thread_mailbox*)pthread_getspecific(g_mailbox_key);
-	if(!mailbox){
-		mailbox = create_mailbox(e,cb);
-		if(!mailbox){
-			return;
+	kn_thread_mailbox *m = (kn_thread_mailbox*)pthread_getspecific(g_mailbox_key);
+	if(!m){
+		m = create_mailbox(e,cb);
+		if(!m){
+			return mailbox;
 		}
-		pthread_setspecific(g_mailbox_key,mailbox);
+		pthread_setspecific(g_mailbox_key,m);
 	}
+	return make_ident(&m->refobj);
 }
 
 static inline kn_thread_mailbox* cast(kn_thread_mailbox_t t){
@@ -224,37 +226,3 @@ int  kn_send_mail(kn_thread_mailbox_t mailbox,void *mail,void (*fn_destroy)(void
 	return ret;
 }
 
-kn_thread_mailbox_t kn_self_mailbox(){
-#ifndef __GNUC__
-	pthread_once(&g_mailbox_key_once,mailbox_once_routine);
-#endif	
-	kn_thread_mailbox *selfbox = (kn_thread_mailbox*)pthread_getspecific(g_mailbox_key);
-	if(selfbox){
-		return make_ident(&selfbox->refobj);
-	}else{
-		ident ident;
-		ident.ptr = NULL;
-		return ident;
-	}	
-}
-
-/*kn_thread_mailbox_t kn_query_mailbox(pthread_t tid){
-	if(tid == pthread_self()){
-		return kn_self_mailbox();
-	}else{
-		kn_thread_mailbox *mailbox = NULL;
-		kn_mutex_lock(g_mtx);
-		hash_node *node = hash_map_find(h,(void*)tid);
-		if(node){
-			mailbox = (kn_thread_mailbox*)((char*)node - sizeof(handle) - sizeof(refobj));
-		}
-		kn_mutex_unlock(g_mtx);
-		if(mailbox)
-			return make_ident(&mailbox->refobj);
-		else{
-			ident ident;
-			ident.ptr = NULL;
-			return ident;			
-		}
-	}
-}*/

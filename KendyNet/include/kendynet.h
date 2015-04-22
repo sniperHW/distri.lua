@@ -14,10 +14,10 @@ typedef void* engine_t;
 
 typedef struct
 {
-    kn_list_node      next;
-    void*                  ud;
-    struct                  iovec *iovec;
-    int32_t                iovec_count;
+	kn_list_node      next;
+	void*                  ud;
+	struct                  iovec *iovec;
+	int32_t                iovec_count;
     kn_sockaddr      addr;     	//use by datagram socket
     int32_t                recvflags;	//use by datagram socket
 }st_io;
@@ -28,8 +28,8 @@ int        kn_engine_run(engine_t);
 void     kn_engine_runonce(engine_t,uint32_t,uint32_t);
 void     kn_stop_engine(engine_t);
 int       kn_engine_associate(engine_t,
-			     handle_t,
-			     void (*callback)(handle_t,void*,int,int));
+	handle_t,
+	void (*callback)(handle_t,void*,int,int));
 void     SSL_init();
 
 
@@ -39,23 +39,23 @@ handle_t kn_new_sock(int domain,int type,int protocal);
 int      kn_close_sock(handle_t);
 
 int      kn_sock_listen(handle_t,
-		         kn_sockaddr*);
-						
+	kn_sockaddr*);
+
 int      kn_sock_connect(handle_t,
-		             kn_sockaddr *remote,
-		             kn_sockaddr *local);
+	kn_sockaddr *remote,
+	kn_sockaddr *local);
 
 void   kn_sock_set_clearfunc(handle_t,void (*)(void*));
 
 int      kn_sock_ssllisten(handle_t,
-		             kn_sockaddr*,
-		             const char *certificate,
-		             const char *privatekey
-		             );
+	kn_sockaddr*,
+	const char *certificate,
+	const char *privatekey
+	);
 
 int      kn_sock_sslconnect(handle_t,
-		                 kn_sockaddr *remote,
-		                 kn_sockaddr *local);
+	kn_sockaddr *remote,
+	kn_sockaddr *local);
 
 
 /*

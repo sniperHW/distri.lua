@@ -419,7 +419,9 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 			SYS_LOG(LOG_ERROR,"error on __on_new_connection:%s\n",error);			
 		}				
 	}
-}		
+}
+
+kn_thread_mailbox_t mainmailbox;		
 
 void reg_luasocket(lua_State *L){
 	lua_newtable(L);
@@ -449,7 +451,7 @@ void reg_luasocket(lua_State *L){
 	
 	lua_setglobal(L,"CSocket");
 	reg_luapacket(L);
-	kn_setup_mailbox(g_engine,on_mail);
+	mainmailbox = kn_setup_mailbox(g_engine,on_mail);
 }
 
 

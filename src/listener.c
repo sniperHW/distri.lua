@@ -3,11 +3,12 @@
 #include "listener.h"
 #include <assert.h>
 
+extern kn_thread_mailbox_t mainmailbox;
+
 typedef struct{
 	engine_t engine;
 	kn_thread_mailbox_t   mailbox;
 	kn_thread_t thread;
-	kn_thread_mailbox_t   mainmailbox;
 }*listener_t;
 
 static inline li_msg_t new_msg(uint16_t _type,luasocket_t luasock,void *ud)
@@ -33,7 +34,7 @@ static void send2listener(li_msg_t msg){
 }
 
 static void send2main(li_msg_t msg){
-	if(0 != kn_send_mail(g_listener->mainmailbox,msg,destroy_msg)){
+	if(0 != kn_send_mail(mainmailbox,msg,destroy_msg)){
 		destroy_msg(msg);
 	}
 }
@@ -49,8 +50,7 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 
 static void* routine(void *_){
 	printf("listener running\n");
-	kn_setup_mailbox(g_listener->engine,on_mail);
-	g_listener->mailbox = kn_self_mailbox();
+	g_listener->mailbox = kn_setup_mailbox(g_listener->engine,on_mail);
 	kn_engine_run(g_listener->engine);
 	return NULL;
 }
@@ -66,7 +66,6 @@ int    listener_listen(luasocket_t lsock,kn_sockaddr *addr){
 		g_listener = calloc(1,sizeof(*g_listener));
 		g_listener->engine = kn_new_engine();
 		g_listener->thread = kn_create_thread(THREAD_JOINABLE);
-		g_listener->mainmailbox = kn_self_mailbox();//get mailbox of main thread
 		kn_thread_start(g_listener->thread,routine,NULL);
 	}
 	if(0 == kn_sock_listen(lsock->sock,addr)){

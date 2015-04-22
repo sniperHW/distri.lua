@@ -94,8 +94,7 @@ static int flush_timer_callback(kn_timer_t _){
 
 
 static void* log_routine(void *arg){
-	kn_setup_mailbox(g_log_engine,on_mail);
-	g_logthd_mailbox = kn_self_mailbox();
+	g_logthd_mailbox = kn_setup_mailbox(g_log_engine,on_mail);
 	g_pid = getpid();
 	kn_engine_run(g_log_engine);
 	//向所有打开的日志文件写入"log close success"
