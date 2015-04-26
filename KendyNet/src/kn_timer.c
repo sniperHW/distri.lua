@@ -64,10 +64,8 @@ static inline void add2wheel(wheelmgr_t m,wheel *w,kn_timer_t t,uint64_t remain)
 
 static inline void _reg(wheelmgr_t m,kn_timer_t t,uint64_t tick,wheel *w){
 	assert(t->expire > tick);
-	if(t->expire > tick){
-		uint64_t remain = t->expire - tick;
-		add2wheel(m,w?w:m->wheels[wheel_sec],t,remain);
-	}
+	if(t->expire > tick)
+		add2wheel(m,w?w:m->wheels[wheel_sec],t,t->expire - tick);
 }
 
 //将本级超时的定时器推到下级时间轮中
@@ -77,8 +75,7 @@ static inline void down(wheelmgr_t m,kn_timer_t t,uint64_t tick,wheel *w){
 	if(t->expire >= tick){
 		uint64_t remain = (t->expire - tick) - wheel_size(w->type-1);
 		remain /= precision(w->type);
-		uint16_t i = w->cur + remain;
-		kn_dlist_push(&w->items[i],(kn_dlist_node*)t);		
+		kn_dlist_push(&w->items[w->cur + remain],(kn_dlist_node*)t);		
 	}	
 }
 
@@ -103,8 +100,7 @@ static void fire(wheelmgr_t m,uint64_t tick){
 	while((t = (kn_timer_t)kn_dlist_pop(items))){
 		int32_t ret = t->callback(TEVENT_TIMEOUT,t->ud);
 		if(ret >= 0 && ret <= MAX_TIMEOUT){
-			if(ret > 0)
-				t->timeout = ret;
+			if(ret > 0) t->timeout = ret;
 			t->expire = tick + t->timeout;
 			_reg(m,t,tick,NULL);
 		}else{
@@ -140,9 +136,8 @@ kn_timer_t wheelmgr_register(wheelmgr_t m,uint32_t timeout,
 wheelmgr_t wheelmgr_new(){
 	wheelmgr_t t = calloc(1,sizeof(*t));
 	int i = 0;
-	for(; i < wheel_day+1; ++i){
+	for(; i < wheel_day+1; ++i)
 		t->wheels[i] = wheel_new(i);
-	}
 	return t;
 }
 
