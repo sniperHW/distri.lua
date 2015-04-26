@@ -8,11 +8,13 @@ struct userst{
 };
 engine_t proactor=NULL;
 
-int timer_callback(kn_timer_t timer){
-	struct userst *st = (struct userst*)kn_timer_getud(timer);
-	printf("%ld,%ld\n",kn_systemms64()-st->expecttime,st->ms);
-	st->expecttime = kn_systemms64() + st->ms;
-	return 1;
+int timer_callback(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){
+		struct userst *st = (struct userst*)ud;
+		printf("%ld,%ld\n",kn_systemms64()-st->expecttime,st->ms);
+		st->expecttime = kn_systemms64() + st->ms;
+	}
+	return 0;
 }
 
 

@@ -20,15 +20,24 @@
 #include <stdint.h>
 #include "kendynet.h"
 
+#define MAX_TIMEOUT (1000*3600*24-1)
+
+enum{
+    TEVENT_TIMEOUT = 1,
+    TEVENT_DESTROY,
+};
+
 typedef struct kn_timer *kn_timer_t;
-typedef int  (*kn_cb_timer)(kn_timer_t);//如果返回1继续注册，否则不再注册
 
 kn_timer_t kn_reg_timer(engine_t,
 						uint64_t timeout,
-						kn_cb_timer cb,
+						int32_t(*)(uint32_t,void*),
 						void *ud);
 						
 void       kn_del_timer(kn_timer_t);//销毁timer并从timermgr中取消注册
-void*      kn_timer_getud(kn_timer_t);
+
+
+//void*      kn_timer_getud(kn_timer_t);
+
 
 #endif

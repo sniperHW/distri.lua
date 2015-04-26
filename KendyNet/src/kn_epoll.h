@@ -179,14 +179,14 @@ void kn_stop_engine(engine_t e){
 }
 
 
-kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,kn_cb_timer cb,void *ud){
+kn_timer_t kn_reg_timer(engine_t e,uint64_t timeout,int32_t(*cb)(uint32_t,void*),void *ud){
 	kn_epoll *ep = (kn_epoll*)e;
 	if(!ep->timerfd){
 		ep->timerfd = kn_new_timerfd(1);
-		((handle_t)ep->timerfd)->ud = kn_new_timermgr();
+		((handle_t)ep->timerfd)->ud = wheelmgr_new();
 		kn_event_add(ep,ep->timerfd,EPOLLIN | EPOLLOUT);			
 	}
-	return reg_timer_imp(((handle_t)ep->timerfd)->ud,timeout,cb,ud);
+	return wheelmgr_register(((handle_t)ep->timerfd)->ud,timeout,cb,ud);
 }
 
 int is_set_read(handle *h){

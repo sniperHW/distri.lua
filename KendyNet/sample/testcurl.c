@@ -20,10 +20,12 @@ void cb_curl(kn_CURL_t curl,CURLMsg *message,void *ud){
 	kn_CURLM_add(curlm,new_curl,cb_curl,NULL);		
 }
 
-int timer_callback(kn_timer_t timer){
-	printf("count:%d\n",count);
-	count = 0;
-	return 1;
+int timer_callback(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){
+		printf("count:%d\n",count);
+		count = 0;
+	}
+	return 0;
 }
 
 

@@ -9,10 +9,12 @@ void on_packet(struct datagram *d,packet_t rpk,kn_sockaddr *from){
 	datagram_send(d,(packet_t)make_writepacket(rpk),from);
 }
 
-int timer_callback(kn_timer_t timer){
-	printf("totalbytes:%f MB/s\n",totalbytes/1024/1024);
-	totalbytes = 0;
-	return 1;
+int timer_callback(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){
+		printf("totalbytes:%f MB/s\n",totalbytes/1024/1024);
+		totalbytes = 0;
+	}
+	return 0;
 }
 
 int main(int argc,char **argv){

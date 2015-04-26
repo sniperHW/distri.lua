@@ -133,23 +133,14 @@ static void curl_once_routine(){
 	}
 }
 
-static int timer_callback(kn_timer_t timer){
-	kn_CURLM_t cm = (kn_CURLM_t)kn_timer_getud(timer);
-	int running_handles;	
-	curl_multi_socket_action(cm->c_handle, CURL_SOCKET_TIMEOUT,0,&running_handles);
-	//cm->timer = NULL;//不需要销毁,callback返回0后会被自动销毁
-	return 1;
+static int timer_callback(uint32_t event,void *ud){//kn_timer_t timer){
+	if(event == TEVENT_TIMEOUT){
+		kn_CURLM_t cm = (kn_CURLM_t)ud;
+		int running_handles;	
+		curl_multi_socket_action(cm->c_handle, CURL_SOCKET_TIMEOUT,0,&running_handles);
+	}
+	return 0;
 }
-
-/*void start_timeout(CURLM *multi, long timeout_ms, void *userp)
-{
-  if(timeout_ms <= 0)
-    timeout_ms = 1; 
-  kn_CURLM_t cm = (kn_CURLM_t)userp;	
-  if(!cm->timer) cm->timer = kn_reg_timer(cm->e,timeout_ms,timer_callback,cm);   
-   //uv_timer_start(&timeout, on_timeout, timeout_ms, 0);
-}*/
-
 
 
 kn_CURLM_t kn_CURLM_init(engine_t e){
@@ -160,9 +151,7 @@ kn_CURLM_t kn_CURLM_init(engine_t e){
 	cm->c_handle = c;
 	cm->e = e;
 	kn_dlist_init(&cm->curls);
-	curl_multi_setopt(c, CURLMOPT_SOCKETFUNCTION, handle_socket);
-    	//curl_multi_setopt(c, CURLMOPT_TIMERDATA, cm);	
-	//curl_multi_setopt(c, CURLMOPT_TIMERFUNCTION, start_timeout);	
+	curl_multi_setopt(c, CURLMOPT_SOCKETFUNCTION, handle_socket);	
 	return cm;
 }
 

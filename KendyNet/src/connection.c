@@ -238,10 +238,12 @@ static void _force_close(connection_t c,int err){
 	refobj_dec((refobj*)c);	
 }
 
-int cb_lastsend(kn_timer_t t){
-	connection_t c = (connection_t)kn_timer_getud(t);
-	_force_close(c,0);
-	return 0;
+int cb_lastsend(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){
+		connection_t c = (connection_t)ud;
+		_force_close(c,0);
+	}
+	return -1;
 }
 
 void connection_close(connection_t c){

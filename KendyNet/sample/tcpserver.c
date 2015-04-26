@@ -34,9 +34,11 @@ void on_accept(handle_t s,void *listener,int _2,int _3){
 }
 
 
-int timer_callback(kn_timer_t timer){
-	printf("client_count:%d,packet_count:%d\n",client_count,packet_count);
-	packet_count = 0;
+int timer_callback(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){
+		printf("client_count:%d,packet_count:%d\n",client_count,packet_count);
+		packet_count = 0;
+	}
 	return 1;
 }
 

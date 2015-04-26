@@ -36,10 +36,10 @@ static void cb_redis_disconnected(redisconn_t rc,void *_){
 	printf("disconnected\n");
 }
 
-int timer_callback2(kn_timer_t timer){
-	//printf("count:%d\n",count);
-	//count = 0;
-	kn_redisDisconnect((redisconn_t)kn_timer_getud(timer));
+int timer_callback2(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){
+		kn_redisDisconnect((redisconn_t)ud);
+	}
 	return 0;
 }
 
@@ -70,10 +70,12 @@ static void cb_redis_connect(redisconn_t rc,int err,void *_){
 	}	
 }
 
-int timer_callback(kn_timer_t timer){
-	printf("count:%d\n",count);
-	count = 0;
-	return 1;
+int timer_callback(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){	
+		printf("count:%d\n",count);
+		count = 0;
+	}
+	return 0;
 }
 
 int main(){

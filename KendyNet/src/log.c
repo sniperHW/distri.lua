@@ -79,8 +79,7 @@ static void on_mail(kn_thread_mailbox_t *from,void *mail){
 	item->_logfile->total_size += strlen(item->content);	
 }
 
-static int flush_timer_callback(kn_timer_t _){
-	((void)_);
+static int flush_timer_callback(uint32_t event,void *ud){
 	struct logfile *l = NULL;	
 	kn_mutex_lock(g_mtx_log_file_list);
 	l = (struct logfile*)kn_list_head(&g_log_file_list);
@@ -89,7 +88,7 @@ static int flush_timer_callback(kn_timer_t _){
 		l = (struct logfile*)((kn_list_node*)l)->next;
 	}
 	kn_mutex_unlock(g_mtx_log_file_list); 
-	return 1;
+	return 0;
 }
 
 

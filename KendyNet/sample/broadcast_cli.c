@@ -32,9 +32,11 @@ void on_connect(handle_t s,void *_1,int _2,int err)
 }
 
 
-int timer_callback(kn_timer_t timer){
-	printf("client_count:%d\n",client_count);
-	return 1;
+int timer_callback(uint32_t event,void *ud){
+	if(event == TEVENT_TIMEOUT){	
+		printf("client_count:%d\n",client_count);
+	}
+	return 0;
 }
 
 int main(int argc,char **argv){

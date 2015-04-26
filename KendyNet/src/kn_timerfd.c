@@ -12,15 +12,15 @@ void kn_timerfd_on_active(handle_t s,int event){
 	errno = 0;
 	TEMP_FAILURE_RETRY(read(t->comm_head.fd,&tmp,sizeof(tmp)));
 	if(errno == 0){
-		kn_timermgr_t mgr = (kn_timermgr_t)t->comm_head.ud;
-		kn_timermgr_tick(mgr);
+		wheelmgr_t mgr = (wheelmgr_t)t->comm_head.ud;
+		wheelmgr_tick(mgr,kn_systemms64());
 	}
 }
 
 void kn_timerfd_destroy(handle_t t){
-	kn_timermgr_t mgr = (kn_timermgr_t)t->ud;
+	wheelmgr_t mgr = (wheelmgr_t)t->ud;
 	if(mgr){
-		kn_del_timermgr(mgr);
+		wheelmgr_del(mgr);
 	}
 	close(t->fd);
 	free(t);
@@ -58,14 +58,14 @@ handle_t kn_new_timerfd(uint32_t timeout){
 
 void kn_timerfd_on_active(handle_t s,int event){
 	kn_timerfd_t t = (kn_timerfd_t)s;
-	kn_timermgr_t mgr = (kn_timermgr_t)t->comm_head.ud;
-	kn_timermgr_tick(mgr);		
+	wheelmgr_t mgr = (wheelmgr_t)t->comm_head.ud;
+	wheelmgr_tick(mgr);		
 }
 
 void kn_timerfd_destroy(handle_t t){
 	kn_timermgr_t mgr = (kn_timermgr_t)t->ud;
 	if(mgr){
-		kn_del_timermgr(mgr);
+		wheelmgr_del(mgr);
 	}	
 	free(t);
 }
