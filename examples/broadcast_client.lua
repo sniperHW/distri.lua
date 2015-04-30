@@ -38,7 +38,7 @@ end
 local last = C.GetSysTick()
 local timer = Timer.New():Register(function ()
       local now = C.GetSysTick()
-      print(string.format("avadelay:%d",delay))
+      print(string.format("avadelay:%s",delay))
       last = now
 end,1000):Run()
 

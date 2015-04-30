@@ -364,14 +364,7 @@ static void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 				return;
 			}
 			bytestransfer = kn_sock_send(c->handle,io);
-			if(bytestransfer == 0){
-				c->doing_send = 1;
-				return;//EAGAIN
-			}
-			else if(bytestransfer < 0){
-				_force_close(c,errno);
-				return;
-			}			
+			if(bytestransfer == 0) return;//EAGAIN		
 		}		
 	}
 }
