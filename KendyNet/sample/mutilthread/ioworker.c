@@ -57,8 +57,7 @@ static void* worker_routine(void *_){
 	worker_t _worker  = (worker_t)_;
 	t_worker = _worker;
 	engine_t _engine = (engine_t)_worker->_engine;
-	kn_setup_mailbox(_engine,on_mail);
-	_worker->_mailbox = kn_self_mailbox();
+	_worker->_mailbox = kn_setup_mailbox(_engine,on_mail);
 	kn_engine_run(_engine);
 	return NULL;
 }
@@ -81,7 +80,7 @@ void ioworker_sendmsg(worker_t _worker,msg_t msg){
 void ioworker_startrun(worker_t _worker){
 	if(!_worker->_thread){
 		_worker->_thread = kn_create_thread(THREAD_JOINABLE);
-		kn_thread_start_run(_worker->_thread,worker_routine,_worker);
+		kn_thread_start(_worker->_thread,worker_routine,_worker);
 	}
 }
 

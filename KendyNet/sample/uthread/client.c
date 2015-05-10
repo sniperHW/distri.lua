@@ -1,5 +1,5 @@
 #include "ut_socket.h"
-#include "uthread/uthread.h"
+#include "uthread.h"
 #include <stdio.h>
 #include <stdlib.h>
 

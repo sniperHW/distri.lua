@@ -32,8 +32,7 @@ static void* logic_routine(void *_){
 	logicprocessor_t logic = (logicprocessor_t)_;
 	t_logic = logic;
 	engine_t _engine = (engine_t)logic->_engine;
-	kn_setup_mailbox(_engine,on_mail);
-	logic->_mailbox = kn_self_mailbox();
+	logic->_mailbox = kn_setup_mailbox(_engine,on_mail);
 	kn_engine_run(_engine);
 	return NULL;
 }
@@ -63,7 +62,7 @@ logicprocessor_t create_logic(void (*on_new_connection)(kn_thread_mailbox_t,iden
 void logic_startrun(logicprocessor_t logic){
 	if(!logic->_thread){
 		logic->_thread = kn_create_thread(THREAD_JOINABLE);
-		kn_thread_start_run(logic->_thread,logic_routine,logic);
+		kn_thread_start(logic->_thread,logic_routine,logic);
 	}
 }
 void stop_logic(logicprocessor_t logic){

@@ -3,7 +3,7 @@
 #include <ucontext.h>
 #include <assert.h>
 #include "kn_dlist.h"
-#include "uthread/uthread.h"
+#include "uthread.h"
 #include "minheap.h"
 #include "kn_common_define.h"
 #include "kn_time.h"
