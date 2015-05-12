@@ -303,14 +303,10 @@ static void on_events(handle_t h,int events){
 			process_connect(s,events);
 		}else if(h->status == SOCKET_ESTABLISH){
 			if(events & EVENT_READ){
-				if(kn_list_size(&s->pending_recv) == 0){
-					s->callback((handle_t)s,NULL,-1,0);
-					break;
-				}else{
-					process_read(s);	
-					if(h->status == SOCKET_CLOSE) 
-						break;								
-				}
+				process_read(s);	
+				if(h->status == SOCKET_CLOSE) 
+					break;								
+				
 			}		
 			if(events & EVENT_WRITE)
 				process_write(s);			
