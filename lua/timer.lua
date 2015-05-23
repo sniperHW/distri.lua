@@ -52,10 +52,15 @@ function timer:Run()
 			end
 			for k,v in pairs(timeouts) do
 				if not v.invaild then
-					local status,ret = pcall(v.callback,table.unpack(v.arg))
-					if not status then
-						local err = ret
-						CLog.SysLog(CLog.LOG_ERROR,"timer error:" .. err)
+					local errmsg,stack
+					local ok,ret = xpcall(v.callback,
+										  function (err)
+										  	errmsg = err
+										  	stack  = debug.traceback()
+										  end,	
+										  table.unpack(v.arg))
+					if not ok then
+						CLog.SysLog(CLog.LOG_ERROR,string.format("timer error:%s\n%s",errmsg,stack))
 					else
 						if ret == nil then
 							self:Register(v.callback,v.ms,table.unpack(v.arg))

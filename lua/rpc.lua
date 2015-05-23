@@ -53,9 +53,14 @@ local function RPC_Process_Call(app,s,rpk)
 			if not func then
 				CLog.SysLog(CLog.LOG_ERROR,funname .. " not found")
 			else	
-				local ret = table.pack(pcall(func,table.unpack(request.arg)))
-				if not ret[1] then
-					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+				local stack,errmsg
+				if not xpcall(func,
+							  function (err)
+							  	errmsg = err
+							  	stack  = debug.traceback() 
+							  end,table.unpack(request.arg)) then
+					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s\n%s",errmsg,stack))
+
 				end
 			end
 		else
@@ -63,13 +68,18 @@ local function RPC_Process_Call(app,s,rpk)
 			if not func then
 				response.err = funname .. " not found"
 			else	
-				local ret = table.pack(pcall(func,table.unpack(request.arg)))
+				local stack,errmsg
+				local ret = table.pack(xpcall(func,
+											  function (err)
+											  	errmsg = err
+											  	stack  = debug.traceback()
+											  end,table.unpack(request.arg)))
 				if ret[1] then
 					table.remove(ret,1)			
 					response.ret = ret
 				else
-					response.err = ret[2]
-					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s",ret[2]))
+					response.err = errmsg
+					CLog.SysLog(CLog.LOG_ERROR,string.format("rpc process error:%s\n%s",errmsg,stack))
 				end
 			end
 			local wpk = CPacket.NewWPacket(512)
@@ -92,10 +102,14 @@ local function RPC_Process_Response(s,rpk)
 		s.pending_call[id_string] = nil
 		minheap:Remove(context)		
 		if context.callback then			
-			local ret = table.pack(pcall(context.callback,response.err,table.unpack(response.ret)))
-			if not ret[1] then
-				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s",ret[2]))
-			end			
+			local stack,errmsg
+			if not xpcall(context.callback,
+						  function (err)
+						  	errmsg = err
+						  	stack  = debug.traceback()
+						  end,response.err,table.unpack(response.ret)) then
+				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s\n%s",errmsg,stack))
+			end		
 		elseif context.co then
 			context.co.response = response
 			Sche.WakeUp(context.co)
@@ -156,9 +170,13 @@ function rpcCaller:CallAsync(callback,...)
 			trycount= trycount + 1			
 			minheap:Insert(context,C.GetSysTick() + 5000)		
 		else
-			ret = table.pack(pcall(callback,{err="timeout"}))
-			if not ret[1] then
-				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s",ret[2]))
+			local stack,errmsg
+			if not xpcall(callback,
+						  function (err)
+						  	errmsg = err
+						  	stack  = debug.traceback()
+						  end,{err="timeout"}) then
+				CLog.SysLog(CLog.LOG_ERROR,string.format("CallAsync error in callback:%s\n%s",errmsg,stack))
 			end
 			socket.pending_call[id_string] = nil
 			return

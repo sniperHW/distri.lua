@@ -58,11 +58,16 @@ local function recver(app,socket)
 					RPC.ProcessResponse(socket,rpk)
 				end
 			elseif cmd and cmd == CMD_PING then
-				socket:Send(CPacket.NewWPacket(rpk))		
+				return		
 			elseif socket.process_packet then
-				local ret,err = pcall(socket.process_packet,socket,rpk)
-				if not ret then
-					CLog.SysLog(CLog.LOG_ERROR,"application process_packet error:" .. err)
+				local stack,errmsg
+				if not xpcall(socket.process_packet,
+					   		  function (err)
+					   		  	errmsg = err	
+					   			stack = debug.traceback()	
+					   		  end,socket,rpk) then
+					CLog.SysLog(CLog.LOG_ERROR,
+								string.format("application process_packet error:%s\n%s\n",errmsg,stack))
 				end
 			end
 		end

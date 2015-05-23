@@ -127,9 +127,14 @@ local function GetCoByIdentity(identity)
 end
 
 local function start_fun(co)
-    local ret,err = pcall(co.start_func,table.unpack(co.args))
-    if not ret then
-        CLog.SysLog(CLog.LOG_ERROR,string.format("error on start_fun::%s",err))
+	local stack,errmsg
+    if not xpcall(co.start_func,
+    			  function (err)
+    			  	errmsg = err
+    			 	stack  = debug.traceback()
+    			  end,
+    			  table.unpack(co.args)) then
+        CLog.SysLog(CLog.LOG_ERROR,string.format("error on start_fun:%s\n%s",errmsg,stack))
     end
     sche.allcos[co.identity] = nil
     sche.co_count = sche.co_count - 1
