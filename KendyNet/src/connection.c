@@ -151,8 +151,7 @@ static inline void update_send_list(connection_t c,int32_t _bytestransfer)
 	packet_t w;
 	uint32_t bytestransfer = (uint32_t)_bytestransfer;
 	uint32_t size;
-	while(bytestransfer)
-	{
+	do{
 		w = (packet_t)kn_list_head(&c->send_list);
 		assert(w);
 		if((uint32_t)bytestransfer >= w->data_size)
@@ -167,9 +166,8 @@ static inline void update_send_list(connection_t c,int32_t _bytestransfer)
 				kn_list_pop(&c->send_call_back);
 			}
 			destroy_packet(w);
-		}else{
-			while(bytestransfer)
-			{
+		}else{			
+			do{
 				size = packet_buf(w)->size - packet_begpos(w);
 				size = size > (uint32_t)bytestransfer ? (uint32_t)bytestransfer:size;
 				bytestransfer -= size;
@@ -180,11 +178,9 @@ static inline void update_send_list(connection_t c,int32_t _bytestransfer)
 					packet_begpos(w) = 0;
 					packet_buf(w) = buffer_acquire(packet_buf(w),packet_buf(w)->next);
 				}
-			}
-			break;
-			//kn_list_pushfront(&c->send_list,(kn_list_node*)w);
+			}while(bytestransfer);
 		}
-	}
+	}while(bytestransfer);
 }
 
 static void connection_destroy(void *ptr)
@@ -349,7 +345,7 @@ static void RecvFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 
 static void SendFinish(connection_t c,int32_t bytestransfer,int32_t err_code)
 {
-	if(bytestransfer == 0 || (bytestransfer < 0 && err_code != EAGAIN)){
+	if(bytestransfer < 0 && err_code != EAGAIN){
 		_force_close(c,err_code);
 	}else{		
 		for(;;){
