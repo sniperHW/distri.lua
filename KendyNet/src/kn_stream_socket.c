@@ -116,6 +116,7 @@ handle_t new_stream_socket(int fd,int domain){
 	((handle_t)ss)->fd = fd;
 	((handle_t)ss)->type = KN_SOCKET;
 	((kn_socket*)ss)->domain = domain;
+	((kn_socket*)ss)->flag   = READABLE | WRITEABLE;
 	((kn_socket*)ss)->type = SOCK_STREAM;
 	((handle_t)ss)->on_events = on_events;
 	//((handle_t)ss)->on_destroy = on_destroy;
@@ -126,6 +127,7 @@ handle_t new_stream_socket(int fd,int domain){
 static void process_read(kn_socket *s){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
+	s->flag |= READABLE;
 	while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
 		errno = 0;
 		if(((kn_stream_socket*)s)->ssl){
@@ -141,13 +143,16 @@ static void process_read(kn_socket *s){
 			bytes_transfer = TEMP_FAILURE_RETRY(readv(s->comm_head.fd,io_req->iovec,io_req->iovec_count));	
 		
 		if(bytes_transfer < 0 && errno == EAGAIN){
+				s->flag ^= READABLE;
 				//将请求重新放回到队列
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
 				break;
 		}else{
 			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
-				return;			
+				return;	
+			if(!(s->flag & READABLE))
+				break;		
 		}
 	}	
 	if(!kn_list_size(&s->pending_recv)){
@@ -159,6 +164,7 @@ static void process_read(kn_socket *s){
 static void process_write(kn_socket *s){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
+	s->flag |= WRITEABLE;
 	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
 		errno = 0;
 		if(((kn_stream_socket*)s)->ssl){
@@ -174,6 +180,7 @@ static void process_write(kn_socket *s){
 			bytes_transfer = TEMP_FAILURE_RETRY(writev(s->comm_head.fd,io_req->iovec,io_req->iovec_count));
 		
 		if(bytes_transfer < 0 && errno == EAGAIN){
+				s->flag ^= WRITEABLE;
 				//将请求重新放回到队列
 				kn_list_pushback(&s->pending_send,(kn_list_node*)io_req);
 				break;
@@ -181,6 +188,8 @@ static void process_write(kn_socket *s){
 			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
 				return;
+			if(!(s->flag & WRITEABLE))
+				break;
 		}
 	}
 	if(!kn_list_size(&s->pending_send)){

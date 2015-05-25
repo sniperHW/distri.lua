@@ -15,6 +15,7 @@ typedef struct{
 	handle comm_head;
 	int    domain;
 	int    type;
+	int    flag;
 	engine_t e;
 	kn_list pending_send;//尚未处理的发请求
     	kn_list pending_recv;//尚未处理的读请求
@@ -23,6 +24,11 @@ typedef struct{
 	void   (*callback)(handle_t,void*,int,int);
 	void   (*clear_func)(void*);
 }kn_socket;
+
+enum{
+	READABLE =  1 << 1,
+	WRITEABLE = 1 << 2,
+};
 
 enum{
 	SOCKET_NONE = 0,

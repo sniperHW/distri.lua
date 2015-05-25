@@ -46,7 +46,7 @@ static  inline int stream_socket_send(handle_t h,st_io *req){
 	if(!s->e || h->status != SOCKET_ESTABLISH){
 		return -1;
 	 }	
-	if(0 != kn_list_size(&s->pending_send))
+	if(!(s->flag & WRITEABLE) || 0 != kn_list_size(&s->pending_send))
 		return kn_sock_post_send(h,req);			
 	int bytes_transfer = 0;
 
@@ -63,8 +63,10 @@ static  inline int stream_socket_send(handle_t h,st_io *req){
 		bytes_transfer = TEMP_FAILURE_RETRY(writev(h->fd,req->iovec,req->iovec_count));				
 
 		
-	if(bytes_transfer < 0 && errno == EAGAIN)
+	if(bytes_transfer < 0 && errno == EAGAIN){
+		s->flag ^= WRITEABLE;
 		return kn_sock_post_send(h,req);				
+	}
 	return bytes_transfer > 0 ? bytes_transfer:-1;
 }
 
@@ -76,7 +78,7 @@ static inline int datagam_socket_send(handle_t h,st_io *req){
 	if(h->status != SOCKET_DATAGRAM){
 		return -1;
 	 }
-	if(0 != kn_list_size(&s->pending_send))
+	if(!(s->flag & WRITEABLE) || 0 != kn_list_size(&s->pending_send))
 		return kn_sock_post_recv(h,req);		 	
 	struct msghdr _msghdr = {
 		.msg_name = &req->addr,
@@ -108,7 +110,7 @@ static inline int stream_socket_recv(handle_t h,st_io *req){
 	if(!s->e || h->status != SOCKET_ESTABLISH){
 		return -1;
 	 }	
-	if(0 != kn_list_size(&s->pending_recv))
+	if(!(s->flag & READABLE) || 0 != kn_list_size(&s->pending_recv))
 		return kn_sock_post_recv(h,req);
 		
 	int bytes_transfer = 0;
@@ -126,8 +128,10 @@ static inline int stream_socket_recv(handle_t h,st_io *req){
 		bytes_transfer = TEMP_FAILURE_RETRY(readv(h->fd,req->iovec,req->iovec_count));				
 
 		
-	if(bytes_transfer < 0 && errno == EAGAIN)
+	if(bytes_transfer < 0 && errno == EAGAIN){
+		s->flag ^= READABLE;
 		return kn_sock_post_recv(h,req);				
+	}
 	return bytes_transfer > 0 ? bytes_transfer:-1;		
 }
 
@@ -137,7 +141,7 @@ static inline int datagam_socket_recv(handle_t h,st_io *req){
 	if(!s->e || h->status != SOCKET_DATAGRAM){
 		return -1;
 	 }	
-	if(0 != kn_list_size(&s->pending_recv))
+	if(!(s->flag & READABLE) || 0 != kn_list_size(&s->pending_recv))
 		return kn_sock_post_recv(h,req);			
 
 	struct msghdr _msghdr = {
@@ -152,8 +156,10 @@ static inline int datagam_socket_recv(handle_t h,st_io *req){
 	req->recvflags = 0;		
 	int bytes_transfer = TEMP_FAILURE_RETRY(recvmsg(s->comm_head.fd,&_msghdr,0));					
 	req->recvflags = _msghdr.msg_flags;
-	if(bytes_transfer < 0 && errno == EAGAIN)
+	if(bytes_transfer < 0 && errno == EAGAIN){
+		s->flag ^= READABLE;
 		return kn_sock_post_recv(h,req);					
+	}
 	return bytes_transfer > 0 ? bytes_transfer:-1;	
 } 
 
