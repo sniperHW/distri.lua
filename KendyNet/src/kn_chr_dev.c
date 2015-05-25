@@ -106,12 +106,12 @@ static int chrdev_associate(engine_t e,
 	r->callback = callback;
 	r->e = e;
 #ifdef _LINUX
-	kn_event_add(r->e,h,EPOLLERR);
+	kn_event_add(r->e,h,EVENT_READ | EVENT_WRITE);
 #elif   _BSD
-	kn_event_add(r->e,h,EVFILT_READ);
-	kn_event_add(r->e,h,EVFILT_WRITE);
-	kn_disable_read(r->e,h);
-	kn_disable_write(r->e,h);
+	kn_event_add(r->e,h,EVENT_READ);
+	kn_event_add(r->e,h,EVENT_WRITE);
+//	kn_disable_read(r->e,h);
+//	kn_disable_write(r->e,h);
 #endif			
 	return 0;
 }

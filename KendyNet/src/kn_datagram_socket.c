@@ -13,10 +13,10 @@ static int datagram_socket_associate(engine_t e,
 	kn_set_noblock(h->fd,0);
 #ifdef _LINUX
 	kn_event_add(s->e,h,EPOLLIN);
-	kn_disable_read(s->e,h);	
+//	kn_disable_read(s->e,h);	
 #elif   _BSD
 	kn_event_add(s->e,h,EVFILT_READ);
-	kn_disable_read(s->e,h);
+//	kn_disable_read(s->e,h);
 #endif
 	return 0;
 }

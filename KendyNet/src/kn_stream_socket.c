@@ -73,29 +73,29 @@ static int stream_socket_associate(engine_t e,handle_t h,void (*callback)(handle
 	if(h->status == SOCKET_ESTABLISH){
 		kn_set_noblock(h->fd,0);
 #ifdef _LINUX
-		kn_event_add(e,h,EPOLLRDHUP);
+		kn_event_add(e,h,EVENT_WRITE | EVENT_READ);
 #elif   _BSD
-		kn_event_add(e,h,EVFILT_READ);
-		kn_event_add(e,h,EVFILT_WRITE);
-		kn_disable_read(e,h);
-		kn_disable_write(e,h);
+		kn_event_add(e,h,EVENT_WRITE);
+		kn_event_add(e,h,EVENT_READ);
+		//kn_disable_read(e,h);
+		//kn_disable_write(e,h);
 #else
 		return -1;
 #endif
 	}else if(h->status == SOCKET_LISTENING){
 #ifdef _LINUX	
-		kn_event_add(e,h,EPOLLIN);
+		kn_event_add(e,h,EVENT_READ);
 #elif _BSD
-		kn_event_add(e,EVFILT_READ);
+		kn_event_add(e,EVENT_READ);
 #else
 		return -1;
 #endif		
 	}else if(h->status == SOCKET_CONNECTING){
 #ifdef _LINUX			
-		kn_event_add(e,h,EPOLLIN | EPOLLOUT);
+		kn_event_add(e,h,EVENT_WRITE | EVENT_READ);
 #elif _BSD
-		kn_event_add(e,h,EVFILT_READ);
-		kn_event_add(e,h,EVFILT_WRITE);		
+		kn_event_add(e,h,EVENT_WRITE);
+		kn_event_add(e,h,EVENT_READ);		
 #else
 		return -1;
 #endif
