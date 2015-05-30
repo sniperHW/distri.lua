@@ -105,12 +105,7 @@ arg_end:
 					break;
 				}
 				case 'r':{
-					lua_pushvalue(L,i);					
-					luaRef_t* ref = va_arg(vl,luaRef_t*);
-					ref->rindex = luaL_ref(L,LUA_REGISTRYINDEX);  
-					lua_rawgeti(L,  LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-					ref->L = lua_tothread(L,-1);
-					lua_pop(L,1);
+					*va_arg(vl,luaRef_t*) = toluaRef(L,i);
 					break;
 				}
 				default:{
@@ -201,12 +196,7 @@ const char *LuaRef_Get(luaRef_t tab,const char *fmt,...){
 				break;
 			}
 			case 'r':{
-				lua_pushvalue(L,-1);					
-				luaRef_t* ref = va_arg(vl,luaRef_t*);
-				ref->rindex = luaL_ref(L,LUA_REGISTRYINDEX);
-				lua_rawgeti(L,  LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-				ref->L = lua_tothread(L,-1);
-				lua_pop(L,1);
+				*va_arg(vl,luaRef_t*) = toluaRef(L,-1);
 				break;
 			}
 			default:{
