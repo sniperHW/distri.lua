@@ -128,7 +128,7 @@ static void process_read(kn_socket *s){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	s->flag |= READABLE;
-	while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
+	if((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
 		errno = 0;
 		if(((kn_stream_socket*)s)->ssl){
 			bytes_transfer = TEMP_FAILURE_RETRY(SSL_read(((kn_stream_socket*)s)->ssl,io_req->iovec[0].iov_base,io_req->iovec[0].iov_len));
@@ -146,13 +146,10 @@ static void process_read(kn_socket *s){
 				s->flag ^= READABLE;
 				//将请求重新放回到队列
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
-				break;
 		}else{
 			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
-				return;	
-			if(!(s->flag & READABLE))
-				break;		
+				return;		
 		}
 	}	
 	if(!kn_list_size(&s->pending_recv)){
@@ -165,7 +162,7 @@ static void process_write(kn_socket *s){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	s->flag |= WRITEABLE;
-	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
+	if((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
 		errno = 0;
 		if(((kn_stream_socket*)s)->ssl){
 			bytes_transfer = TEMP_FAILURE_RETRY(SSL_write(((kn_stream_socket*)s)->ssl,io_req->iovec[0].iov_base,io_req->iovec[0].iov_len));
@@ -183,13 +180,10 @@ static void process_write(kn_socket *s){
 				s->flag ^= WRITEABLE;
 				//将请求重新放回到队列
 				kn_list_pushback(&s->pending_send,(kn_list_node*)io_req);
-				break;
 		}else{
 			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
 				return;
-			if(!(s->flag & WRITEABLE))
-				break;
 		}
 	}
 	if(!kn_list_size(&s->pending_send)){

@@ -22,13 +22,12 @@ enum{
 static void process_read(kn_chr_dev *r){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
-	while((io_req = (st_io*)kn_list_pop(&r->pending_read))!=NULL){
+	if((io_req = (st_io*)kn_list_pop(&r->pending_read))!=NULL){
 		errno = 0;
 		bytes_transfer = TEMP_FAILURE_RETRY(readv(r->comm_head.fd,io_req->iovec,io_req->iovec_count));
 		if(bytes_transfer < 0 && errno == EAGAIN){
 				//将请求重新放回到队列
 				kn_list_pushback(&r->pending_read,(kn_list_node*)io_req);
-				break;
 		}else{
 			r->callback((handle_t)r,io_req,bytes_transfer,errno);
 			if(r->comm_head.status == KN_CHRDEV_RELEASE)
@@ -44,13 +43,12 @@ static void process_read(kn_chr_dev *r){
 static void process_write(kn_chr_dev *r){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
-	while((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL){
+	if((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL){
 		errno = 0;
 		bytes_transfer = TEMP_FAILURE_RETRY(writev(r->comm_head.fd,io_req->iovec,io_req->iovec_count));
 		if(bytes_transfer < 0 && errno == EAGAIN){
 				//将请求重新放回到队列
 				kn_list_pushback(&r->pending_write,(kn_list_node*)io_req);
-				break;
 		}else{
 			r->callback((handle_t)r,io_req,bytes_transfer,errno);
 			if(r->comm_head.status == KN_CHRDEV_RELEASE)

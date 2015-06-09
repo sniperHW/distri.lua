@@ -77,7 +77,7 @@ static void process_read(kn_socket *s){
 	int bytes_transfer = 0;
 	struct msghdr _msghdr;
 	s->flag |= READABLE;
-	while((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
+	if((io_req = (st_io*)kn_list_pop(&s->pending_recv))!=NULL){
 		errno = 0;
 		_msghdr = (struct msghdr){
 			.msg_name = &io_req->addr,
@@ -95,13 +95,10 @@ static void process_read(kn_socket *s){
 				//将请求重新放回到队列
 				s->flag ^= READABLE;
 				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
-				break;
 		}else{
 			s->callback((handle_t)s,io_req,bytes_transfer,errno);
 			if(s->comm_head.status == SOCKET_CLOSE)
-				return;
-			if(!(s->flag & READABLE))
-				break;			
+				return;			
 		}
 	}	
 	if(!kn_list_size(&s->pending_recv)){
@@ -115,7 +112,7 @@ static void process_write(kn_socket *s){
 	int bytes_transfer = 0;
 	struct msghdr _msghdr;
 	s->flag |= WRITEABLE;
-	while((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
+	if((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
 		errno = 0;
 		_msghdr = (struct msghdr){
 			.msg_name = &io_req->addr,
@@ -129,9 +126,7 @@ static void process_write(kn_socket *s){
 		bytes_transfer = TEMP_FAILURE_RETRY(sendmsg(s->comm_head.fd,&_msghdr,0));	
 		s->callback((handle_t)s,io_req,bytes_transfer,errno);
 		if(s->comm_head.status == SOCKET_CLOSE)
-			return;
-		if(!(s->flag & WRITEABLE))
-			break;						
+			return;				
 	}	
 	if(!kn_list_size(&s->pending_send)){
 		kn_disable_write(s->e,(handle_t)s);
