@@ -91,15 +91,9 @@ static void process_read(kn_socket *s){
 		io_req->recvflags = 0;
 		bytes_transfer = TEMP_FAILURE_RETRY(recvmsg(s->comm_head.fd,&_msghdr,0));	
 		io_req->recvflags = _msghdr.msg_flags;
-		if(bytes_transfer < 0 && errno == EAGAIN){
-				//将请求重新放回到队列
-				s->flag ^= READABLE;
-				kn_list_pushback(&s->pending_recv,(kn_list_node*)io_req);
-		}else{
-			s->callback((handle_t)s,io_req,bytes_transfer,errno);
-			if(s->comm_head.status == SOCKET_CLOSE)
-				return;			
-		}
+		s->callback((handle_t)s,io_req,bytes_transfer,errno);
+		if(s->comm_head.status == SOCKET_CLOSE)
+			return;			
 	}	
 	if(!kn_list_size(&s->pending_recv)){
 		//没有接收请求了,取消EPOLLIN
@@ -111,6 +105,7 @@ static void process_write(kn_socket *s){
 	st_io* io_req = 0;
 	int bytes_transfer = 0;
 	struct msghdr _msghdr;
+	kn_disable_write(s->e,(handle_t)s);
 	s->flag |= WRITEABLE;
 	if((io_req = (st_io*)kn_list_pop(&s->pending_send))!=NULL){
 		errno = 0;
@@ -127,10 +122,7 @@ static void process_write(kn_socket *s){
 		s->callback((handle_t)s,io_req,bytes_transfer,errno);
 		if(s->comm_head.status == SOCKET_CLOSE)
 			return;				
-	}	
-	if(!kn_list_size(&s->pending_send)){
-		kn_disable_write(s->e,(handle_t)s);
-	}	
+	}		
 }
 
 static void on_events(handle_t h,int events){	

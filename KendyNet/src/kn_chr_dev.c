@@ -25,14 +25,11 @@ static void process_read(kn_chr_dev *r){
 	if((io_req = (st_io*)kn_list_pop(&r->pending_read))!=NULL){
 		errno = 0;
 		bytes_transfer = TEMP_FAILURE_RETRY(readv(r->comm_head.fd,io_req->iovec,io_req->iovec_count));
-		if(bytes_transfer < 0 && errno == EAGAIN){
-				//将请求重新放回到队列
-				kn_list_pushback(&r->pending_read,(kn_list_node*)io_req);
-		}else{
-			r->callback((handle_t)r,io_req,bytes_transfer,errno);
-			if(r->comm_head.status == KN_CHRDEV_RELEASE)
-				return;			
-		}
+
+		r->callback((handle_t)r,io_req,bytes_transfer,errno);
+		if(r->comm_head.status == KN_CHRDEV_RELEASE)
+			return;			
+		
 	}	
 	if(kn_list_size(&r->pending_read) == 0){
 		//没有接收请求了,取消EPOLLIN
@@ -46,14 +43,10 @@ static void process_write(kn_chr_dev *r){
 	if((io_req = (st_io*)kn_list_pop(&r->pending_write))!=NULL){
 		errno = 0;
 		bytes_transfer = TEMP_FAILURE_RETRY(writev(r->comm_head.fd,io_req->iovec,io_req->iovec_count));
-		if(bytes_transfer < 0 && errno == EAGAIN){
-				//将请求重新放回到队列
-				kn_list_pushback(&r->pending_write,(kn_list_node*)io_req);
-		}else{
-			r->callback((handle_t)r,io_req,bytes_transfer,errno);
-			if(r->comm_head.status == KN_CHRDEV_RELEASE)
-				return;
-		}
+		r->callback((handle_t)r,io_req,bytes_transfer,errno);
+		if(r->comm_head.status == KN_CHRDEV_RELEASE)
+			return;
+
 	}
 	if(kn_list_size(&r->pending_write) == 0){
 		//没有接收请求了,取消EPOLLOUT
