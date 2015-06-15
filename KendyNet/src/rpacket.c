@@ -86,13 +86,16 @@ packet_t wpk_makeforread(packet_t p){
 
 const char* rpk_read_string(rpacket_t r)
 {
-	uint32_t len = 0;
-	return (const char *)rpk_read_binary(r,&len);
+	uint16_t len;	
+	char *str =  rpacket_read_binary(r,&len);
+	if(str && str[len-1] == '\0')
+		return str;	
+	return NULL;
 }
 
 const void* rpk_read_binary(rpacket_t r,uint32_t *len)
 {
-	void *addr = 0;
+	void *addr = NULL;
 	uint32_t size = 0;
 	size = rpk_read_uint32(r);
 	*len = size;
