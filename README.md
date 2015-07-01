@@ -23,8 +23,6 @@ distri.lua is licensed under GPL license.
 get distri.lua
 -----------
 
-Install libcurl
-
 Install lua 5.2.
 
 Clone [the repository](https://github.com/sniperHW/distri.lua).

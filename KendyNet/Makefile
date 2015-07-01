@@ -4,7 +4,7 @@ CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 SHARED   =   -fPIC
 DEPDIR = ../deps
-INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.3.0/src -I$(DEPDIR)/curl-7.38.0/include
+INCLUDE = -I./include -I./src -I./ -I$(DEPDIR) -I$(DEPDIR)/lua-5.3.0/src
 DEFINE =
 LIBNAME = libkendynet.a
 
@@ -44,7 +44,6 @@ source =  src/kn_engine.c \
 	   src/rbtree.c \
 	   src/kn_daemonize.c \
 	   src/lua_util.c \
-	   src/kn_curl.c\
 	   src/kn_objpool.c\
 	   src/kn_chr_dev.c\
 	   src/kendynet.c\
@@ -67,7 +66,6 @@ sample-source = sample/broadcast_svr.c\
 		 sample/testlog.c\
 		 sample/testlua.c\
 		 sample/daemonserver.c\
-		 sample/testcurl.c\
 		 sample/testlfstack.c\
 		 sample/testminheap.c\
 		 sample/objpool.c\
@@ -103,7 +101,6 @@ sample:$(LIBNAME) $(sample-source)
 	$(CC) $(CFLAGS) -o testlog testlog.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testlua testlua.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(DEPDIR)/lua-5.3.0/src/liblua.a -ldl $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o daemonserver daemonserver.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
-	$(CC) $(CFLAGS) -o testcurl testcurl.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE) -lcurl
 	$(CC) $(CFLAGS) -o testlfstack testlfstack.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o testminheap testminheap.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
 	$(CC) $(CFLAGS) -o objpool objpool.o $(LIBNAME) $(DEPDIR)/jemalloc/lib/libjemalloc.a  $(INCLUDE) $(LDFLAGS) $(DEFINE)
