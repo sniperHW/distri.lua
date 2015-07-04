@@ -22,7 +22,7 @@ local function client_routine()
 end
 
 if NameService.Connect() then
-	for i=1,1000 do
+	for i=1,100 do
 		Sche.Spawn(client_routine)
 	end
 else

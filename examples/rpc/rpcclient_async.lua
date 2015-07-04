@@ -23,7 +23,7 @@ for i=1,10 do
 				end
 			end
 		end		
-		for j=1,100 do			
+		for j=1,1000 do			
 			Plus(callback,1,2)	
 		end
 	end)	

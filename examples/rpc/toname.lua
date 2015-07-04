@@ -48,6 +48,7 @@ function private.register(name,ip,port)
 	end
 
 	local err,ret = rpc_handle_Reg:CallSync(name,ip,port)
+	print(name,ip,port)
 	if err or not ret then
 		print("register to name error")	
 		return false
