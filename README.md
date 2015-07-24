@@ -1,4 +1,4 @@
-distri.lua
+distri.lua(discard,See Chuck)
 ======
 distri.lua is a lua concurrency networking framework aid to help the developer to fast
 build online game server ,web application,light distributed system and so on.
