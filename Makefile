@@ -1,5 +1,5 @@
 PLAT =
-CFLAGS = -O2 -g -Wall -fno-strict-aliasing
+CFLAGS = -g -Wall -fno-strict-aliasing
 LDFLAGS = -lpthread -lrt -lm -lssl -lcrypto
 INCLUDE = -IKendyNet/include -Ideps -Ideps/lua-5.3.0/src 
 DEFINE =

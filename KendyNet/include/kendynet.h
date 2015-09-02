@@ -90,6 +90,8 @@ kn_sockaddr* kn_sock_addrpeer(handle_t);
 #include <machine/endian.h>
 #endif
 
+#ifdef _ENDIAN_CHANGE_
+
 static inline uint16_t kn_swap16(uint16_t num){
 	return ((num << 8) & 0xFF00) | ((num & 0xFF00) >> 8); 
 }
@@ -122,6 +124,23 @@ static inline uint64_t kn_ntoh64(uint64_t num){
 	return kn_swap64(num);
 #endif
 }
+
+#else
+
+#define kn_hton16(x) (x)
+#define kn_ntoh16(x) (x)
+#define kn_hton32(x) (x)
+#define kn_ntoh32(x) (x)
+
+static inline uint64_t kn_hton64(uint64_t num){
+	return num;
+}
+
+static inline uint64_t kn_ntoh64(uint64_t num){
+	return num;
+}
+
+#endif
 
 #endif
 
