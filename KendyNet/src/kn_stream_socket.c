@@ -206,7 +206,7 @@ again:
 	}
 	int flags;
 	int dummy = 0;
-	if ((flags = fcntl(fd, F_GETFL, dummy)) < 0){
+	if ((flags = fcntl(fd, F_GETFD, dummy)) < 0){
 		printf("fcntl get error\n");
     		close(fd);
     		return -1;
