@@ -43,6 +43,7 @@ refobj *cast2refobj(ident _ident)
             }
             if(COMPARE_AND_SWAP(&o->refcount,oldCount,newCount)){
                 ptr = o;
+		break;
             }    
         }
     }CATCH_ALL{
